@@ -105,7 +105,7 @@ const IS_MAC = platform() === 'darwin';
  * Resolve how to run the MCP server.
  *
  * Returns either:
- * - { mode: 'npx' }                — use `npx ai-mind-map-server` (stable, no hardcoded path)
+ * - { mode: 'npx' }                — use `npx ai-mind-map` (stable, no hardcoded path)
  * - { mode: 'global', path: ... }  — globally installed, use absolute path to dist/index.js
  * - { mode: 'local', path: ... }   — git clone, use absolute path to dist/index.js
  */
@@ -215,7 +215,7 @@ function mcpServerEntry(serverEntry: string): Record<string, unknown> {
     return {
       'ai-mind-map': {
         command: 'npx',
-        args: ['-y', 'ai-mind-map-server'],
+        args: ['-y', 'ai-mind-map'],
         env: {},
       },
     };
@@ -278,7 +278,7 @@ function mergeMcpConfig(
   if (runConfig.mode === 'npx') {
     servers['ai-mind-map'] = {
       command: 'npx',
-      args: ['-y', 'ai-mind-map-server'],
+      args: ['-y', 'ai-mind-map'],
       env: {},
     };
   } else {
@@ -388,7 +388,7 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
         const mcpServers = (existing['mcp.servers'] as Record<string, unknown>) ?? {};
         const runConfig = getServerRunConfig();
         mcpServers['ai-mind-map'] = runConfig.mode === 'npx'
-          ? { command: 'npx', args: ['-y', 'ai-mind-map-server'], env: {} }
+          ? { command: 'npx', args: ['-y', 'ai-mind-map'], env: {} }
           : { command: 'node', args: [serverEntry], env: {} };
         existing['mcp.servers'] = mcpServers;
         return JSON.stringify(existing, null, 2);
@@ -417,7 +417,7 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
         const mcpServers = (existing['mcp.servers'] as Record<string, unknown>) ?? {};
         const runConfig = getServerRunConfig();
         mcpServers['ai-mind-map'] = runConfig.mode === 'npx'
-          ? { command: 'npx', args: ['-y', 'ai-mind-map-server'], env: {} }
+          ? { command: 'npx', args: ['-y', 'ai-mind-map'], env: {} }
           : { command: 'node', args: [serverEntry], env: {} };
         existing['mcp.servers'] = mcpServers;
         return JSON.stringify(existing, null, 2);
@@ -433,6 +433,7 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
     },
 
     // 5. Antigravity (Gemini)
+    // Gemini reads MCP servers from mcp_config.json (not mcp.json)
     {
       name: 'Antigravity (Gemini)',
       id: 'antigravity',
@@ -440,14 +441,14 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
         path.join(HOME, '.gemini', 'config'),
         path.join(HOME, '.gemini'),
       ],
-      configPath: path.join(HOME, '.gemini', 'config', 'mcp.json'),
+      configPath: path.join(HOME, '.gemini', 'config', 'mcp_config.json'),
       generateConfig: () => JSON.stringify({ mcpServers: mcpServerEntry(serverEntry) }, null, 2),
       isConfigured: () => hasMcpConfig(
-        path.join(HOME, '.gemini', 'config', 'mcp.json'),
+        path.join(HOME, '.gemini', 'config', 'mcp_config.json'),
         'mcpServers',
       ),
       removeConfig: () => removeMcpConfig(
-        path.join(HOME, '.gemini', 'config', 'mcp.json'),
+        path.join(HOME, '.gemini', 'config', 'mcp_config.json'),
         'mcpServers',
       ),
     },
@@ -465,7 +466,7 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
         const contextServers = (existing['context_servers'] as Record<string, unknown>) ?? {};
         const runConfig = getServerRunConfig();
         const serverConfig = runConfig.mode === 'npx'
-          ? { path: 'npx', args: ['-y', 'ai-mind-map-server'], env: {} }
+          ? { path: 'npx', args: ['-y', 'ai-mind-map'], env: {} }
           : { path: 'node', args: [serverEntry], env: {} };
         contextServers['ai-mind-map'] = {
           command: serverConfig,
@@ -515,7 +516,7 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
         if (!exists) {
           const runConfig = getServerRunConfig();
           const serverEntryConfig = runConfig.mode === 'npx'
-            ? { command: 'npx', args: ['-y', 'ai-mind-map-server'], env: {} }
+            ? { command: 'npx', args: ['-y', 'ai-mind-map'], env: {} }
             : { command: 'node', args: [serverEntry], env: {} };
 
           modelContextProtocolServers.push({

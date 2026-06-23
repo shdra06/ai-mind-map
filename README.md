@@ -165,13 +165,13 @@ After running `install`, each agent's config file contains:
   "mcpServers": {
     "ai-mind-map": {
       "command": "npx",
-      "args": ["-y", "ai-mind-map-server"]
+      "args": ["-y", "ai-mind-map"]
     }
   }
 }
 ```
 
-This tells the agent: *"When you need MCP tools, run `npx ai-mind-map-server`"*. It downloads from npm on first use, then uses cache.
+This tells the agent: *"When you need MCP tools, run `npx ai-mind-map`"*. It downloads from npm on first use, then uses cache.
 
 ### Manual Setup (If You Prefer)
 
@@ -185,7 +185,7 @@ If you want to configure manually, add this to your agent's config:
   "mcpServers": {
     "ai-mind-map": {
       "command": "npx",
-      "args": ["-y", "ai-mind-map-server"]
+      "args": ["-y", "ai-mind-map"]
     }
   }
 }
@@ -200,7 +200,7 @@ If you want to configure manually, add this to your agent's config:
   "mcpServers": {
     "ai-mind-map": {
       "command": "npx",
-      "args": ["-y", "ai-mind-map-server"]
+      "args": ["-y", "ai-mind-map"]
     }
   }
 }
@@ -215,7 +215,7 @@ If you want to configure manually, add this to your agent's config:
   "mcp.servers": {
     "ai-mind-map": {
       "command": "npx",
-      "args": ["-y", "ai-mind-map-server"]
+      "args": ["-y", "ai-mind-map"]
     }
   }
 }
@@ -230,7 +230,7 @@ If you want to configure manually, add this to your agent's config:
   "mcpServers": {
     "ai-mind-map": {
       "command": "npx",
-      "args": ["-y", "ai-mind-map-server"]
+      "args": ["-y", "ai-mind-map"]
     }
   }
 }
@@ -245,7 +245,7 @@ If you want to configure manually, add this to your agent's config:
   "mcp.servers": {
     "ai-mind-map": {
       "command": "npx",
-      "args": ["-y", "ai-mind-map-server"]
+      "args": ["-y", "ai-mind-map"]
     }
   }
 }
@@ -257,7 +257,7 @@ If you want to configure manually, add this to your agent's config:
 
 ```
 Command:   npx
-Args:      -y ai-mind-map-server
+Args:      -y ai-mind-map
 Transport: stdio
 ```
 </details>
