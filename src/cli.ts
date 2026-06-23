@@ -15,6 +15,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
@@ -974,16 +975,106 @@ async function cmdSync(args: ParsedArgs): Promise<void> {
 
 /** ai-mind-map update — Check for updates */
 async function cmdUpdate(): Promise<void> {
-  heading('🔄 Update Check');
+  heading('🔄 AI Mind Map — Update');
   divider();
 
   const currentVersion = getVersion();
-  info(`Current version: ${c.bold}${currentVersion}${c.reset}`);
-  info('To update, run:');
-  console.log(`\n  ${c.bold}npm update -g ai-mind-map${c.reset}`);
-  console.log(`  ${c.dim}or${c.reset}`);
-  console.log(`  ${c.bold}npm install -g ai-mind-map@latest${c.reset}\n`);
+  info(`Current version: ${c.bold}v${currentVersion}${c.reset}`);
+
+  // 1. Check npm for latest version
+  info('Checking npm registry for latest version...');
+  let latestVersion = '';
+  try {
+    latestVersion = execSync('npm view ai-mind-map version', {
+      encoding: 'utf-8',
+      timeout: 10_000,
+    }).trim();
+  } catch {
+    warn('Could not check npm registry. Are you connected to the internet?');
+    info('To update manually, run:');
+    console.log(`\n  ${c.bold}npm install -g ai-mind-map@latest${c.reset}\n`);
+    return;
+  }
+
+  info(`Latest version:  ${c.bold}v${latestVersion}${c.reset}`);
+
+  // 2. Compare versions
+  if (currentVersion === latestVersion) {
+    console.log('');
+    console.log(`  ${c.green}✔${c.reset} You are already on the latest version!`);
+    console.log('');
+    divider();
+    return;
+  }
+
+  // Parse semver for display
+  const [curMajor, curMinor, curPatch] = currentVersion.split('.').map(Number);
+  const [latMajor, latMinor, latPatch] = latestVersion.split('.').map(Number);
+
+  const isBreaking = latMajor > curMajor;
+  const isFeature = latMinor > curMinor;
+  const isPatch = latPatch > curPatch;
+
+  const updateType = isBreaking
+    ? `${c.red}MAJOR (breaking changes)${c.reset}`
+    : isFeature
+      ? `${c.yellow}MINOR (new features)${c.reset}`
+      : `${c.green}PATCH (bug fixes)${c.reset}`;
+
+  console.log('');
+  console.log(`  ${c.cyan}Update available:${c.reset} v${currentVersion} → ${c.bold}v${latestVersion}${c.reset} (${updateType})`);
+  console.log('');
+
+  // 3. Check how we were installed
+  const isGlobal = process.argv[1]?.includes('node_modules');
+  const isNpx = process.argv[1]?.includes('_npx') || process.argv[1]?.includes('npm-cache');
+
+  if (isNpx) {
+    // npx always uses latest on next run
+    console.log(`  ${c.green}✔${c.reset} You're using npx — next run will automatically use v${latestVersion}`);
+    info('To force a cache refresh now:');
+    console.log(`\n  ${c.bold}npx -y ai-mind-map@latest install${c.reset}\n`);
+  } else {
+    // Global or local install — need manual update
+    info('Updating...');
+    try {
+      const updateCmd = isGlobal
+        ? 'npm install -g ai-mind-map@latest'
+        : 'npm install ai-mind-map@latest';
+
+      console.log(`  ${c.dim}$ ${updateCmd}${c.reset}`);
+      execSync(updateCmd, { stdio: 'inherit', timeout: 60_000 });
+      console.log('');
+      console.log(`  ${c.green}✔${c.reset} Updated to v${latestVersion}!`);
+    } catch (err) {
+      warn('Auto-update failed. Update manually:');
+      console.log(`\n  ${c.bold}npm install -g ai-mind-map@latest${c.reset}\n`);
+      return;
+    }
+  }
+
+  // 4. Re-install agent configs to update rules files
+  console.log('');
+  info('Updating agent configurations...');
+  try {
+    await installAgents();
+  } catch {
+    warn('Could not auto-update agent configs. Run "ai-mind-map install" manually.');
+  }
+
+  // 5. Run quick verification
+  console.log('');
+  info('Running verification...');
+  try {
+    await runDoctor();
+  } catch {
+    warn('Doctor check encountered issues. Run "ai-mind-map doctor --fix" for details.');
+  }
+
+  console.log('');
   divider();
+  console.log(`  ${c.green}✔${c.reset} ${c.bold}Update complete!${c.reset} Restart your AI agent to use the new version.`);
+  console.log('');
 }
 
 /** ai-mind-map --help — Show help text */
@@ -1021,7 +1112,9 @@ ${c.bold}COMMANDS${c.reset}
 ${c.bold}AGENT MANAGEMENT${c.reset}
   ${c.cyan}install${c.reset}                         Auto-detect and configure AI agents
   ${c.cyan}uninstall${c.reset}                       Remove agent configurations
+  ${c.cyan}update${c.reset}                          Check for updates + auto-update
   ${c.cyan}doctor${c.reset}                          Run diagnostics check
+  ${c.cyan}doctor --fix${c.reset}                    Auto-repair broken configurations
 
 ${c.bold}CONFIGURATION${c.reset}
   ${c.cyan}config list${c.reset}                     Show current configuration
@@ -1029,7 +1122,6 @@ ${c.bold}CONFIGURATION${c.reset}
   ${c.cyan}config reset${c.reset} <key>              Reset a key to default
 
 ${c.bold}OTHER${c.reset}
-  ${c.cyan}update${c.reset}                          Check for updates
   ${c.dim}--help, -h${c.reset}                       Show this help message
   ${c.dim}--version, -v${c.reset}                    Show version
 

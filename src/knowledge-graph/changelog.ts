@@ -9,7 +9,7 @@
  *
  * Tables managed:
  *   changelog       — per-symbol change records
- *   sessions        — AI agent session tracking
+ *   changelog_sessions — AI agent session tracking (changelog context)
  *   session_files   — files touched per session
  *   file_hotspots   — change frequency tracking
  *   digest_cache    — cached codebase digests
@@ -107,8 +107,8 @@ CREATE INDEX IF NOT EXISTS idx_changelog_file ON changelog(file_path);
 CREATE INDEX IF NOT EXISTS idx_changelog_time ON changelog(timestamp);
 CREATE INDEX IF NOT EXISTS idx_changelog_session ON changelog(session_id);
 
--- AI agent session tracking
-CREATE TABLE IF NOT EXISTS sessions (
+-- AI agent session tracking (named changelog_sessions to avoid conflict with session-memory)
+CREATE TABLE IF NOT EXISTS changelog_sessions (
   id TEXT PRIMARY KEY,
   agent_name TEXT NOT NULL DEFAULT 'unknown',
   task_description TEXT,
@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   tokens_saved_estimate INTEGER DEFAULT 0
 );
 
-CREATE INDEX IF NOT EXISTS idx_sessions_started ON sessions(started_at);
+CREATE INDEX IF NOT EXISTS idx_changelog_sessions_started ON changelog_sessions(started_at);
 
 -- Change frequency hotspots
 CREATE TABLE IF NOT EXISTS file_hotspots (
@@ -158,8 +158,29 @@ export class ChangelogEngine {
     this.ensureSchema();
   }
 
-  /** Create changelog tables if they don't exist */
+  /** Create changelog tables if they don't exist, with migration support */
   private ensureSchema(): void {
+    // Migrate: if old 'sessions' table exists with 'id' column (from v1.4.0-1.4.1),
+    // rename it to 'changelog_sessions' to avoid conflict with session-memory's 'sessions'
+    try {
+      const hasOldTable = this.db.prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'"
+      ).get() as { name: string } | undefined;
+
+      if (hasOldTable) {
+        // Check if it has the changelog schema (id column, not session_id)
+        const cols = this.db.prepare('PRAGMA table_info(sessions)').all() as Array<{ name: string }>;
+        const hasIdCol = cols.some(c => c.name === 'id');
+        const hasAgentName = cols.some(c => c.name === 'agent_name');
+        if (hasIdCol && hasAgentName) {
+          // This is the changelog's sessions table — migrate it
+          this.db.exec('ALTER TABLE sessions RENAME TO changelog_sessions');
+        }
+      }
+    } catch {
+      // Migration not needed or already done
+    }
+
     this.db.exec(CHANGELOG_SCHEMA_SQL);
   }
 
@@ -333,12 +354,12 @@ export class ChangelogEngine {
 
         // Track file in current session
         if (sessionId) {
-          const sess = this.db.prepare('SELECT files_modified FROM sessions WHERE id = ?').get(sessionId) as any;
+          const sess = this.db.prepare('SELECT files_modified FROM changelog_sessions WHERE id = ?').get(sessionId) as any;
           if (sess) {
             const files: string[] = JSON.parse(sess.files_modified || '[]');
             if (!files.includes(filePath)) {
               files.push(filePath);
-              this.db.prepare('UPDATE sessions SET files_modified = ? WHERE id = ?')
+              this.db.prepare('UPDATE changelog_sessions SET files_modified = ? WHERE id = ?')
                 .run(JSON.stringify(files), sessionId);
             }
           }
@@ -465,7 +486,7 @@ export class ChangelogEngine {
     const now = Date.now();
 
     this.db.prepare(
-      'INSERT INTO sessions (id, agent_name, task_description, started_at, files_modified) VALUES (?, ?, ?, ?, ?)'
+      'INSERT INTO changelog_sessions (id, agent_name, task_description, started_at, files_modified) VALUES (?, ?, ?, ?, ?)'
     ).run(id, agentName, taskDescription || null, now, '[]');
 
     this.currentSessionId = id;
@@ -481,7 +502,7 @@ export class ChangelogEngine {
 
     const now = Date.now();
     this.db.prepare(
-      'UPDATE sessions SET ended_at = ?, summary = ? WHERE id = ? AND ended_at IS NULL'
+      'UPDATE changelog_sessions SET ended_at = ?, summary = ? WHERE id = ? AND ended_at IS NULL'
     ).run(now, summary || null, id);
 
     if (id === this.currentSessionId) {
@@ -501,7 +522,7 @@ export class ChangelogEngine {
    * Get a session by ID.
    */
   getSession(sessionId: string): SessionInfo | null {
-    const row = this.db.prepare('SELECT * FROM sessions WHERE id = ?').get(sessionId) as any;
+    const row = this.db.prepare('SELECT * FROM changelog_sessions WHERE id = ?').get(sessionId) as any;
     if (!row) return null;
     return this.rowToSession(row);
   }
@@ -511,7 +532,7 @@ export class ChangelogEngine {
    */
   getLastSession(): SessionInfo | null {
     const row = this.db.prepare(
-      'SELECT * FROM sessions WHERE ended_at IS NOT NULL ORDER BY ended_at DESC LIMIT 1'
+      'SELECT * FROM changelog_sessions WHERE ended_at IS NOT NULL ORDER BY ended_at DESC LIMIT 1'
     ).get() as any;
 
     if (!row) return null;
@@ -523,7 +544,7 @@ export class ChangelogEngine {
    */
   getRecentSessions(limit: number = 10): SessionInfo[] {
     const rows = this.db.prepare(
-      'SELECT * FROM sessions ORDER BY started_at DESC LIMIT ?'
+      'SELECT * FROM changelog_sessions ORDER BY started_at DESC LIMIT ?'
     ).all(limit) as any[];
 
     return rows.map(this.rowToSession);
@@ -549,7 +570,7 @@ export class ChangelogEngine {
 
     // Check if there's a recent unclosed session (< 30 min old)
     const recent = this.db.prepare(
-      'SELECT id FROM sessions WHERE ended_at IS NULL AND started_at > ? ORDER BY started_at DESC LIMIT 1'
+      'SELECT id FROM changelog_sessions WHERE ended_at IS NULL AND started_at > ? ORDER BY started_at DESC LIMIT 1'
     ).get(Date.now() - SESSION_TIMEOUT_MS) as any;
 
     if (recent) {
@@ -631,8 +652,8 @@ export class ChangelogEngine {
     newestEntry: number | null;
   } {
     const entries = (this.db.prepare('SELECT COUNT(*) as c FROM changelog').get() as any).c;
-    const sessions = (this.db.prepare('SELECT COUNT(*) as c FROM sessions').get() as any).c;
-    const active = (this.db.prepare('SELECT COUNT(*) as c FROM sessions WHERE ended_at IS NULL').get() as any).c;
+    const sessions = (this.db.prepare('SELECT COUNT(*) as c FROM changelog_sessions').get() as any).c;
+    const active = (this.db.prepare('SELECT COUNT(*) as c FROM changelog_sessions WHERE ended_at IS NULL').get() as any).c;
     const hotspots = (this.db.prepare('SELECT COUNT(*) as c FROM file_hotspots').get() as any).c;
     const oldest = (this.db.prepare('SELECT MIN(timestamp) as t FROM changelog').get() as any)?.t ?? null;
     const newest = (this.db.prepare('SELECT MAX(timestamp) as t FROM changelog').get() as any)?.t ?? null;
@@ -652,7 +673,7 @@ export class ChangelogEngine {
   private autoEndStaleSession(): void {
     const cutoff = Date.now() - SESSION_TIMEOUT_MS;
     this.db.prepare(
-      'UPDATE sessions SET ended_at = ?, summary = \'Auto-ended (timeout)\' WHERE ended_at IS NULL AND started_at < ?'
+      'UPDATE changelog_sessions SET ended_at = ?, summary = \'Auto-ended (timeout)\' WHERE ended_at IS NULL AND started_at < ?'
     ).run(Date.now(), cutoff);
 
     if (this.currentSessionId) {
