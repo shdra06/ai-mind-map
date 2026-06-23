@@ -1,0 +1,16 @@
+src/
+tests/
+*.ts
+tsconfig.json
+.git/
+.github/
+.gitignore
+node_modules/
+.mindmap/
+test-*.cjs
+test-*.js
+CONTRIBUTING.md
+SECURITY.md
+.cursor/
+.agents/
+.vscode/

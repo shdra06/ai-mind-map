@@ -15,7 +15,7 @@
   <p align="center">
     <a href="#-quick-start-windows">Quick Start</a> •
     <a href="#-how-it-works">How It Works</a> •
-    <a href="#-18-mcp-tools">All Tools</a> •
+    <a href="#-41-mcp-tools">All 41 Tools</a> •
     <a href="#-connect-to-your-ai-agent">Connect</a> •
     <a href="#-configuration">Config</a>
   </p>
@@ -75,67 +75,58 @@ This project combines proven techniques from:
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Method 1: npx (Fastest — Zero Install)
 
-- **Node.js 18+** — Download from [nodejs.org](https://nodejs.org)
-- **Git** — Download from [git-scm.com](https://git-scm.com)
-
-### One-Line Install
-
-**Windows (PowerShell):**
-```powershell
-Invoke-WebRequest -Uri https://raw.githubusercontent.com/shdra06/ai-mind-map/main/install.ps1 -OutFile install.ps1; .\install.ps1
-```
-
-**macOS / Linux:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/shdra06/ai-mind-map/main/install.sh | bash
+# Run directly without installing anything
+npx ai-mind-map install
+
+# That's it. It auto-detects Claude, Cursor, VS Code, Windsurf, Antigravity, Zed, Continue.dev
 ```
 
-This downloads, builds, and auto-configures your AI agents. **Done.**
+### Method 2: Global Install
 
-### Manual Install
+```bash
+npm install -g ai-mind-map
 
-```powershell
+# Auto-detect and configure all your AI agents
+ai-mind-map install
+
+# Check everything is working
+ai-mind-map doctor
+```
+
+### Method 3: Clone (For Development)
+
+```bash
 git clone https://github.com/shdra06/ai-mind-map.git
 cd ai-mind-map
 npm install --legacy-peer-deps
 npm run build
-
-# Auto-detect and configure all installed AI agents
 node dist/cli.js install
-
-# Or run the setup script (Windows)
-.\setup.bat
 ```
 
-### Option 2: Manual Setup
+### What `install` Does
 
-```powershell
-# Clone
-git clone https://github.com/shdra06/ai-mind-map.git
-cd ai-mind-map
+1. ✅ Scans your system for AI coding agents (Claude, Cursor, VS Code, Windsurf, Antigravity, Zed, Continue.dev)
+2. ✅ Writes MCP config to each agent's config file  
+3. ✅ Deploys rules files so agents know about our 41 tools
+4. ✅ Runs diagnostics to verify everything works
 
-# Install dependencies
-npm install --legacy-peer-deps
+### Verify It Works
 
-# Build
-npm run build
-
-# Verify it works (should print startup logs, then Ctrl+C to stop)
-node dist/index.js --project-root "C:\path\to\any\project" --log-level debug
+```bash
+ai-mind-map doctor
 ```
 
-You should see output like:
+Output:
 ```
-[2026-06-23T10:00:00.000Z] [INFO] 🧠 AI Mind Map MCP Server starting…
-[2026-06-23T10:00:00.050Z] [INFO] Project root: C:\path\to\any\project
-[2026-06-23T10:00:00.100Z] [INFO] ✅ Knowledge Graph initialized
-[2026-06-23T10:00:00.150Z] [INFO] ✅ Change Tracker initialized
-[2026-06-23T10:00:00.200Z] [INFO] ✅ Memory initialized
-[2026-06-23T10:00:00.250Z] [INFO] 🔧 All 18 MCP tools registered
-[2026-06-23T10:00:01.000Z] [INFO] 📋 Initial index complete: 150 files, 2340 nodes
-[2026-06-23T10:00:01.050Z] [INFO] 🧠 AI Mind Map MCP Server is LIVE
+🩺 AI Mind Map — Diagnostics
+────────────────────────────────────────────────────────
+  ✔ Node.js           v24.x (>= 18 required)
+  ✔ SQLite             In-memory test passed
+  ✔ TypeScript Build   dist/index.js exists
+  ✔ Agents             3 detected, 3 configured
 ```
 
 ---
@@ -249,58 +240,100 @@ AI Mind Map works with **any tool that supports the Model Context Protocol**. Ju
 
 ---
 
-## 🔧 18 MCP Tools
+## 🔧 41 MCP Tools
 
 Once connected, your AI agent gets these powerful tools:
 
-### 🗺️ Knowledge Graph Tools (6) — *99% Token Savings*
+### 🗺️ Knowledge Graph (6)
 
-| Tool | What It Does | Example |
-|------|-------------|---------|
-| `mindmap_search` | Search codebase by function/class name or description | *"Find all authentication functions"* |
-| `mindmap_get_structure` | Get project architecture overview in ~100 tokens | *"Show me the project structure"* |
-| `mindmap_trace_dependencies` | Trace call chains — who calls what, what breaks if this changes | *"What depends on the User class?"* |
-| `mindmap_get_signature` | Get a function/class signature without reading the whole file | *"What are the params of createUser?"* |
-| `mindmap_find_references` | Find everywhere a symbol is used | *"Where is validateToken used?"* |
-| `mindmap_get_file_map` | Get structural map of all symbols in a file | *"What functions are in auth.ts?"* |
+| Tool | What It Does |
+|------|-------------|
+| `mindmap_search` | Search codebase by function/class name or free text |
+| `mindmap_get_structure` | Project architecture overview in ~100 tokens |
+| `mindmap_trace_dependencies` | Trace call chains — who calls what |
+| `mindmap_get_signature` | Function signature without reading the file |
+| `mindmap_find_references` | Find everywhere a symbol is used |
+| `mindmap_get_file_map` | All symbols in a file with line ranges |
 
-### 📝 Change Tracking Tools (3) — *80% Token Savings*
+### 📝 Change Tracking (3)
 
-| Tool | What It Does | Example |
-|------|-------------|---------|
-| `mindmap_what_changed` | Summary of recent code changes | *"What changed since yesterday?"* |
-| `mindmap_session_diff` | What changed since the AI's last session | *"What's new since we last talked?"* |
-| `mindmap_impact_analysis` | Blast radius — what's affected by a change | *"What breaks if I change login()?"* |
+| Tool | What It Does |
+|------|-------------|
+| `mindmap_what_changed` | Summary of recent code changes |
+| `mindmap_session_diff` | What changed since last AI session |
+| `mindmap_impact_analysis` | Blast radius of a change |
 
-### 🧠 Memory Tools (5) — *90% Cross-Session Savings*
+### 🧠 Memory (5)
 
-| Tool | What It Does | Example |
-|------|-------------|---------|
-| `mindmap_recall` | Retrieve relevant memories for current task | *"What do we know about the auth system?"* |
-| `mindmap_remember` | Store an important fact or convention | *"Remember: we use JWT for auth"* |
-| `mindmap_get_decisions` | Retrieve past architectural decisions | *"What tech decisions have we made?"* |
-| `mindmap_decide` | Record a new architectural decision | *"We decided to use PostgreSQL because..."* |
-| `mindmap_session_summary` | Summary of previous AI sessions | *"What did we work on last time?"* |
+| Tool | What It Does |
+|------|-------------|
+| `mindmap_recall` | Retrieve relevant memories |
+| `mindmap_remember` | Store a fact or convention |
+| `mindmap_get_decisions` | Past architectural decisions |
+| `mindmap_decide` | Record a new decision |
+| `mindmap_session_summary` | Previous session summaries |
 
-### 🗜️ Context Tools (4) — *50-98% Compression*
+### 🗜️ Context (4)
 
-| Tool | What It Does | Example |
-|------|-------------|---------|
-| `mindmap_get_context` | Smart context loading based on your current task | *Auto-loads relevant code, memories, and changes* |
-| `mindmap_compress` | Compress build logs, test output, stack traces | *Turns 10K-line log into key errors only* |
-| `mindmap_reindex` | Force re-index of the entire codebase | *After major refactoring* |
-| `mindmap_status` | Show index stats, memory usage, token savings | *"How much has Mind Map saved?"* |
-### 🔬 Advanced Analysis Tools (7) — *Match codebase-memory-mcp*
+| Tool | What It Does |
+|------|-------------|
+| `mindmap_get_context` | Smart context for current task |
+| `mindmap_compress` | Compress logs, traces, output |
+| `mindmap_reindex` | Force full re-index |
+| `mindmap_status` | Index stats and token savings |
 
-| Tool | What It Does | Example |
-|------|-------------|---------|
-| `mindmap_query_graph` | Execute Cypher-like queries against the knowledge graph | `MATCH (f:Function)-[:CALLS]->(g) RETURN f.name, g.name` |
-| `mindmap_dead_code` | Detect functions with zero callers (dead code) | *"Find unused functions in auth/"* |
-| `mindmap_architecture` | Full architecture overview — languages, layers, hotspots, routes | *"Describe the project architecture"* |
-| `mindmap_get_code_snippet` | Read actual source code for a specific function by name | *"Show me the code for createUser"* |
-| `mindmap_search_code` | Grep-like text search within indexed files only | *"Search for TODO comments"* |
-| `mindmap_list_projects` | List all indexed projects with node/edge counts | *"What projects are indexed?"* |
-| `mindmap_health` | System diagnostics — DB size, freshness, agent configs | *"Run a health check"* |
+### 🔬 Advanced Analysis (7)
+
+| Tool | What It Does |
+|------|-------------|
+| `mindmap_query_graph` | Cypher-like graph queries |
+| `mindmap_dead_code` | Detect unused functions |
+| `mindmap_architecture` | Full architecture overview |
+| `mindmap_get_code_snippet` | Read source by symbol name |
+| `mindmap_search_code` | Grep-like text search |
+| `mindmap_list_projects` | List indexed projects |
+| `mindmap_health` | System diagnostics |
+
+### 🔍 Debug (3)
+
+| Tool | What It Does |
+|------|-------------|
+| `mindmap_debug_changes` | Detailed change analysis |
+| `mindmap_file_before` | File content before changes |
+| `mindmap_file_history` | Full file change history |
+
+### 🏗️ Flow Analysis (4)
+
+| Tool | What It Does |
+|------|-------------|
+| `mindmap_trace_flow` | Trace behavioral flows through layers |
+| `mindmap_interaction_map` | Full interaction map of the codebase |
+| `mindmap_classify_file` | Classify a file's architectural layer |
+| `mindmap_layer_overview` | Layer distribution overview |
+
+### 📸 Snapshot (3)
+
+| Tool | What It Does |
+|------|-------------|
+| `mindmap_project_map` | Compact project map for context |
+| `mindmap_change_delta` | What changed since last snapshot |
+| `mindmap_session_start` | Start a new tracking session |
+
+### ⭐ Smart Tools (3) — **99% Token Savings**
+
+| Tool | What It Does |
+|------|-------------|
+| `mindmap_explain` | **Everything about a symbol in 1 call** — signature, callers, callees, layer, blast radius, git history |
+| `mindmap_git_changes` | **Git-aware symbol-level diffs** — which functions changed, who's impacted |
+| `mindmap_smart_search` | **Rich search** — returns full context so AI never reads files |
+
+### 🧬 Self-Evolving (3)
+
+| Tool | What It Does |
+|------|-------------|
+| `mindmap_teach` | **AI teaches new patterns** — classification rules, search aliases, conventions that persist per-project |
+| `mindmap_get_learned` | View all rules the system has learned |
+| `mindmap_forget` | Remove a learned rule |
 
 ---
 
@@ -425,7 +458,7 @@ Tree-sitter AST parsing with automatic regex fallback:
 │  │  Token Budget Manager                             │ │
 │  └──────────────────────┬────────────────────────────┘ │
 │                         │                               │
-│                  18 MCP Tools                           │
+│                  41 MCP Tools                           │
 └─────────────────────────┼───────────────────────────────┘
                           │ stdio
                 ┌─────────┴──────────┐

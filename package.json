@@ -1,12 +1,21 @@
 {
   "name": "ai-mind-map",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AI Mind Map — MCP server that reduces AI coding agent token usage by 80-99% through persistent codebase memory, knowledge graphs, and intelligent context management",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "ai-mind-map": "dist/cli.js"
+    "ai-mind-map": "dist/cli.js",
+    "ai-mind-map-server": "dist/index.js"
   },
+  "files": [
+    "dist/",
+    "install.sh",
+    "install.ps1",
+    "setup.bat",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
@@ -15,7 +24,9 @@
     "typecheck": "tsc --noEmit",
     "inspect": "node --inspect dist/index.js",
     "test": "npx tsx --test tests/*.test.ts",
-    "test:watch": "npx tsx --test --watch tests/*.test.ts"
+    "test:watch": "npx tsx --test --watch tests/*.test.ts",
+    "postinstall": "node dist/cli.js doctor 2>/dev/null || true",
+    "prepublishOnly": "npm run build && npm test"
   },
   "repository": {
     "type": "git",
