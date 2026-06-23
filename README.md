@@ -4,6 +4,12 @@
     <strong>MCP Server that reduces AI coding agent token usage by 80-99%</strong>
   </p>
   <p align="center">
+    <a href="https://github.com/shdra06/ai-mind-map/actions/workflows/ci.yml"><img src="https://github.com/shdra06/ai-mind-map/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+    <a href="https://github.com/shdra06/ai-mind-map/releases"><img src="https://img.shields.io/github/v/release/shdra06/ai-mind-map?label=release" alt="Release"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/github/license/shdra06/ai-mind-map" alt="License"></a>
+    <a href="https://www.npmjs.com/package/ai-mind-map"><img src="https://img.shields.io/npm/v/ai-mind-map" alt="npm"></a>
+  </p>
+  <p align="center">
     Stop wasting tokens re-reading your codebase. Give your AI agent a persistent memory.
   </p>
   <p align="center">
@@ -16,6 +22,7 @@
 </p>
 
 ---
+
 
 ## ❓ The Problem
 
@@ -66,23 +73,39 @@ This project combines proven techniques from:
 
 ---
 
-## 🚀 Quick Start (Windows)
+## 🚀 Quick Start
 
 ### Prerequisites
 
 - **Node.js 18+** — Download from [nodejs.org](https://nodejs.org)
 - **Git** — Download from [git-scm.com](https://git-scm.com)
 
-### Option 1: One-Click Setup (Easiest)
+### One-Line Install
+
+**Windows (PowerShell):**
+```powershell
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/shdra06/ai-mind-map/main/install.ps1 -OutFile install.ps1; .\install.ps1
+```
+
+**macOS / Linux:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/shdra06/ai-mind-map/main/install.sh | bash
+```
+
+This downloads, builds, and auto-configures your AI agents. **Done.**
+
+### Manual Install
 
 ```powershell
-# Clone the repo
 git clone https://github.com/shdra06/ai-mind-map.git
-
-# Enter the folder
 cd ai-mind-map
+npm install --legacy-peer-deps
+npm run build
 
-# Run the setup script (installs deps + builds automatically)
+# Auto-detect and configure all installed AI agents
+node dist/cli.js install
+
+# Or run the setup script (Windows)
 .\setup.bat
 ```
 
@@ -267,6 +290,55 @@ Once connected, your AI agent gets these powerful tools:
 | `mindmap_compress` | Compress build logs, test output, stack traces | *Turns 10K-line log into key errors only* |
 | `mindmap_reindex` | Force re-index of the entire codebase | *After major refactoring* |
 | `mindmap_status` | Show index stats, memory usage, token savings | *"How much has Mind Map saved?"* |
+### 🔬 Advanced Analysis Tools (7) — *Match codebase-memory-mcp*
+
+| Tool | What It Does | Example |
+|------|-------------|---------|
+| `mindmap_query_graph` | Execute Cypher-like queries against the knowledge graph | `MATCH (f:Function)-[:CALLS]->(g) RETURN f.name, g.name` |
+| `mindmap_dead_code` | Detect functions with zero callers (dead code) | *"Find unused functions in auth/"* |
+| `mindmap_architecture` | Full architecture overview — languages, layers, hotspots, routes | *"Describe the project architecture"* |
+| `mindmap_get_code_snippet` | Read actual source code for a specific function by name | *"Show me the code for createUser"* |
+| `mindmap_search_code` | Grep-like text search within indexed files only | *"Search for TODO comments"* |
+| `mindmap_list_projects` | List all indexed projects with node/edge counts | *"What projects are indexed?"* |
+| `mindmap_health` | System diagnostics — DB size, freshness, agent configs | *"Run a health check"* |
+
+---
+
+## 💻 CLI Mode
+
+Every MCP tool is also available from the command line. No agent required:
+
+```bash
+# Index a project
+ai-mind-map index /path/to/project
+
+# Search the graph
+ai-mind-map search "authenticate" --type function
+
+# Trace call chains
+ai-mind-map trace "processOrder" --direction both --depth 3
+
+# Show project structure
+ai-mind-map structure
+
+# Recall memories
+ai-mind-map recall "authentication"
+
+# Store a convention
+ai-mind-map remember "We use camelCase for all function names" --category convention
+
+# Show what changed
+ai-mind-map changes --since last_session
+
+# Auto-configure all AI agents
+ai-mind-map install
+
+# Diagnostics
+ai-mind-map doctor
+
+# Show config
+ai-mind-map config list
+```
 
 ---
 

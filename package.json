@@ -5,14 +5,17 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "ai-mind-map": "dist/index.js"
+    "ai-mind-map": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
+    "cli": "node dist/cli.js",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
-    "inspect": "node --inspect dist/index.js"
+    "inspect": "node --inspect dist/index.js",
+    "test": "npx tsx --test tests/*.test.ts",
+    "test:watch": "npx tsx --test --watch tests/*.test.ts"
   },
   "repository": {
     "type": "git",
@@ -35,26 +38,27 @@
     "ignore": "^7.0.4",
     "simple-git": "^3.27.0",
     "tree-sitter": "^0.22.4",
-    "tree-sitter-javascript": "*",
-    "tree-sitter-typescript": "*",
-    "tree-sitter-python": "*",
-    "tree-sitter-json": "*",
-    "tree-sitter-css": "*",
-    "tree-sitter-html": "*",
-    "tree-sitter-rust": "*",
-    "tree-sitter-go": "*",
-    "tree-sitter-java": "*",
-    "tree-sitter-c": "*",
-    "tree-sitter-cpp": "*",
-    "tree-sitter-c-sharp": "*",
-    "tree-sitter-ruby": "*",
-    "tree-sitter-php": "*",
     "tree-sitter-bash": "*",
+    "tree-sitter-c": "*",
+    "tree-sitter-c-sharp": "*",
+    "tree-sitter-cpp": "*",
+    "tree-sitter-css": "*",
+    "tree-sitter-go": "*",
+    "tree-sitter-html": "*",
+    "tree-sitter-java": "*",
+    "tree-sitter-javascript": "*",
+    "tree-sitter-json": "*",
+    "tree-sitter-php": "*",
+    "tree-sitter-python": "*",
+    "tree-sitter-ruby": "*",
+    "tree-sitter-rust": "*",
+    "tree-sitter-typescript": "*",
     "zod": "^3.24.4"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.15.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.8.3"
   },
   "keywords": [

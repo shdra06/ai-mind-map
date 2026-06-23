@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build
+        run: npx tsc
+
+      - name: Verify build output
+        run: |
+          if [ ! -f "dist/index.js" ]; then
+            echo "::error::Build output dist/index.js not found"
+            exit 1
+          fi
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get the previous tag
+          PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | sed -n '2p')
+          if [ -z "$PREV_TAG" ]; then
+            PREV_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+
+          {
+            echo 'CHANGELOG<<EOF'
+            echo "## What's Changed"
+            echo ""
+
+            # Features
+            FEATURES=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" --grep="feat" --grep="add" --grep="new" -i)
+            if [ -n "$FEATURES" ]; then
+              echo "### 🚀 Features"
+              echo "$FEATURES"
+              echo ""
+            fi
+
+            # Fixes
+            FIXES=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" --grep="fix" --grep="bug" --grep="patch" -i)
+            if [ -n "$FIXES" ]; then
+              echo "### 🐛 Bug Fixes"
+              echo "$FIXES"
+              echo ""
+            fi
+
+            # All other commits
+            echo "### 📝 All Changes"
+            git log "${PREV_TAG}..HEAD" --pretty=format:"- %s (%an)" --no-merges
+            echo ""
+
+            echo "**Full Changelog**: https://github.com/shdra06/ai-mind-map/compare/${PREV_TAG}...v${{ steps.version.outputs.VERSION }}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "AI Mind Map v${{ steps.version.outputs.VERSION }}"
+          body: ${{ steps.changelog.outputs.CHANGELOG }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+
+      - name: Publish to npm
+        if: env.NPM_TOKEN != ''
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

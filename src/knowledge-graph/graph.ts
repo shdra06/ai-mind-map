@@ -903,4 +903,14 @@ export class KnowledgeGraph {
   get isOpen(): boolean {
     return this.db.open;
   }
+
+  /**
+   * Expose the underlying better-sqlite3 Database instance.
+   *
+   * Used by advanced query components (CypherEngine, DeadCodeDetector)
+   * that need to run raw SQL against the same database.
+   */
+  getDb(): Database.Database {
+    return this.db;
+  }
 }
