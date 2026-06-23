@@ -101,25 +101,53 @@ const IS_WIN = platform() === 'win32';
 const IS_MAC = platform() === 'darwin';
 
 /**
- * Resolve the absolute path to the compiled dist/index.js entry point
- * (or cli.js as fallback).
+ * Resolve how to run the MCP server.
+ *
+ * Returns either:
+ * - { mode: 'npx' }                — use `npx ai-mind-map-server` (stable, no hardcoded path)
+ * - { mode: 'global', path: ... }  — globally installed, use absolute path to dist/index.js
+ * - { mode: 'local', path: ... }   — git clone, use absolute path to dist/index.js
  */
-function getServerEntryPath(): string {
-  // Try to resolve from this file's location
+function getServerRunConfig(): { mode: 'npx' | 'global' | 'local'; path?: string } {
   const thisDir = path.dirname(
     new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'),
   );
 
-  // Expect: src/install.ts → dist/index.js
+  // Detect if we're running from npx cache (temporary, unstable path)
+  const isNpxCache = thisDir.includes('npm-cache') && thisDir.includes('_npx');
+
+  if (isNpxCache) {
+    // npx cache paths are temporary — use `npx` command instead
+    return { mode: 'npx' };
+  }
+
+  // Check if globally installed (inside a global npm prefix)
+  try {
+    const globalPrefix = execSync('npm prefix -g', { encoding: 'utf-8' }).trim();
+    if (thisDir.startsWith(globalPrefix)) {
+      const distIndex = path.resolve(thisDir, '..', 'dist', 'index.js');
+      if (existsSync(distIndex)) return { mode: 'global', path: distIndex };
+      const distSelf = path.resolve(thisDir, 'index.js');
+      if (existsSync(distSelf)) return { mode: 'global', path: distSelf };
+    }
+  } catch {
+    // npm not available, fall through
+  }
+
+  // Local clone: use absolute path
   const distIndex = path.resolve(thisDir, '..', 'dist', 'index.js');
-  if (existsSync(distIndex)) return distIndex;
+  if (existsSync(distIndex)) return { mode: 'local', path: distIndex };
 
-  // Fallback: check if we're already in dist
   const distSelf = path.resolve(thisDir, 'index.js');
-  if (existsSync(distSelf)) return distSelf;
+  if (existsSync(distSelf)) return { mode: 'local', path: distSelf };
 
-  // Last resort: use the source path
-  return path.resolve(thisDir, '..', 'dist', 'index.js');
+  return { mode: 'local', path: path.resolve(thisDir, '..', 'dist', 'index.js') };
+}
+
+/** For backward compat — returns the resolved path or npx command */
+function getServerEntryPath(): string {
+  const config = getServerRunConfig();
+  return config.path ?? 'npx-mode';
 }
 
 /** Get the VS Code settings directory based on platform */
@@ -179,8 +207,22 @@ interface AgentDefinition {
 // MCP Config Snippet Generators
 // ============================================================
 
-/** Generate the standard MCP server config object */
+/** Generate the standard MCP server config object based on install mode */
 function mcpServerEntry(serverEntry: string): Record<string, unknown> {
+  const runConfig = getServerRunConfig();
+
+  if (runConfig.mode === 'npx') {
+    // npx mode: use npx command so config survives cache clears
+    return {
+      'ai-mind-map': {
+        command: 'npx',
+        args: ['-y', 'ai-mind-map-server'],
+        env: {},
+      },
+    };
+  }
+
+  // Global or local install: use absolute path (stable)
   return {
     'ai-mind-map': {
       command: 'node',
@@ -216,7 +258,7 @@ function writeJsonFile(filePath: string, data: Record<string, unknown>): void {
  *
  * @param configPath   - Path to the config file
  * @param mcpKey       - The JSON key under which MCP servers live (e.g., "mcpServers")
- * @param serverEntry  - Path to the server executable
+ * @param serverEntry  - Path to the server executable (unused in npx mode)
  * @returns true if changes were made
  */
 function mergeMcpConfig(
@@ -232,11 +274,21 @@ function mergeMcpConfig(
     return false;
   }
 
-  servers['ai-mind-map'] = {
-    command: 'node',
-    args: [serverEntry],
-    env: {},
-  };
+  const runConfig = getServerRunConfig();
+
+  if (runConfig.mode === 'npx') {
+    servers['ai-mind-map'] = {
+      command: 'npx',
+      args: ['-y', 'ai-mind-map-server'],
+      env: {},
+    };
+  } else {
+    servers['ai-mind-map'] = {
+      command: 'node',
+      args: [serverEntry],
+      env: {},
+    };
+  }
 
   existing[mcpKey] = servers;
   writeJsonFile(configPath, existing);
@@ -947,7 +999,7 @@ export async function runDoctor(): Promise<void> {
 function getToolAwarenessRules(): string {
   return `# AI Mind Map MCP — Tool Awareness
 
-You have the AI Mind Map MCP server connected with 35 tools. Use them INSTEAD of reading raw files.
+You have the AI Mind Map MCP server connected with 41 tools. Use them INSTEAD of reading raw files.
 
 ## ⭐ FIRST THING TO DO IN EVERY CONVERSATION
 Call \`mindmap_session_start\` — it returns the entire project map + recent changes + memories in ONE call (~2000-4000 tokens instead of reading every file at ~50,000+ tokens).
@@ -964,6 +1016,11 @@ Call \`mindmap_session_start\` — it returns the entire project map + recent ch
 - Get function signature only → \`mindmap_get_signature\` (don't open the file)
 - Find who calls a function → \`mindmap_find_references\`
 - What's in this file? → \`mindmap_get_file_map\`
+
+### ⭐ Smart Tools (Use These First — 99% Token Savings)
+- Everything about a symbol → \`mindmap_explain\` ⭐ (signature + callers + callees + layer + blast radius + git history in ONE call)
+- What changed in git? → \`mindmap_git_changes\` (symbol-level diffs, not raw file diffs)
+- Rich search → \`mindmap_smart_search\` (returns full context so you never need to read files)
 
 ### Understand Flow & Architecture  
 - What does this button/feature do? → \`mindmap_trace_flow\`
@@ -982,18 +1039,40 @@ Call \`mindmap_session_start\` — it returns the entire project map + recent ch
 - Recall past knowledge → \`mindmap_recall\`
 - Record a decision → \`mindmap_decide\`
 - Past decisions → \`mindmap_get_decisions\`
+- Session summary → \`mindmap_session_summary\`
 
-### Advanced
+### Change Tracking
+- What changed since yesterday? → \`mindmap_what_changed\`
+- What's new since last session? → \`mindmap_session_diff\`
+- Blast radius of a change → \`mindmap_impact_analysis\`
+
+### Context & Compression
+- Smart context for current task → \`mindmap_get_context\`
+- Compress logs/traces/output → \`mindmap_compress\`
+- Force full re-index → \`mindmap_reindex\`
+- Index stats and token savings → \`mindmap_status\`
+
+### Advanced Analysis
 - Cypher graph query → \`mindmap_query_graph\`
 - Find dead code → \`mindmap_dead_code\`
 - Full architecture report → \`mindmap_architecture\`
+- List indexed projects → \`mindmap_list_projects\`
+- System diagnostics → \`mindmap_health\`
+
+### 🧬 Self-Evolving (teach the system new patterns)
+- Teach a pattern → \`mindmap_teach\` (classification rules, search aliases, conventions — persists per-project)
+- View learned rules → \`mindmap_get_learned\`
+- Remove a rule → \`mindmap_forget\`
 
 ## Rules
 1. ALWAYS call \`mindmap_session_start\` at the beginning of every conversation
-2. PREFER Mind Map tools over reading raw files — but read directly when you need comments, edge cases, or complex algorithm logic
-3. START debugging with \`mindmap_debug_changes\` — then drill into specific files
-4. Use \`mindmap_remember\` for important learnings, \`mindmap_decide\` for architecture choices
-5. If Mind Map returns unexpected results, the index may be stale — read the file and run \`mindmap_reindex\`
+2. PREFER \`mindmap_explain\` over reading files — it gives you everything in 1 call
+3. PREFER \`mindmap_smart_search\` over \`mindmap_search\` — it returns full context
+4. Use \`mindmap_git_changes\` instead of running \`git diff\` — it maps diffs to symbols
+5. START debugging with \`mindmap_debug_changes\` — then drill into specific files
+6. Use \`mindmap_remember\` for important learnings, \`mindmap_decide\` for architecture choices
+7. Use \`mindmap_teach\` when you discover a recurring pattern (e.g., "files in Services/ are always service-layer")
+8. If Mind Map returns unexpected results, the index may be stale — read the file and run \`mindmap_reindex\`
 
 ## When to READ FILES DIRECTLY
 - Complex algorithm logic that signatures can't capture
@@ -1058,7 +1137,7 @@ export function deployRulesFiles(projectRoot?: string): void {
   ];
 
   heading('📋 Deploying AI Agent Rules Files');
-  console.log(`  ${c.dim}These files teach each AI agent about Mind Map\'s 32 tools${c.reset}`);
+  console.log(`  ${c.dim}These files teach each AI agent about Mind Map\'s 41 tools${c.reset}`);
   console.log('');
 
   let deployed = 0;
@@ -1100,5 +1179,5 @@ export function deployRulesFiles(projectRoot?: string): void {
 
   console.log('');
   logOk(`${deployed} rules file(s) deployed, ${skipped} already up-to-date.`);
-  console.log(`  ${c.dim}Each AI agent will now know about all 32 Mind Map tools.${c.reset}`);
+  console.log(`  ${c.dim}Each AI agent will now know about all 41 Mind Map tools.${c.reset}`);
 }
