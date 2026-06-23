@@ -55,6 +55,7 @@ import { PersistentMemory } from './memory/persistent-memory.js';
 import type { CreateMemoryInput } from './memory/persistent-memory.js';
 import { DecisionLog } from './memory/decision-log.js';
 import type { CreateDecisionInput } from './memory/decision-log.js';
+import { syncSharedContext } from './memory/shared-sync.js';
 
 // ── Context Engine ────────────────────────────────────────────
 // compressor.ts exports functions: compress, detectContentType
@@ -83,6 +84,11 @@ import { registerSnapshotTools } from './tools/snapshot-tools.js';
 import { registerSmartTools } from './tools/smart-tools.js';
 import { registerEvolvingTools } from './tools/evolving-tools.js';
 import { registerAdvancedTools } from './tools/advanced-tools.js';
+import { registerSemanticTools } from './tools/semantic-tools.js';
+import { SemanticSearchEngine } from './knowledge-graph/semantic-search.js';
+import { ChangelogEngine } from './knowledge-graph/changelog.js';
+import { registerSessionTools } from './tools/session-tools.js';
+import { registerDigestTools } from './tools/digest-tools.js';
 
 
 // ============================================================
@@ -837,7 +843,11 @@ async function main(): Promise<void> {
   const indexer = new Indexer(graph, config);
   // PageRankEngine — constructor is PageRankEngine(graph, config?)
   const pagerank = new PageRankEngine(graph);
-  log('info', '✅ Knowledge Graph initialized');
+
+  // Changelog Engine — node-level change tracking (v1.4.0)
+  const changelogEngine = new ChangelogEngine(graph.getDb());
+  indexer.setChangelog(changelogEngine);
+  log('info', '✅ Knowledge Graph initialized (with changelog engine)');
 
   // Change Tracker
   // ChangeLog constructor takes ChangeLogConfig: { dbPath, retentionDays?, defaultSearchLimit? }
@@ -851,7 +861,7 @@ async function main(): Promise<void> {
   const sessionId = sessionMemory.startSession();
   log('info', `Session started: ${sessionId}`);
 
-  if (config.watchEnabled) {
+  if (config.watchEnabled && !config.memoryOnly) {
     // FileWatcher constructor: config with { projectRoot, watchDebounceMs?, maxFileSize?, ignore? }
     watcher = new FileWatcher({
       projectRoot: config.projectRoot,
@@ -934,10 +944,66 @@ async function main(): Promise<void> {
   };
 
   // ── 6. Create MCP server ──────────────────────────────────
-  const server = new McpServer({
-    name: 'ai-mind-map',
-    version: '1.0.0',
-  });
+  const server = new McpServer(
+    {
+      name: 'ai-mind-map',
+      version: '1.4.0',
+    },
+    {
+      instructions: [
+        '# AI Mind Map — Code Memory Engine',
+        '',
+        'You have access to AI Mind Map, a persistent code memory system that saves you from re-reading files and losing context between sessions.',
+        '',
+        '## 🚀 FIRST CALL (every new conversation):',
+        'Call `mindmap_session_resume` FIRST. It returns:',
+        '- What the previous AI worked on',
+        '- What code changed since then (function-level diffs)',
+        '- Project structure + tech stack',
+        '- Hot files (most frequently changed)',
+        'This ONE call replaces reading 10+ files.',
+        '',
+        '## 📋 Tool Selection Guide:',
+        '',
+        '### When you need to UNDERSTAND the project:',
+        '- `mindmap_digest` → Full project summary in <2000 tokens',
+        '- `mindmap_architecture` → Layers, patterns, component overview',
+        '- `mindmap_file_digest` → Understand a file WITHOUT reading it',
+        '',
+        '### When you need to FIND code:',
+        '- `mindmap_smart_search` → Search by name/concept (best for most lookups)',
+        '- `mindmap_semantic_search` → Search by meaning ("authentication", "error handling")',
+        '- `mindmap_search_code` → Grep-like text search in code bodies',
+        '- `mindmap_trace_dependencies` → Who calls X? What does X call?',
+        '',
+        '### When you need to READ code:',
+        '- `mindmap_explain` → Get EVERYTHING about a symbol: signature, callers, callees, doc',
+        '- `mindmap_get_code_snippet` → Read actual source code for a function/class',
+        '- `mindmap_get_file_map` → All symbols in a file with signatures + line ranges',
+        '',
+        '### When you need to know WHAT CHANGED:',
+        '- `mindmap_changelog` → Symbol-level diffs (added/modified/deleted functions)',
+        '- `mindmap_git_changes` → Git-aware changes with symbol mapping',
+        '- `mindmap_verify` → Check if your cached knowledge is still valid',
+        '- `mindmap_hotspots` → Most frequently changed files + symbols',
+        '',
+        '### When you need to REMEMBER:',
+        '- `mindmap_remember` → Save a fact/convention for future sessions',
+        '- `mindmap_recall` → Retrieve relevant memories for current task',
+        '- `mindmap_decide` → Record architectural decisions with rationale',
+        '',
+        '### When you finish work:',
+        '- `mindmap_session_end` → Save summary so next AI can resume instantly',
+        '',
+        '## ⚡ Token-Saving Rules:',
+        '1. ALWAYS call `mindmap_session_resume` first — never start blind',
+        '2. Use `mindmap_file_digest` BEFORE reading a full file — you may not need the full file',
+        '3. Use `mindmap_verify` to check if cached code is still valid — avoid re-reading',
+        '4. Use `mindmap_changelog` instead of re-reading files to see what changed',
+        '5. Call `mindmap_session_end` when done — save context for next session',
+      ].join('\n'),
+    },
+  );
 
   // ── 7. Register all tools ─────────────────────────────────
   log('info', 'Registering MCP tools…');
@@ -963,53 +1029,281 @@ async function main(): Promise<void> {
   registerSnapshotTools(server, graph, config, tokenEstimator);
   log('debug', 'Registered snapshot tools (3)');
 
-  registerSmartTools(server, graph, config, tokenEstimator);
+  // Initialize semantic search engine
+  const semanticEngine = new SemanticSearchEngine(graph.getDb());
+  log('debug', 'Initialized semantic search engine');
+
+  registerSmartTools(server, graph, config, tokenEstimator, semanticEngine);
   log('debug', 'Registered smart tools (3)');
 
   registerEvolvingTools(server, graph, config, tokenEstimator);
   log('debug', 'Registered evolving tools (3)');
 
-  registerAdvancedTools(server, graph, config, tokenEstimator);
+  registerAdvancedTools(server, graph, config, tokenEstimator, semanticEngine);
   log('debug', 'Registered advanced tools (7)');
 
+  registerSemanticTools(server, graph, semanticEngine, config, tokenEstimator);
+  log('debug', 'Registered semantic search tools (3)');
 
-  log('info', '🔧 All 41 MCP tools registered:');
+  // Session, Changelog & Digest tools (v1.4.0)
+  registerSessionTools(server, graph, changelogEngine, config, tokenEstimator);
+  log('debug', 'Registered session tools (5)');
+
+  registerDigestTools(server, graph, changelogEngine, config, tokenEstimator);
+  log('debug', 'Registered digest tools (3)');
+
+  // ── mindmap_sync_shared_context ─────────────────────────────
+  server.tool(
+    'mindmap_sync_shared_context',
+    'Synchronise local memories, decisions, and learned rules with the team-shared `.mindmap-shared.json` file. ' +
+      'Performs a bidirectional sync to import new conventions/decisions and export local updates.',
+    {},
+    async () => {
+      try {
+        const syncStats = await syncSharedContext(config, graph, persistentMemory, decisionLog);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({
+                success: true,
+                message: 'Bidirectional synchronization completed successfully.',
+                stats: syncStats
+              })
+            }
+          ]
+        };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({
+                success: false,
+                message: `Synchronization failed: ${msg}`
+              })
+            }
+          ]
+        };
+      }
+    }
+  );
+  log('debug', 'Registered shared context sync tool');
+
+
+  log('info', '🔧 All MCP tools registered:');
   log('info', '  Graph:    mindmap_search, mindmap_get_structure, mindmap_trace_dependencies, mindmap_get_signature, mindmap_find_references, mindmap_get_file_map');
   log('info', '  Changes:  mindmap_what_changed, mindmap_session_diff, mindmap_impact_analysis');
-  log('info', '  Memory:   mindmap_recall, mindmap_remember, mindmap_get_decisions, mindmap_decide, mindmap_session_summary');
+  log('info', '  Memory:   mindmap_recall, mindmap_remember, mindmap_get_decisions, mindmap_decide, mindmap_session_summary, mindmap_sync_shared_context');
   log('info', '  Context:  mindmap_get_context, mindmap_compress, mindmap_reindex, mindmap_status');
   log('info', '  Debug:    mindmap_debug_changes, mindmap_file_before, mindmap_file_history');
   log('info', '  Flow:     mindmap_trace_flow, mindmap_interaction_map, mindmap_classify_file, mindmap_layer_overview');
-  log('info', '  Snapshot: mindmap_project_map, mindmap_change_delta, mindmap_session_start ⭐');
+  log('info', '  Snapshot: mindmap_project_map, mindmap_change_delta');
   log('info', '  Advanced: mindmap_query_graph, mindmap_dead_code, mindmap_architecture, mindmap_get_code_snippet, mindmap_search_code, mindmap_list_projects, mindmap_health');
   log('info', '  Smart:    mindmap_explain ⭐, mindmap_git_changes ⭐, mindmap_smart_search ⭐');
   log('info', '  Evolving: mindmap_teach ⭐, mindmap_get_learned, mindmap_forget');
+  log('info', '  Semantic: mindmap_semantic_search ⭐, mindmap_semantic_stats, mindmap_synonyms');
+  log('info', '  Session:  mindmap_session_start ⭐, mindmap_session_resume ⭐⭐, mindmap_session_end, mindmap_changelog ⭐, mindmap_hotspots');
+  log('info', '  Digest:   mindmap_digest ⭐, mindmap_file_digest ⭐, mindmap_verify');
+
+  // ── 7.3 Register MCP Prompts ──────────────────────────────
+  // These are interactive workflow templates that AI agents can request
+
+  server.prompt(
+    'start_session',
+    'Recommended first prompt for any AI coding session. Calls mindmap_session_resume and returns a complete project briefing.',
+    async () => {
+      // Auto-start session
+      const sessionId = changelogEngine.ensureSession('ai-agent');
+      const lastSession = changelogEngine.getLastSession();
+      const stats = graph.getStats();
+      const since = lastSession?.endedAt || lastSession?.startedAt || (Date.now() - 24 * 3600_000);
+      const changes = changelogEngine.getChangesSince(since);
+
+      const lines: string[] = [
+        '# Session Briefing',
+        '',
+        `**Project**: ${path.basename(config.projectRoot)}`,
+        `**Files**: ${stats.totalFiles} | **Symbols**: ${stats.totalNodes} | **Relationships**: ${stats.totalEdges}`,
+        `**Languages**: ${Object.entries(stats.languageBreakdown).map(([l, c]) => `${l}(${c})`).join(', ')}`,
+        '',
+      ];
+
+      if (lastSession) {
+        lines.push(
+          '## Previous Session',
+          `- **Agent**: ${lastSession.agentName}`,
+          `- **Task**: ${lastSession.taskDescription || 'Not specified'}`,
+          `- **Summary**: ${lastSession.summary || 'No summary'}`,
+          `- **Files modified**: ${lastSession.filesModified.length}`,
+          '',
+        );
+      }
+
+      if (changes.totalChanges > 0) {
+        lines.push(
+          `## Changes Since Last Session (${changes.sinceLabel})`,
+          `${changes.filesChanged} files, ${changes.totalChanges} symbol changes:`,
+        );
+        for (const f of changes.files.slice(0, 8)) {
+          const rel = path.relative(config.projectRoot, f.filePath).replace(/\\/g, '/');
+          const parts: string[] = [];
+          if (f.added.length > 0) parts.push(`+${f.added.length}`);
+          if (f.modified.length > 0) parts.push(`~${f.modified.length}`);
+          if (f.deleted.length > 0) parts.push(`-${f.deleted.length}`);
+          lines.push(`  ${rel}: ${parts.join(', ')}`);
+        }
+        lines.push('');
+      }
+
+      lines.push(
+        '## What to do next',
+        '- Use `mindmap_smart_search` to find specific code',
+        '- Use `mindmap_explain` to understand a symbol',
+        '- Use `mindmap_changelog` for detailed change diffs',
+        '- Use `mindmap_session_end` when done',
+      );
+
+      return {
+        messages: [{
+          role: 'user' as const,
+          content: { type: 'text' as const, text: lines.join('\n') },
+        }],
+      };
+    },
+  );
+
+  server.prompt(
+    'tool_guide',
+    'Complete guide to all AI Mind Map tools — when to use each one, organized by task.',
+    async () => ({
+      messages: [{
+        role: 'user' as const,
+        content: {
+          type: 'text' as const,
+          text: [
+            '# AI Mind Map — Complete Tool Guide',
+            '',
+            '## 🚀 Session Lifecycle (use these to avoid re-reading code)',
+            '| Tool | When to Use |',
+            '|------|------------|',
+            '| `mindmap_session_resume` | **FIRST call every conversation** — returns project context + changes |',
+            '| `mindmap_session_start` | Start tracking a new task |',
+            '| `mindmap_session_end` | Save summary for next AI session |',
+            '',
+            '## 🔍 Finding Code (instead of grep/reading files)',
+            '| Tool | When to Use |',
+            '|------|------------|',
+            '| `mindmap_smart_search` | Search by function/class name — returns full context |',
+            '| `mindmap_semantic_search` | Search by concept ("error handling", "auth") |',
+            '| `mindmap_search_code` | Grep-like text search in code bodies |',
+            '| `mindmap_find_references` | Find all usages of a symbol |',
+            '| `mindmap_trace_dependencies` | Who calls X? What does X call? |',
+            '',
+            '## 📖 Reading Code (without reading full files)',
+            '| Tool | When to Use |',
+            '|------|------------|',
+            '| `mindmap_explain` | Get EVERYTHING about a symbol in one call |',
+            '| `mindmap_get_code_snippet` | Read actual source for a function |',
+            '| `mindmap_file_digest` | Understand a file without reading it |',
+            '| `mindmap_get_file_map` | All symbols in a file with signatures |',
+            '| `mindmap_get_signature` | Just the signature (cheapest read) |',
+            '',
+            '## 📊 Understanding the Project',
+            '| Tool | When to Use |',
+            '|------|------------|',
+            '| `mindmap_digest` | Full project summary in <2000 tokens |',
+            '| `mindmap_architecture` | Architecture layers + patterns |',
+            '| `mindmap_project_map` | Complete project map |',
+            '',
+            '## 🔄 Change Tracking',
+            '| Tool | When to Use |',
+            '|------|------------|',
+            '| `mindmap_changelog` | Symbol-level diffs since a time |',
+            '| `mindmap_git_changes` | Git-aware change detection |',
+            '| `mindmap_verify` | Check if cached code is still valid |',
+            '| `mindmap_hotspots` | Most frequently changed files |',
+            '',
+            '## 🧠 Memory & Decisions',
+            '| Tool | When to Use |',
+            '|------|------------|',
+            '| `mindmap_remember` | Save important facts for future |',
+            '| `mindmap_recall` | Retrieve relevant memories |',
+            '| `mindmap_decide` | Record architectural decisions |',
+            '| `mindmap_teach` | Teach persistent rules |',
+          ].join('\n'),
+        },
+      }],
+    }),
+  );
+
+  log('debug', 'Registered 2 MCP prompts (start_session, tool_guide)');
+
+  // ── 7.5 Auto-sync shared context on startup ────────────────
+  if (config.autoSyncSharedContext) {
+    log('info', '🔄 Auto-syncing shared context…');
+    try {
+      const syncStats = await syncSharedContext(config, graph, persistentMemory, decisionLog);
+      log('info', `✅ Shared context sync complete: ` +
+        `Imported: ${syncStats.memoriesImported} memories, ${syncStats.decisionsImported} decisions, ${syncStats.rulesImported} rules. ` +
+        `Exported: ${syncStats.memoriesExported} memories, ${syncStats.decisionsExported} decisions, ${syncStats.rulesExported} rules.`);
+    } catch (err) {
+      log('warn', `⚠️ Auto-sync of shared context failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
 
   // ── 8. Auto-index on first run ─────────────────────────────
-  const stats = graph.getStats();
-  if (stats.totalNodes === 0) {
-    log('info', '📋 No existing index found. Running initial codebase indexing…');
+  if (config.memoryOnly) {
+    log('info', '🧠 Running in memoryOnly mode. Bypassing codebase parsing and indexing.');
+  } else {
+    const stats = graph.getStats();
+    if (stats.totalNodes === 0) {
+      log('info', '📋 No existing index found. Running initial codebase indexing…');
+      try {
+        const result = await indexer.fullIndex();
+        log('info', `✅ Initial index complete: ${result.filesParsed} files, ${result.nodesCreated} nodes, ${result.edgesCreated} edges`);
+        if (result.parseErrors > 0) {
+          log('warn', `⚠️ ${result.parseErrors} parse errors (non-fatal)`);
+        }
+      } catch (err) {
+        log('warn', `⚠️ Initial indexing failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+      }
+    } else {
+      log('info', `📋 Existing index found: ${stats.totalNodes} nodes. Running incremental update…`);
+      try {
+        const result = await indexer.incrementalIndex();
+        log('info', `✅ Incremental update: ${result.filesParsed} files reindexed`);
+      } catch (err) {
+        log('warn', `⚠️ Incremental update failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
+    // Build semantic search TF-IDF index from all graph nodes
     try {
-      const result = await indexer.fullIndex();
-      log('info', `✅ Initial index complete: ${result.filesParsed} files, ${result.nodesCreated} nodes, ${result.edgesCreated} edges`);
-      if (result.parseErrors > 0) {
-        log('warn', `⚠️ ${result.parseErrors} parse errors (non-fatal)`);
+      const allNodes = graph.getAllNodes();
+      const nonFileNodes = allNodes.filter(n => n.type !== 'file');
+      if (nonFileNodes.length > 0) {
+        semanticEngine.indexNodes(
+          nonFileNodes.map(n => ({
+            id: n.id,
+            name: n.name,
+            qualifiedName: n.qualifiedName,
+            signature: n.signature,
+            docComment: n.docComment,
+            filePath: n.filePath,
+          }))
+        );
+        semanticEngine.rebuildIDF();
+        log('info', `🧠 Semantic index built: ${nonFileNodes.length} symbols indexed`);
       }
     } catch (err) {
-      log('warn', `⚠️ Initial indexing failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
-    }
-  } else {
-    log('info', `📋 Existing index found: ${stats.totalNodes} nodes. Running incremental update…`);
-    try {
-      const result = await indexer.incrementalIndex();
-      log('info', `✅ Incremental update: ${result.filesParsed} files reindexed`);
-    } catch (err) {
-      log('warn', `⚠️ Incremental update failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+      log('warn', `⚠️ Semantic index build failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
   // ── 9. Start file watcher ──────────────────────────────────
-  if (watcher) {
+  if (watcher && !config.memoryOnly) {
     try {
       await watcher.start();
       log('info', '👁️ File watcher started');

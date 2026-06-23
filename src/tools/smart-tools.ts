@@ -20,6 +20,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ToolResult, MindMapConfig, GraphNode, GraphEdge } from '../types.js';
 import { KnowledgeGraph } from '../knowledge-graph/graph.js';
 import { FlowAnalyzer } from '../knowledge-graph/flow-analyzer.js';
+import type { SemanticSearchEngine } from '../knowledge-graph/semantic-search.js';
 
 // ============================================================
 // Token Estimation Interface
@@ -86,6 +87,7 @@ export function registerSmartTools(
   graph: KnowledgeGraph,
   config: MindMapConfig,
   estimator: ITokenEstimator = defaultEstimator,
+  semanticEngine?: SemanticSearchEngine,
 ): void {
 
   // ── mindmap_explain ──────────────────────────────────────────
@@ -466,6 +468,10 @@ export function registerSmartTools(
     {
       query: z.string().describe('Search query (name, keyword, or free text)'),
       limit: z.number().int().min(1).max(20).default(5).describe('Max results (default 5, keep small for rich data)'),
+      mode: z.enum(['keyword', 'semantic', 'hybrid']).default('hybrid').describe(
+        'Search mode: keyword (exact FTS5 matching), semantic (TF-IDF concept matching), '
+        + 'or hybrid (both merged, best of both worlds). Default: hybrid.'
+      ),
       include: z.array(z.enum([
         'signature',    // function signature (always included)
         'doc',          // doc comment
@@ -476,9 +482,53 @@ export function registerSmartTools(
         'git',          // git history
       ])).default(['signature', 'doc', 'callers', 'layer']).describe('What to include in each result'),
     },
-    async ({ query, limit, include }) => {
+    async ({ query, limit, mode, include }) => {
       try {
-        const searchResults = graph.search(query, limit);
+        // ── Hybrid/Semantic/Keyword search routing ───────────
+        let searchResults: GraphNode[] = [];
+        const semanticScores = new Map<string, number>();
+        let synonymsExpanded: string[] = [];
+
+        if (mode === 'keyword' || !semanticEngine) {
+          // Pure keyword search (existing behavior)
+          searchResults = graph.search(query, limit);
+        } else if (mode === 'semantic') {
+          // Pure semantic search
+          const semResults = semanticEngine.search(query, limit);
+          synonymsExpanded = semResults[0]?.expandedSynonyms ?? [];
+          for (const sr of semResults) {
+            const node = graph.getNode(sr.nodeId);
+            if (node) {
+              searchResults.push(node);
+              semanticScores.set(sr.nodeId, sr.score);
+            }
+          }
+        } else {
+          // Hybrid: merge keyword + semantic results
+          const keywordResults = graph.search(query, limit);
+          const semResults = semanticEngine.search(query, limit);
+          synonymsExpanded = semResults[0]?.expandedSynonyms ?? [];
+
+          // Build merged set (keyword results first, then semantic-only results)
+          const seen = new Set<string>();
+          for (const node of keywordResults) {
+            seen.add(node.id);
+            searchResults.push(node);
+          }
+          for (const sr of semResults) {
+            semanticScores.set(sr.nodeId, sr.score);
+            if (!seen.has(sr.nodeId)) {
+              const node = graph.getNode(sr.nodeId);
+              if (node) {
+                seen.add(sr.nodeId);
+                searchResults.push(node);
+              }
+            }
+          }
+
+          // Trim to limit
+          searchResults = searchResults.slice(0, limit);
+        }
         if (searchResults.length === 0) {
           return mcpText(ok({
             query,
@@ -506,6 +556,12 @@ export function registerSmartTools(
             visibility: node.visibility,
             isExported: node.isExported,
           };
+
+          // Semantic score (only present in semantic/hybrid modes)
+          const semScore = semanticScores.get(node.id);
+          if (semScore !== undefined) {
+            result.semanticScore = Math.round(semScore * 1000) / 1000;
+          }
 
           // Optional: doc comment
           if (include.includes('doc') && node.docComment) {
@@ -590,6 +646,8 @@ export function registerSmartTools(
           results,
           totalResults: results.length,
           includes: include,
+          searchMode: mode,
+          synonymsExpanded: synonymsExpanded.length > 0 ? synonymsExpanded : undefined,
         };
 
         return mcpText(okWithSavings(response, Math.max(0, totalTokensSaved), estimator));

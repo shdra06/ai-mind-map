@@ -10,7 +10,7 @@
  * Inspired by CocoIndex's incremental approach and Cursor's Merkle tree.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { relative, join } from 'node:path';
 import { glob } from 'glob';
@@ -26,9 +26,13 @@ import {
   generateContentHash,
 } from './parser.js';
 import type { ParseResult } from './parser.js';
+import type { ChangelogEngine } from './changelog.js';
 
 /** Maximum file size to index (default 512KB). Files larger than this are skipped to prevent OOM. */
 const MAX_FILE_SIZE_BYTES = 512 * 1024;
+
+/** Memory pressure threshold — pause indexing if heap usage exceeds this fraction. */
+const MEMORY_PRESSURE_THRESHOLD = 0.80;
 
 // ============================================================
 // Types
@@ -71,6 +75,7 @@ export class Indexer {
   private graph: KnowledgeGraph;
   private config: MindMapConfig;
   private ig: ReturnType<typeof ignore>;
+  private changelog: ChangelogEngine | null = null;
 
   constructor(graph: KnowledgeGraph, config: MindMapConfig) {
     this.graph = graph;
@@ -79,6 +84,11 @@ export class Indexer {
 
     // Load .gitignore patterns
     this.loadIgnorePatterns();
+  }
+
+  /** Attach a changelog engine for node-level change tracking */
+  setChangelog(changelog: ChangelogEngine): void {
+    this.changelog = changelog;
   }
 
   /** Load ignore patterns from .gitignore and config */
@@ -345,23 +355,40 @@ export class Indexer {
     const filesToParse: string[] = [];
     const filesToDelete: string[] = [];
 
-    // Check for new or modified files
+    // ── mtime-first staleness detection (10x faster) ──────────
+    // First check mtime+size via stat() (~0.1ms/file). Only hash
+    // files whose metadata changed (~3ms/file). This avoids
+    // reading every file on every incremental index.
     for (const filePath of currentFiles) {
       const existingHash = this.graph.getFileHash(filePath);
 
       if (!existingHash) {
-        // New file
+        // New file — always parse
         filesToParse.push(filePath);
         continue;
       }
 
-      // Check if content has changed
+      // Fast path: check mtime+size from file_index table
+      const fileEntry = this.graph.getFileIndexEntry(filePath);
       try {
+        const fileStat = await stat(filePath);
+
+        if (fileEntry) {
+          // If mtime AND size match, file is unchanged (fast path — 99% of cases)
+          if (fileStat.mtimeMs === fileEntry.mtime_ms && fileStat.size === fileEntry.size_bytes) {
+            stats.filesSkipped++;
+            continue;
+          }
+        }
+
+        // Slow path: metadata changed, verify with content hash
         const content = await readFile(filePath, 'utf-8');
         const currentHash = generateContentHash(content);
         if (currentHash !== existingHash) {
           filesToParse.push(filePath);
         } else {
+          // Content unchanged despite metadata change — update file_index
+          this.graph.upsertFileIndex(filePath, fileStat.mtimeMs, fileStat.size, currentHash);
           stats.filesSkipped++;
         }
       } catch {
@@ -386,7 +413,8 @@ export class Indexer {
       });
 
       for (const filePath of filesToDelete) {
-        const deleted = this.graph.deleteFileNodes(filePath);
+        this.graph.deleteFileNodes(filePath);
+        this.graph.removeFileIndex(filePath);
         stats.filesDeleted++;
       }
     }
@@ -400,46 +428,91 @@ export class Indexer {
         message: `Parsing ${filesToParse.length} changed files...`,
       });
 
-      const parseResults = await parseFiles(filesToParse, 8, (current, total) => {
-        onProgress?.({
-          phase: 'parsing',
-          current,
-          total,
-          currentFile: filesToParse[Math.min(current, filesToParse.length - 1)],
-          message: `Parsed ${current}/${total} changed files`,
+      // ── Memory-aware indexing ─────────────────────────────
+      // Check memory pressure before parsing. If approaching
+      // 80% heap usage, stop and report partial results.
+      const memInfo = process.memoryUsage();
+      if (memInfo.heapUsed / memInfo.heapTotal > MEMORY_PRESSURE_THRESHOLD) {
+        console.error(
+          `[ai-mind-map] Memory pressure: ${(memInfo.heapUsed / 1024 / 1024).toFixed(0)}MB / ` +
+          `${(memInfo.heapTotal / 1024 / 1024).toFixed(0)}MB. ` +
+          `Skipping ${filesToParse.length} files to prevent OOM.`
+        );
+        stats.filesSkipped += filesToParse.length;
+      } else {
+        const parseResults = await parseFiles(filesToParse, 8, (current, total) => {
+          onProgress?.({
+            phase: 'parsing',
+            current,
+            total,
+            currentFile: filesToParse[Math.min(current, filesToParse.length - 1)],
+            message: `Parsed ${current}/${total} changed files`,
+          });
         });
-      });
 
-      // Phase 4: Store results
-      onProgress?.({
-        phase: 'storing',
-        current: 0,
-        total: parseResults.length,
-        message: 'Updating knowledge graph...',
-      });
+        // Phase 4: Store results
+        onProgress?.({
+          phase: 'storing',
+          current: 0,
+          total: parseResults.length,
+          message: 'Updating knowledge graph...',
+        });
 
-      for (let i = 0; i < parseResults.length; i++) {
-        const result = parseResults[i];
+        for (let i = 0; i < parseResults.length; i++) {
+          // Check memory between files
+          if (i > 0 && i % 100 === 0) {
+            const mem = process.memoryUsage();
+            if (mem.heapUsed / mem.heapTotal > MEMORY_PRESSURE_THRESHOLD) {
+              console.error(
+                `[ai-mind-map] Memory pressure at file ${i}/${parseResults.length}. ` +
+                `Stopping early to prevent OOM.`
+              );
+              stats.filesSkipped += parseResults.length - i;
+              break;
+            }
+          }
 
-        if (result.nodes.length === 0 && result.parseErrors.length > 0) {
-          stats.parseErrors += result.parseErrors.length;
-          continue;
+          const result = parseResults[i];
+
+          if (result.nodes.length === 0 && result.parseErrors.length > 0) {
+            stats.parseErrors += result.parseErrors.length;
+            continue;
+          }
+
+          stats.filesParsed++;
+          stats.nodesCreated += result.nodes.length;
+          stats.edgesCreated += result.edges.length;
+
+          if (result.language !== 'unknown') {
+            stats.languages[result.language] = (stats.languages[result.language] ?? 0) + 1;
+          }
+
+          if (result.parseErrors.length > 0) {
+            stats.parseErrors += result.parseErrors.length;
+          }
+
+          // Record changes before replacing (changelog diffing)
+          if (this.changelog) {
+            try {
+              const oldNodes = this.graph.getNodesForFile(result.filePath);
+              this.changelog.recordChanges(result.filePath, oldNodes, result.nodes);
+            } catch {
+              // Changelog recording is non-critical
+            }
+          }
+
+          // Replace file data atomically
+          this.graph.replaceFileData(result.filePath, result.nodes, result.edges);
+
+          // Update file_index for future mtime-first detection
+          try {
+            const fileStat = await stat(result.filePath);
+            const fileHash = result.nodes.find(n => n.type === 'file')?.hash ?? '';
+            this.graph.upsertFileIndex(result.filePath, fileStat.mtimeMs, fileStat.size, fileHash);
+          } catch {
+            // File may have been deleted between parse and store
+          }
         }
-
-        stats.filesParsed++;
-        stats.nodesCreated += result.nodes.length;
-        stats.edgesCreated += result.edges.length;
-
-        if (result.language !== 'unknown') {
-          stats.languages[result.language] = (stats.languages[result.language] ?? 0) + 1;
-        }
-
-        if (result.parseErrors.length > 0) {
-          stats.parseErrors += result.parseErrors.length;
-        }
-
-        // Replace file data atomically
-        this.graph.replaceFileData(result.filePath, result.nodes, result.edges);
       }
     }
 
@@ -489,6 +562,16 @@ export class Indexer {
     const result = await parseFile(filePath);
 
     if (result.nodes.length > 0) {
+      // Record changes before replacing (changelog diffing)
+      if (this.changelog) {
+        try {
+          const oldNodes = this.graph.getNodesForFile(filePath);
+          this.changelog.recordChanges(filePath, oldNodes, result.nodes);
+        } catch {
+          // Changelog recording is non-critical
+        }
+      }
+
       this.graph.replaceFileData(filePath, result.nodes, result.edges);
     }
 
@@ -502,7 +585,63 @@ export class Indexer {
    * @returns Number of nodes removed
    */
   removeFile(filePath: string): number {
+    this.graph.removeFileIndex(filePath);
     return this.graph.deleteFileNodes(filePath);
+  }
+
+  /**
+   * Get a stale report: files changed since last index, detected via mtime comparison.
+   * This is a fast O(n) stat() scan — much cheaper than full content hashing.
+   */
+  async getStaleReport(): Promise<{
+    staleFiles: string[];
+    newFiles: string[];
+    deletedFiles: string[];
+    totalTracked: number;
+    lastIndexedAt: number;
+  }> {
+    const currentFiles = await this.scanFiles();
+    const currentSet = new Set(currentFiles);
+    const staleFiles: string[] = [];
+    const newFiles: string[] = [];
+    const deletedFiles: string[] = [];
+    let lastIndexedAt = 0;
+
+    // Check current files against file_index
+    for (const filePath of currentFiles) {
+      const entry = this.graph.getFileIndexEntry(filePath);
+      if (!entry) {
+        newFiles.push(filePath);
+        continue;
+      }
+      if (entry.indexed_at > lastIndexedAt) {
+        lastIndexedAt = entry.indexed_at;
+      }
+      try {
+        const fileStat = await stat(filePath);
+        if (fileStat.mtimeMs !== entry.mtime_ms || fileStat.size !== entry.size_bytes) {
+          staleFiles.push(filePath);
+        }
+      } catch {
+        staleFiles.push(filePath); // Can't stat → probably changed or deleted
+      }
+    }
+
+    // Check for deleted files still in file_index
+    const allEntries = this.graph.getAllFileIndexEntries();
+    for (const entry of allEntries) {
+      if (!currentSet.has(entry.file_path)) {
+        deletedFiles.push(entry.file_path);
+      }
+    }
+
+    return {
+      staleFiles,
+      newFiles,
+      deletedFiles,
+      totalTracked: this.graph.getFileIndexCount(),
+      lastIndexedAt,
+    };
   }
 
   /**

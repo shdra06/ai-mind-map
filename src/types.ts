@@ -254,6 +254,15 @@ export interface MindMapConfig {
   
   /** Enable PageRank relevance ranking */
   pageRankEnabled: boolean;
+  
+  /** Disable parsing/indexing and run only memory/context services */
+  memoryOnly: boolean;
+
+  /** File path for team-shared Git-trackable context (relative to projectRoot) */
+  sharedContextFile: string;
+
+  /** Auto-sync sharedContextFile on startup */
+  autoSyncSharedContext: boolean;
 }
 
 export const DEFAULT_CONFIG: MindMapConfig = {
@@ -293,6 +302,9 @@ export const DEFAULT_CONFIG: MindMapConfig = {
   watchDebounceMs: 500,
   maxFileSize: 512 * 1024,  // 512KB
   pageRankEnabled: true,
+  memoryOnly: false,
+  sharedContextFile: '.mindmap-shared.json',
+  autoSyncSharedContext: true,
 };
 
 // ============================================================

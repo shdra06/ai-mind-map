@@ -997,82 +997,95 @@ export async function runDoctor(): Promise<void> {
 
 /** The core rules content that teaches AI agents about our tools */
 function getToolAwarenessRules(): string {
-  return `# AI Mind Map MCP — Tool Awareness
+  return `# AI Mind Map MCP — Code Memory Engine (v1.4.0)
 
-You have the AI Mind Map MCP server connected with 41 tools. Use them INSTEAD of reading raw files.
+You have the AI Mind Map MCP server connected. It is a persistent code memory system that eliminates redundant file re-reading and context loss between sessions.
 
-## ⭐ FIRST THING TO DO IN EVERY CONVERSATION
-Call \`mindmap_session_start\` — it returns the entire project map + recent changes + memories in ONE call (~2000-4000 tokens instead of reading every file at ~50,000+ tokens).
+## 🚀 FIRST THING TO DO IN EVERY CONVERSATION
+Call \`mindmap_session_resume\` — it returns:
+- What the previous AI agent worked on
+- What code changed since then (function-level diffs, not just file names)
+- Project structure + tech stack
+- Hot files (most frequently modified)
+
+This ONE call replaces reading 10+ files (~2000 tokens instead of 50,000+).
 
 ## Quick Lookup: "I need to..." → Use this tool
 
-### Start & Navigate
-- Start any session → \`mindmap_session_start\` ⭐ (THE most important call)
-- Get full project map → \`mindmap_project_map\`
-- See what changed recently → \`mindmap_change_delta\`
+### ⚡ Session Lifecycle (always use these)
+- Resume from last session → \`mindmap_session_resume\` ⭐⭐ (THE first call)
+- Start tracking a new task → \`mindmap_session_start\`
+- End session, save summary → \`mindmap_session_end\`
 
-### Find & Read Code
-- Find a function/class → \`mindmap_search\`, then \`mindmap_get_code_snippet\`
-- Get function signature only → \`mindmap_get_signature\` (don't open the file)
-- Find who calls a function → \`mindmap_find_references\`
-- What's in this file? → \`mindmap_get_file_map\`
+### 🔍 Find Code (instead of grep/reading files)
+- Search by name → \`mindmap_smart_search\` ⭐ (returns full context)
+- Search by concept → \`mindmap_semantic_search\` ⭐ ("authentication", "error handling")
+- Grep text in code → \`mindmap_search_code\`
+- Who calls X? → \`mindmap_trace_dependencies\`
+- All usages of symbol → \`mindmap_find_references\`
 
-### ⭐ Smart Tools (Use These First — 99% Token Savings)
-- Everything about a symbol → \`mindmap_explain\` ⭐ (signature + callers + callees + layer + blast radius + git history in ONE call)
-- What changed in git? → \`mindmap_git_changes\` (symbol-level diffs, not raw file diffs)
-- Rich search → \`mindmap_smart_search\` (returns full context so you never need to read files)
+### 📖 Read Code (without reading full files)
+- Everything about a symbol → \`mindmap_explain\` ⭐ (signature + callers + callees + doc in ONE call)
+- Read actual source code → \`mindmap_get_code_snippet\`
+- Understand file without reading → \`mindmap_file_digest\` ⭐ (saves 3-10K tokens/file)
+- All symbols in a file → \`mindmap_get_file_map\`
+- Just the signature → \`mindmap_get_signature\` (cheapest read)
 
-### Understand Flow & Architecture  
-- What does this button/feature do? → \`mindmap_trace_flow\`
-- Show all routes/events/components → \`mindmap_interaction_map\`
-- What layer is this file? → \`mindmap_classify_file\`
-- Architecture overview → \`mindmap_layer_overview\`
+### 📊 Understand the Project
+- Full project summary → \`mindmap_digest\` ⭐ (<2000 tokens)
+- Architecture overview → \`mindmap_architecture\`
+- Full project map → \`mindmap_project_map\`
+- Layer overview → \`mindmap_layer_overview\`
 
-### Debug & Investigate
-- Something broke → \`mindmap_debug_changes\` (shows ACTUAL git diffs)
-- What did the file look like before? → \`mindmap_file_before\`
-- What's the blast radius? → \`mindmap_impact_analysis\`
+### 🔄 Change Tracking
+- Symbol-level diffs → \`mindmap_changelog\` ⭐ (added/modified/deleted functions)
+- Git-aware changes → \`mindmap_git_changes\` (maps diffs to symbols)
+- Check if cached code is valid → \`mindmap_verify\` ⭐ (hash check, no re-reading)
+- Most changed files → \`mindmap_hotspots\`
+- What changed recently? → \`mindmap_what_changed\`
+- Changes since last session → \`mindmap_session_diff\`
+
+### 🐛 Debug & Investigate
+- Something broke → \`mindmap_debug_changes\` (shows actual git diffs)
+- File before changes → \`mindmap_file_before\`
+- Blast radius → \`mindmap_impact_analysis\`
 - File commit history → \`mindmap_file_history\`
 
-### Memory (persists across sessions)
-- Remember something → \`mindmap_remember\`
+### 🧠 Memory & Decisions (persists across sessions)
+- Remember a fact → \`mindmap_remember\`
 - Recall past knowledge → \`mindmap_recall\`
 - Record a decision → \`mindmap_decide\`
-- Past decisions → \`mindmap_get_decisions\`
+- View decisions → \`mindmap_get_decisions\`
 - Session summary → \`mindmap_session_summary\`
 
-### Change Tracking
-- What changed since yesterday? → \`mindmap_what_changed\`
-- What's new since last session? → \`mindmap_session_diff\`
-- Blast radius of a change → \`mindmap_impact_analysis\`
-
-### Context & Compression
-- Smart context for current task → \`mindmap_get_context\`
-- Compress logs/traces/output → \`mindmap_compress\`
-- Force full re-index → \`mindmap_reindex\`
-- Index stats and token savings → \`mindmap_status\`
-
-### Advanced Analysis
-- Cypher graph query → \`mindmap_query_graph\`
-- Find dead code → \`mindmap_dead_code\`
-- Full architecture report → \`mindmap_architecture\`
-- List indexed projects → \`mindmap_list_projects\`
-- System diagnostics → \`mindmap_health\`
+### 🔬 Flow & Architecture
+- Trace a feature flow → \`mindmap_trace_flow\`
+- All routes/events/components → \`mindmap_interaction_map\`
+- What layer is this file? → \`mindmap_classify_file\`
 
 ### 🧬 Self-Evolving (teach the system new patterns)
-- Teach a pattern → \`mindmap_teach\` (classification rules, search aliases, conventions — persists per-project)
+- Teach a pattern → \`mindmap_teach\` (persists per-project)
 - View learned rules → \`mindmap_get_learned\`
 - Remove a rule → \`mindmap_forget\`
 
-## Rules
-1. ALWAYS call \`mindmap_session_start\` at the beginning of every conversation
-2. PREFER \`mindmap_explain\` over reading files — it gives you everything in 1 call
-3. PREFER \`mindmap_smart_search\` over \`mindmap_search\` — it returns full context
-4. Use \`mindmap_git_changes\` instead of running \`git diff\` — it maps diffs to symbols
-5. START debugging with \`mindmap_debug_changes\` — then drill into specific files
-6. Use \`mindmap_remember\` for important learnings, \`mindmap_decide\` for architecture choices
-7. Use \`mindmap_teach\` when you discover a recurring pattern (e.g., "files in Services/ are always service-layer")
-8. If Mind Map returns unexpected results, the index may be stale — read the file and run \`mindmap_reindex\`
+### 🛠️ Advanced
+- Cypher graph query → \`mindmap_query_graph\`
+- Find dead code → \`mindmap_dead_code\`
+- Compress logs/output → \`mindmap_compress\`
+- Force re-index → \`mindmap_reindex\`
+- System health → \`mindmap_health\`
+
+## ⚡ Token-Saving Rules
+1. ALWAYS call \`mindmap_session_resume\` first — never start blind
+2. PREFER \`mindmap_explain\` over reading files — it gives everything in 1 call
+3. Use \`mindmap_file_digest\` BEFORE reading a full file — you may not need the full file
+4. Use \`mindmap_verify\` to check if cached code is still valid — avoid re-reading
+5. Use \`mindmap_changelog\` instead of re-reading files to see what changed
+6. Use \`mindmap_smart_search\` over \`mindmap_search\` — it returns full context
+7. Use \`mindmap_git_changes\` instead of running \`git diff\` — it maps diffs to symbols
+8. Call \`mindmap_session_end\` when done — save context for next session
+9. Use \`mindmap_remember\` for learnings, \`mindmap_decide\` for architecture choices
+10. If Mind Map returns unexpected results, the index may be stale — run \`mindmap_reindex\`
 
 ## When to READ FILES DIRECTLY
 - Complex algorithm logic that signatures can't capture

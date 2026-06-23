@@ -52,6 +52,9 @@ const MindMapConfigSchema = z.object({
   watchDebounceMs: z.number().int().min(50),
   maxFileSize: z.number().int().positive(),
   pageRankEnabled: z.boolean(),
+  memoryOnly: z.boolean(),
+  sharedContextFile: z.string().min(1),
+  autoSyncSharedContext: z.boolean(),
 });
 
 /** Partial schema used when reading .mindmap.json (all fields optional) */

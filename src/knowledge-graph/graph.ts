@@ -115,9 +115,18 @@ CREATE TABLE IF NOT EXISTS learned_rules (
 
 CREATE INDEX IF NOT EXISTS idx_learned_rules_type ON learned_rules(type);
 CREATE INDEX IF NOT EXISTS idx_learned_rules_name ON learned_rules(name);
+
+-- File index for fast staleness detection via mtime
+CREATE TABLE IF NOT EXISTS file_index (
+  file_path TEXT PRIMARY KEY,
+  mtime_ms REAL NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  content_hash TEXT NOT NULL,
+  indexed_at INTEGER NOT NULL
+);
 `;
 
-const SCHEMA_VERSION = '2';
+const SCHEMA_VERSION = '4';
 
 // ============================================================
 // KnowledgeGraph Class
@@ -182,8 +191,8 @@ export class KnowledgeGraph {
     }
 
     if (currentVersion && currentVersion !== SCHEMA_VERSION) {
-      // In future versions, add migration logic here
-      // For now, drop and recreate
+      // Migration: preserve changelog/session tables across schema upgrades
+      // Only drop core graph tables — changelog survives
       this.db.exec('DROP TABLE IF EXISTS nodes_fts');
       this.db.exec('DROP TABLE IF EXISTS edges');
       this.db.exec('DROP TABLE IF EXISTS nodes');
@@ -215,8 +224,17 @@ export class KnowledgeGraph {
   /** Set a metadata key-value pair */
   private setMeta(key: string, value: string): void {
     this.db.prepare(
-      'INSERT OR REPLACE INTO graph_meta (key, value) VALUES (?, ?)',
+      'INSERT OR REPLACE INTO graph_meta (key, value) VALUES (?, ?)'
     ).run(key, value);
+  }
+
+  /**
+   * Get all nodes belonging to a specific file.
+   * Used by changelog engine to diff old vs new nodes during re-indexing.
+   */
+  getNodesForFile(filePath: string): GraphNode[] {
+    const rows = this.db.prepare('SELECT * FROM nodes WHERE filePath = ?').all(filePath);
+    return rows.map((r: any) => this.rowToNode(r));
   }
 
   // ============================================================
@@ -366,6 +384,14 @@ export class KnowledgeGraph {
    */
   getNodesByType(type: NodeType): GraphNode[] {
     const rows = this.db.prepare('SELECT * FROM nodes WHERE type = ?').all(type);
+    return rows.map((r: any) => this.rowToNode(r));
+  }
+
+  /**
+   * Get all nodes in the graph.
+   */
+  getAllNodes(): GraphNode[] {
+    const rows = this.db.prepare('SELECT * FROM nodes').all();
     return rows.map((r: any) => this.rowToNode(r));
   }
 
@@ -687,28 +713,31 @@ export class KnowledgeGraph {
 
     // Always run LIKE search. Combine with FTS via UNION when possible.
     try {
+      // Use FTS5 bm25() for proper information-retrieval ranking
+      // bm25 weights: name(10), qualifiedName(5), signature(3), docComment(1)
       const rows = this.db.prepare(`
         SELECT * FROM (
-          SELECT n.*, CASE
+          SELECT n.*, bm25(nodes_fts, 10, 5, 3, 1) AS bm25_score,
+          CASE
             WHEN n.name = @query THEN 0
             WHEN n.name LIKE @like THEN 1
             WHEN n.qualifiedName LIKE @like THEN 2
-            WHEN n.signature LIKE @like THEN 3
-            ELSE 4
-          END AS relevance
+            ELSE 3
+          END AS exact_bonus
           FROM nodes_fts fts
           JOIN nodes n ON fts.id = n.id
           WHERE nodes_fts MATCH @fts
 
           UNION
 
-          SELECT n.*, CASE
+          SELECT n.*, 0 AS bm25_score,
+          CASE
             WHEN n.name = @query THEN 0
             WHEN n.name LIKE @like THEN 1
             WHEN n.qualifiedName LIKE @like THEN 2
             WHEN n.signature LIKE @like THEN 3
             ELSE 4
-          END AS relevance
+          END AS exact_bonus
           FROM nodes n
           WHERE n.name LIKE @like
             OR n.qualifiedName LIKE @like
@@ -716,7 +745,7 @@ export class KnowledgeGraph {
             OR n.docComment LIKE @like
         )
         GROUP BY id
-        ORDER BY MIN(relevance), name
+        ORDER BY MIN(exact_bonus), MIN(bm25_score), name
         LIMIT @limit
       `).all({ query: trimmed, like: likePattern, fts: sanitized, limit }) as any[];
 
@@ -1103,6 +1132,50 @@ export class KnowledgeGraph {
       aliases: (r.rule as any).aliases ?? [],
       id: r.id,
     }));
+  }
+
+  // ============================================================
+  // File Index (Staleness Detection)
+  // ============================================================
+
+  /**
+   * Get stored file index entry for staleness comparison.
+   */
+  getFileIndexEntry(filePath: string): { mtime_ms: number; size_bytes: number; content_hash: string; indexed_at: number } | null {
+    return this.db.prepare(
+      'SELECT mtime_ms, size_bytes, content_hash, indexed_at FROM file_index WHERE file_path = ?'
+    ).get(filePath) as any ?? null;
+  }
+
+  /**
+   * Upsert a file index entry after indexing.
+   */
+  upsertFileIndex(filePath: string, mtimeMs: number, sizeBytes: number, contentHash: string): void {
+    this.db.prepare(`
+      INSERT OR REPLACE INTO file_index (file_path, mtime_ms, size_bytes, content_hash, indexed_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(filePath, mtimeMs, sizeBytes, contentHash, Date.now());
+  }
+
+  /**
+   * Remove a file from the index tracking table.
+   */
+  removeFileIndex(filePath: string): void {
+    this.db.prepare('DELETE FROM file_index WHERE file_path = ?').run(filePath);
+  }
+
+  /**
+   * Get all tracked files for staleness checking.
+   */
+  getAllFileIndexEntries(): Array<{ file_path: string; mtime_ms: number; size_bytes: number; content_hash: string; indexed_at: number }> {
+    return this.db.prepare('SELECT * FROM file_index').all() as any[];
+  }
+
+  /**
+   * Count tracked files in file_index.
+   */
+  getFileIndexCount(): number {
+    return (this.db.prepare('SELECT COUNT(*) as c FROM file_index').get() as any)?.c ?? 0;
   }
 
   /**

@@ -1,6 +1,6 @@
 {
   "name": "ai-mind-map",
-  "version": "1.1.3",
+  "version": "1.4.0",
   "description": "AI Mind Map — MCP server that reduces AI coding agent token usage by 80-99% through persistent codebase memory, knowledge graphs, and intelligent context management",
   "type": "module",
   "main": "dist/index.js",
@@ -64,7 +64,10 @@
     "tree-sitter-python": "*",
     "tree-sitter-ruby": "*",
     "tree-sitter-rust": "*",
-    "tree-sitter-typescript": "*"
+    "tree-sitter-typescript": "*",
+    "@tree-sitter-grammars/tree-sitter-kotlin": "*",
+    "tree-sitter-swift": "*",
+    "tree-sitter-dart": "*"
   },
   "overrides": {
     "tree-sitter": "^0.22.4"
@@ -92,7 +95,10 @@
     "coding-assistant",
     "persistent-memory",
     "pagerank",
-    "ast-parser"
+    "ast-parser",
+    "semantic-search",
+    "synonym-expansion",
+    "tfidf"
   ],
   "license": "MIT"
 }

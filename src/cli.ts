@@ -28,6 +28,7 @@ import { Indexer } from './knowledge-graph/indexer.js';
 import { PersistentMemory } from './memory/persistent-memory.js';
 import { DecisionLog } from './memory/decision-log.js';
 import { ChangeLog } from './change-tracker/change-log.js';
+import { syncSharedContext } from './memory/shared-sync.js';
 import {
   installAgents,
   uninstallAgents,
@@ -916,6 +917,61 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
   return current;
 }
 
+/** ai-mind-map sync — Sync local memories/decisions/rules with team-shared file */
+async function cmdSync(args: ParsedArgs): Promise<void> {
+  heading('🔄 Team Shared Context Synchronization');
+  divider();
+
+  const config = await loadConfig({
+    projectRoot: args.flags['project-root'] as string,
+    dbPath: args.flags['db-path'] as string,
+    logLevel: 'info',
+  });
+
+  // Ensure database directory exists
+  const dbDir = path.dirname(config.dbPath);
+  if (!existsSync(dbDir)) {
+    mkdirSync(dbDir, { recursive: true });
+  }
+
+  const db = new Database(config.dbPath);
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+  db.pragma('busy_timeout = 5000');
+
+  const graph = new KnowledgeGraph(config.dbPath);
+  const memoryStore = new PersistentMemory(db, {
+    decayRate: config.memory.decayRate,
+    maxMemories: config.memory.maxMemories,
+    importanceThreshold: config.memory.importanceThreshold,
+  });
+  const decisionLog = new DecisionLog(db, {
+    maxDecisions: config.memory.maxDecisions,
+  });
+
+  try {
+    info(`Target shared context file: ${c.bold}${config.sharedContextFile}${c.reset}`);
+    info(`Synchronising…`);
+    
+    const syncStats = await syncSharedContext(config, graph, memoryStore, decisionLog);
+
+    success('Synchronization complete!');
+    console.log(`\nImported:`);
+    console.log(`  Memories:  ${c.green}${syncStats.memoriesImported}${c.reset}`);
+    console.log(`  Decisions: ${c.green}${syncStats.decisionsImported}${c.reset}`);
+    console.log(`  Rules:     ${c.green}${syncStats.rulesImported}${c.reset}`);
+    
+    console.log(`Exported:`);
+    console.log(`  Memories:  ${c.cyan}${syncStats.memoriesExported}${c.reset}`);
+    console.log(`  Decisions: ${c.cyan}${syncStats.decisionsExported}${c.reset}`);
+    console.log(`  Rules:     ${c.cyan}${syncStats.rulesExported}${c.reset}`);
+    console.log();
+  } finally {
+    graph.close();
+    db.close();
+  }
+}
+
 /** ai-mind-map update — Check for updates */
 async function cmdUpdate(): Promise<void> {
   heading('🔄 Update Check');
@@ -960,6 +1016,7 @@ ${c.bold}COMMANDS${c.reset}
   ${c.cyan}changes${c.reset}                         Show change history
     ${c.dim}--since <last_session|epoch>   Filter changes since timestamp${c.reset}
     ${c.dim}--limit <N>                    Max results (default: 30)${c.reset}
+  ${c.cyan}sync${c.reset}                            Sync memories, decisions, and rules with shared file
 
 ${c.bold}AGENT MANAGEMENT${c.reset}
   ${c.cyan}install${c.reset}                         Auto-detect and configure AI agents
@@ -1061,6 +1118,10 @@ export async function main(argv: string[] = process.argv): Promise<void> {
 
       case 'changes':
         await cmdChanges(args);
+        break;
+
+      case 'sync':
+        await cmdSync(args);
         break;
 
       case 'install':

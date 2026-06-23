@@ -21,6 +21,8 @@ import { KnowledgeGraph } from '../knowledge-graph/graph.js';
 import { CypherEngine } from '../knowledge-graph/cypher.js';
 import { DeadCodeDetector } from '../knowledge-graph/dead-code.js';
 import { ArchitectureAnalyzer } from '../knowledge-graph/architecture.js';
+import { getParserStatus } from '../knowledge-graph/parser.js';
+import type { SemanticSearchEngine } from '../knowledge-graph/semantic-search.js';
 
 // ============================================================
 // Token Estimation Interface
@@ -132,6 +134,7 @@ export function registerAdvancedTools(
   graph: KnowledgeGraph,
   config: MindMapConfig,
   estimator: ITokenEstimator = defaultEstimator,
+  semanticEngine?: SemanticSearchEngine,
 ): void {
   // ── mindmap_query_graph ─────────────────────────────────────
   server.tool(
@@ -598,6 +601,40 @@ export function registerAdvancedTools(
             memoryUsageMB: Number(
               (process.memoryUsage().heapUsed / (1024 * 1024)).toFixed(2),
             ),
+            heapTotalMB: Number(
+              (process.memoryUsage().heapTotal / (1024 * 1024)).toFixed(2),
+            ),
+            memoryPressure: Number(
+              (process.memoryUsage().heapUsed / process.memoryUsage().heapTotal * 100).toFixed(1),
+            ) + '%',
+          },
+          parser: (() => {
+            try {
+              const status = getParserStatus();
+              return {
+                treeSitterAvailable: status.treeSitterAvailable,
+                languagesWithTreeSitter: status.languages
+                  .filter(l => l.treeSitterStatus === 'loaded')
+                  .map(l => l.language),
+                languagesWithRegexOnly: status.languages
+                  .filter(l => l.treeSitterStatus !== 'loaded' && l.hasFallback)
+                  .map(l => l.language),
+                failedGrammars: status.languages
+                  .filter(l => l.treeSitterStatus === 'failed')
+                  .map(l => l.language),
+              };
+            } catch { return { treeSitterAvailable: false }; }
+          })(),
+          semanticIndex: (() => {
+            try {
+              if (semanticEngine) {
+                return semanticEngine.getStats();
+              }
+              return { status: 'not_initialized' };
+            } catch { return { status: 'error' }; }
+          })(),
+          fileIndex: {
+            trackedFiles: graph.getFileIndexCount(),
           },
         };
 

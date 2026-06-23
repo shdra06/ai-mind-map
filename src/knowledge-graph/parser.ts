@@ -83,6 +83,9 @@ const GRAMMAR_MAP: Record<string, string> = {
   ruby: 'tree-sitter-ruby',
   php: 'tree-sitter-php',
   bash: 'tree-sitter-bash',
+  kotlin: '@tree-sitter-grammars/tree-sitter-kotlin',
+  swift: 'tree-sitter-swift',
+  dart: 'tree-sitter-dart',
 };
 
 // ============================================================
@@ -150,39 +153,58 @@ function cleanDocComment(raw: string): string {
 let treeSitterParser: any = null;
 const loadedGrammars: Map<string, any> = new Map();
 let treeSitterAvailable: boolean | null = null;
+const failedGrammars: Set<string> = new Set();
 
 /** Attempt to load the tree-sitter module and a language grammar */
 async function getTreeSitterParser(language: string): Promise<{ parser: any; grammar: any } | null> {
-  // If we already determined tree-sitter is unavailable, skip
+  // If the core tree-sitter module is unavailable, skip entirely
   if (treeSitterAvailable === false) {
     return null;
   }
 
+  // If this specific grammar already failed, skip it (don't retry)
+  if (failedGrammars.has(language)) {
+    return null;
+  }
+
   try {
+    // Load the core tree-sitter module (once)
     if (!treeSitterParser) {
-      const TreeSitter = (await import('tree-sitter')).default;
-      treeSitterParser = new TreeSitter();
-      treeSitterAvailable = true;
+      try {
+        const TreeSitter = (await import('tree-sitter')).default;
+        treeSitterParser = new TreeSitter();
+        treeSitterAvailable = true;
+      } catch {
+        treeSitterAvailable = false;
+        return null;
+      }
     }
 
+    // Load the language grammar
     if (!loadedGrammars.has(language)) {
       const grammarPkg = GRAMMAR_MAP[language];
       if (!grammarPkg) return null;
 
-      let grammarModule = await import(grammarPkg);
-      let grammar = grammarModule.default ?? grammarModule;
+      try {
+        let grammarModule = await import(grammarPkg);
+        let grammar = grammarModule.default ?? grammarModule;
 
-      // TypeScript grammar package exports { typescript, tsx }
-      if (language === 'typescript' && grammar.typescript) {
-        grammar = grammar.typescript;
+        // TypeScript grammar package exports { typescript, tsx }
+        if (language === 'typescript' && grammar.typescript) {
+          grammar = grammar.typescript;
+        }
+
+        loadedGrammars.set(language, grammar);
+      } catch {
+        // Mark only THIS grammar as failed, not all of tree-sitter
+        failedGrammars.add(language);
+        return null;
       }
-
-      loadedGrammars.set(language, grammar);
     }
 
     return { parser: treeSitterParser, grammar: loadedGrammars.get(language)! };
   } catch {
-    treeSitterAvailable = false;
+    // Unexpected error — don't disable everything, just return null
     return null;
   }
 }
@@ -1205,4 +1227,48 @@ export function isSupportedFile(filePath: string): boolean {
  */
 export function getSupportedLanguages(): string[] {
   return [...new Set(Object.values(EXTENSION_MAP))];
+}
+
+/** Report the status of each language parser (tree-sitter vs regex fallback) */
+export function getParserStatus(): {
+  treeSitterAvailable: boolean;
+  languages: Array<{
+    language: string;
+    extensions: string[];
+    hasTreeSitter: boolean;
+    treeSitterStatus: 'loaded' | 'failed' | 'not_available' | 'no_grammar';
+    hasFallback: boolean;
+  }>;
+} {
+  const languages = getSupportedLanguages();
+  return {
+    treeSitterAvailable: treeSitterAvailable === true,
+    languages: languages.map(lang => {
+      const hasGrammar = lang in GRAMMAR_MAP;
+      const extensions = Object.entries(EXTENSION_MAP)
+        .filter(([_, l]) => l === lang)
+        .map(([ext]) => ext);
+
+      let treeSitterStatus: 'loaded' | 'failed' | 'not_available' | 'no_grammar';
+      if (!hasGrammar) {
+        treeSitterStatus = 'no_grammar';
+      } else if (treeSitterAvailable === false) {
+        treeSitterStatus = 'not_available';
+      } else if (failedGrammars.has(lang)) {
+        treeSitterStatus = 'failed';
+      } else if (loadedGrammars.has(lang)) {
+        treeSitterStatus = 'loaded';
+      } else {
+        treeSitterStatus = 'not_available';
+      }
+
+      return {
+        language: lang,
+        extensions,
+        hasTreeSitter: hasGrammar && loadedGrammars.has(lang),
+        treeSitterStatus,
+        hasFallback: lang in REGEX_PATTERNS,
+      };
+    }),
+  };
 }

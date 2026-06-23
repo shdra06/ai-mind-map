@@ -30,7 +30,7 @@ npx ai-mind-map install
 <p align="center">
   <a href="#-quick-start">Quick Start</a> •
   <a href="#-how-it-works">How It Works</a> •
-  <a href="#-41-mcp-tools">All 41 Tools</a> •
+  <a href="#-50-mcp-tools">All 50+ Tools</a> •
   <a href="#-connect-to-your-ai-agent">Connect</a> •
   <a href="#-cli-commands">CLI</a> •
   <a href="#-configuration">Config</a>
@@ -266,9 +266,51 @@ Transport: stdio
 
 ---
 
-## 🔧 41 MCP Tools
+## 🔧 50+ MCP Tools
 
-Once connected, your AI agent gets these powerful tools:
+Once connected, your AI agent automatically gets all tools + a built-in guide telling it **which tool to call first and when to use each one**.
+
+### How AI Agents Discover Our Tools
+
+```
+AI Agent connects → Server sends 3 things:
+
+1. ✅ instructions    → "Call mindmap_session_resume FIRST" (auto-loaded)
+2. ✅ tools/list      → All 50 tools with descriptions + schemas (auto-loaded)
+3. ✅ prompts/list    → Interactive guides (on request)
+```
+
+### 🌐 Client Compatibility
+
+| Client | Works? | How AI Learns Our Tools |
+|--------|:------:|------------------------|
+| **Claude Code / Desktop** | ✅ | `instructions` + `tools/list` + prompts + rules file (CLAUDE.md) |
+| **Cursor** | ✅ | `tools/list` + rules file (.cursorrules) |
+| **VS Code Copilot** | ✅ | `tools/list` + rules file (.github/copilot-instructions.md) |
+| **Windsurf** | ✅ | `tools/list` + rules file (.windsurfrules) |
+| **Antigravity (Gemini)** | ✅ | `tools/list` + rules file (.agents/AGENTS.md) |
+| **Zed** | ✅ | `tools/list` + MCP config |
+| **Continue.dev** | ✅ | `tools/list` + MCP config |
+| **Any MCP client** | ✅ | `tools/list` (universal MCP spec) |
+| **Ollama / LM Studio** | ⚠️ | Not MCP clients natively — use via Continue.dev or Open WebUI |
+| **Codex (OpenAI)** | ⚠️ | Not MCP natively — requires MCP bridge |
+
+> **Key**: `tools/list` works with **every** MCP client. Rules files (`CLAUDE.md`, `.cursorrules`, etc.) are deployed by `npx ai-mind-map install` as a fallback for clients that don't honor the `instructions` field.
+
+---
+
+### ⚡ Code Memory Engine (v1.4.0) — **NEW**
+
+| Tool | What It Does | Token Savings |
+|------|-------------|:---:|
+| `mindmap_session_resume` ⭐⭐ | **Resume from last session** — returns what was worked on, what changed, project stats | 15-30K/session |
+| `mindmap_session_start` | Start tracking a new AI coding task | — |
+| `mindmap_session_end` | End session with summary for next agent | — |
+| `mindmap_changelog` ⭐ | **Symbol-level diffs** — added/modified/deleted functions since a time | 20-50K/session |
+| `mindmap_hotspots` | Most frequently changed files + symbols | 5-10K |
+| `mindmap_digest` ⭐ | **Full project summary in <2000 tokens** | 10-25K/session |
+| `mindmap_file_digest` ⭐ | Understand a file WITHOUT reading it | 3-10K/file |
+| `mindmap_verify` | Hash-based content verification — check if cached code is still valid | 3-10K/file |
 
 ### 🗺️ Knowledge Graph (6)
 
@@ -280,6 +322,22 @@ Once connected, your AI agent gets these powerful tools:
 | `mindmap_get_signature` | Function signature without reading the file |
 | `mindmap_find_references` | Find everywhere a symbol is used |
 | `mindmap_get_file_map` | All symbols in a file with line ranges |
+
+### ⭐ Smart Tools (3) — **99% Token Savings**
+
+| Tool | What It Does |
+|------|-------------|
+| `mindmap_explain` | **Everything about a symbol in 1 call** — signature, callers, callees, layer, blast radius, git history |
+| `mindmap_git_changes` | **Git-aware symbol-level diffs** — which functions changed, who's impacted |
+| `mindmap_smart_search` | **Rich search** — returns full context so AI never reads files |
+
+### 🔍 Semantic Search (3)
+
+| Tool | What It Does |
+|------|-------------|
+| `mindmap_semantic_search` | Search by **meaning** — "authentication", "error handling", "data validation" |
+| `mindmap_semantic_stats` | Vocabulary size, index coverage |
+| `mindmap_synonyms` | Programming synonym lookup |
 
 ### 📝 Change Tracking (3)
 
@@ -299,15 +357,6 @@ Once connected, your AI agent gets these powerful tools:
 | `mindmap_decide` | Record a new decision |
 | `mindmap_session_summary` | Previous session summaries |
 
-### 🗜️ Context (4)
-
-| Tool | What It Does |
-|------|-------------|
-| `mindmap_get_context` | Smart context for current task |
-| `mindmap_compress` | Compress logs, traces, output |
-| `mindmap_reindex` | Force full re-index |
-| `mindmap_status` | Index stats and token savings |
-
 ### 🔬 Advanced Analysis (7)
 
 | Tool | What It Does |
@@ -320,14 +369,6 @@ Once connected, your AI agent gets these powerful tools:
 | `mindmap_list_projects` | List indexed projects |
 | `mindmap_health` | System diagnostics |
 
-### 🔍 Debug (3)
-
-| Tool | What It Does |
-|------|-------------|
-| `mindmap_debug_changes` | Detailed change analysis |
-| `mindmap_file_before` | File content before changes |
-| `mindmap_file_history` | Full file change history |
-
 ### 🏗️ Flow Analysis (4)
 
 | Tool | What It Does |
@@ -337,27 +378,19 @@ Once connected, your AI agent gets these powerful tools:
 | `mindmap_classify_file` | Classify a file's architectural layer |
 | `mindmap_layer_overview` | Layer distribution overview |
 
-### 📸 Snapshot (3)
+### 🔍 Debug (3)
 
 | Tool | What It Does |
 |------|-------------|
-| `mindmap_project_map` | Compact project map for context |
-| `mindmap_change_delta` | What changed since last snapshot |
-| `mindmap_session_start` | Start a new tracking session |
-
-### ⭐ Smart Tools (3) — **99% Token Savings**
-
-| Tool | What It Does |
-|------|-------------|
-| `mindmap_explain` | **Everything about a symbol in 1 call** — signature, callers, callees, layer, blast radius, git history |
-| `mindmap_git_changes` | **Git-aware symbol-level diffs** — which functions changed, who's impacted |
-| `mindmap_smart_search` | **Rich search** — returns full context so AI never reads files |
+| `mindmap_debug_changes` | Detailed change analysis |
+| `mindmap_file_before` | File content before changes |
+| `mindmap_file_history` | Full file change history |
 
 ### 🧬 Self-Evolving (3)
 
 | Tool | What It Does |
 |------|-------------|
-| `mindmap_teach` | **AI teaches new patterns** — classification rules, search aliases, conventions that persist per-project |
+| `mindmap_teach` | **AI teaches new patterns** — persists per-project |
 | `mindmap_get_learned` | View all rules the system has learned |
 | `mindmap_forget` | Remove a learned rule |
 
