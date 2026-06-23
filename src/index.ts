@@ -79,6 +79,7 @@ import { registerContextTools } from './tools/context-tools.js';
 import type { IContextEngine, IIndexer } from './tools/context-tools.js';
 import { registerDebugTools } from './tools/debug-tools.js';
 import { registerFlowTools } from './tools/flow-tools.js';
+import { registerSnapshotTools } from './tools/snapshot-tools.js';
 
 // ============================================================
 // Logger — writes to stderr so MCP stdio is uncontaminated
@@ -918,13 +919,17 @@ async function main(): Promise<void> {
   registerFlowTools(server, graph, config, tokenEstimator);
   log('debug', 'Registered flow tools (4)');
 
-  log('info', '🔧 All 32 MCP tools registered:');
-  log('info', '  Graph:   mindmap_search, mindmap_get_structure, mindmap_trace_dependencies, mindmap_get_signature, mindmap_find_references, mindmap_get_file_map');
-  log('info', '  Changes: mindmap_what_changed, mindmap_session_diff, mindmap_impact_analysis');
-  log('info', '  Memory:  mindmap_recall, mindmap_remember, mindmap_get_decisions, mindmap_decide, mindmap_session_summary');
-  log('info', '  Context: mindmap_get_context, mindmap_compress, mindmap_reindex, mindmap_status');
-  log('info', '  Debug:   mindmap_debug_changes, mindmap_file_before, mindmap_file_history');
-  log('info', '  Flow:    mindmap_trace_flow, mindmap_interaction_map, mindmap_classify_file, mindmap_layer_overview');
+  registerSnapshotTools(server, graph, config, tokenEstimator);
+  log('debug', 'Registered snapshot tools (3)');
+
+  log('info', '🔧 All 35 MCP tools registered:');
+  log('info', '  Graph:    mindmap_search, mindmap_get_structure, mindmap_trace_dependencies, mindmap_get_signature, mindmap_find_references, mindmap_get_file_map');
+  log('info', '  Changes:  mindmap_what_changed, mindmap_session_diff, mindmap_impact_analysis');
+  log('info', '  Memory:   mindmap_recall, mindmap_remember, mindmap_get_decisions, mindmap_decide, mindmap_session_summary');
+  log('info', '  Context:  mindmap_get_context, mindmap_compress, mindmap_reindex, mindmap_status');
+  log('info', '  Debug:    mindmap_debug_changes, mindmap_file_before, mindmap_file_history');
+  log('info', '  Flow:     mindmap_trace_flow, mindmap_interaction_map, mindmap_classify_file, mindmap_layer_overview');
+  log('info', '  Snapshot: mindmap_project_map, mindmap_change_delta, mindmap_session_start ⭐');
   log('info', '  Advanced: mindmap_query_graph, mindmap_dead_code, mindmap_architecture, mindmap_get_code_snippet, mindmap_search_code, mindmap_list_projects, mindmap_health');
 
   // ── 8. Auto-index on first run ─────────────────────────────

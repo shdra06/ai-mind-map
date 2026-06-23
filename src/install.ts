@@ -947,41 +947,59 @@ export async function runDoctor(): Promise<void> {
 function getToolAwarenessRules(): string {
   return `# AI Mind Map MCP — Tool Awareness
 
-You have the AI Mind Map MCP server connected with 32 tools. Use them INSTEAD of reading raw files.
+You have the AI Mind Map MCP server connected with 35 tools. Use them INSTEAD of reading raw files.
+
+## ⭐ FIRST THING TO DO IN EVERY CONVERSATION
+Call \`mindmap_session_start\` — it returns the entire project map + recent changes + memories in ONE call (~2000-4000 tokens instead of reading every file at ~50,000+ tokens).
 
 ## Quick Lookup: "I need to..." → Use this tool
 
-- Understand the project → \`mindmap_architecture\`
-- Find a function → \`mindmap_search\`, \`mindmap_get_code_snippet\`
-- Trace what a button/feature does → \`mindmap_trace_flow\`
-- See all routes/events/components → \`mindmap_interaction_map\`
-- Know what layer a file is → \`mindmap_classify_file\`
-- Debug a crash → \`mindmap_debug_changes\` (shows ACTUAL diffs)
-- See previous file version → \`mindmap_file_before\`
-- Know what changed recently → \`mindmap_what_changed\`
-- Get blast radius of a change → \`mindmap_impact_analysis\`
+### Start & Navigate
+- Start any session → \`mindmap_session_start\` ⭐ (THE most important call)
+- Get full project map → \`mindmap_project_map\`
+- See what changed recently → \`mindmap_change_delta\`
+
+### Find & Read Code
+- Find a function/class → \`mindmap_search\`, then \`mindmap_get_code_snippet\`
+- Get function signature only → \`mindmap_get_signature\` (don't open the file)
+- Find who calls a function → \`mindmap_find_references\`
+- What's in this file? → \`mindmap_get_file_map\`
+
+### Understand Flow & Architecture  
+- What does this button/feature do? → \`mindmap_trace_flow\`
+- Show all routes/events/components → \`mindmap_interaction_map\`
+- What layer is this file? → \`mindmap_classify_file\`
+- Architecture overview → \`mindmap_layer_overview\`
+
+### Debug & Investigate
+- Something broke → \`mindmap_debug_changes\` (shows ACTUAL git diffs)
+- What did the file look like before? → \`mindmap_file_before\`
+- What's the blast radius? → \`mindmap_impact_analysis\`
+- File commit history → \`mindmap_file_history\`
+
+### Memory (persists across sessions)
 - Remember something → \`mindmap_remember\`
 - Recall past knowledge → \`mindmap_recall\`
 - Record a decision → \`mindmap_decide\`
-- Start a new task → \`mindmap_get_context\` (ALWAYS call first)
-- Get function signature → \`mindmap_get_signature\` (DON'T open the file)
-- Find who calls a function → \`mindmap_find_references\`
+- Past decisions → \`mindmap_get_decisions\`
+
+### Advanced
+- Cypher graph query → \`mindmap_query_graph\`
 - Find dead code → \`mindmap_dead_code\`
-- Run graph query → \`mindmap_query_graph\`
+- Full architecture report → \`mindmap_architecture\`
 
 ## Rules
-1. ALWAYS call \`mindmap_get_context\` at the start of every task — it's free context
-2. PREFER \`mindmap_get_signature\` / \`mindmap_get_code_snippet\` over reading full files — but read the file directly when you need comments, edge cases, or complex logic
-3. PREFER \`mindmap_trace_flow\` for understanding pipelines — but read files directly for dynamic routing, event-driven, or DI-heavy code
-4. START debugging with \`mindmap_debug_changes\` — then read specific files for deeper investigation
-5. Use \`mindmap_remember\` for important learnings and \`mindmap_decide\` for architecture choices
-6. If a Mind Map tool returns unexpected results, the index may be stale — fall back to reading the file directly and run \`mindmap_reindex\`
+1. ALWAYS call \`mindmap_session_start\` at the beginning of every conversation
+2. PREFER Mind Map tools over reading raw files — but read directly when you need comments, edge cases, or complex algorithm logic
+3. START debugging with \`mindmap_debug_changes\` — then drill into specific files
+4. Use \`mindmap_remember\` for important learnings, \`mindmap_decide\` for architecture choices
+5. If Mind Map returns unexpected results, the index may be stale — read the file and run \`mindmap_reindex\`
 
-## When to READ FILES DIRECTLY instead of using Mind Map
-- Understanding complex algorithm logic (signatures miss nuance)
-- Reading comments, TODOs, and inline documentation
-- Small config/env files (faster to just read them)
-- Code using metaprogramming, dynamic dispatch, or reflection
+## When to READ FILES DIRECTLY
+- Complex algorithm logic that signatures can't capture
+- Reading comments, TODOs, inline docs
+- Small config files (faster to just read them)
+- Dynamic dispatch, DI, or event-driven code
 - When Mind Map returns "not found" but you suspect the code exists (stale index)
 `;
 }
