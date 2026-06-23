@@ -215,7 +215,7 @@ function mcpServerEntry(serverEntry: string): Record<string, unknown> {
     return {
       'ai-mind-map': {
         command: 'npx',
-        args: ['-y', 'ai-mind-map'],
+        args: ['-y', NPM_PACKAGE_NAME],
         env: {},
       },
     };
@@ -251,6 +251,389 @@ function writeJsonFile(filePath: string, data: Record<string, unknown>): void {
   writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
 }
 
+// ============================================================
+// Robustness: Dynamic Config Path Detection
+// ============================================================
+
+/** The npm package name — single source of truth to prevent wrong-name bugs */
+const NPM_PACKAGE_NAME = 'ai-mind-map';
+
+/**
+ * Dynamically find the correct MCP config file for Gemini/Antigravity.
+ * Scans candidate files and uses whichever already has mcpServers defined.
+ * Falls back to mcp_config.json (Gemini's primary config file).
+ */
+function findGeminiMcpConfigPath(): string {
+  const configDir = path.join(HOME, '.gemini', 'config');
+  // Order matters: prefer mcp_config.json (Gemini's primary), then mcp.json
+  const candidates = ['mcp_config.json', 'mcp.json'];
+
+  for (const file of candidates) {
+    const filePath = path.join(configDir, file);
+    const content = readJsonFile(filePath);
+    if (content?.mcpServers && typeof content.mcpServers === 'object') {
+      return filePath;
+    }
+  }
+
+  // Default to mcp_config.json (confirmed working with Firebase/SpriteAI)
+  return path.join(configDir, 'mcp_config.json');
+}
+
+/**
+ * Dynamically find the MCP config file for VS Code / Copilot.
+ * VS Code may store MCP config in settings.json or a dedicated mcp.json.
+ */
+function findVSCodeMcpConfigPath(): string {
+  const settingsDir = getVSCodeSettingsDir();
+  // Check for dedicated mcp.json first, then settings.json
+  const candidates = [
+    path.join(settingsDir, 'mcp.json'),
+    path.join(settingsDir, 'settings.json'),
+  ];
+
+  for (const filePath of candidates) {
+    const content = readJsonFile(filePath);
+    if (content?.['mcp.servers'] && typeof content['mcp.servers'] === 'object') {
+      return filePath;
+    }
+  }
+
+  return path.join(settingsDir, 'settings.json');
+}
+
+// ============================================================
+// Robustness: Post-Write Verification
+// ============================================================
+
+interface VerifyResult {
+  ok: boolean;
+  error?: string;
+  autoFixed?: boolean;
+}
+
+/**
+ * Verify that a config file was written correctly after install.
+ * Checks: file exists, entry exists under correct key, package name is correct.
+ */
+function verifyConfigEntry(configPath: string, mcpKey: string): VerifyResult {
+  // 1. Can we read the file?
+  const config = readJsonFile(configPath);
+  if (!config) {
+    return { ok: false, error: `Config file not readable: ${configPath}` };
+  }
+
+  // 2. Does our key exist?
+  const servers = config[mcpKey] as Record<string, unknown> | undefined;
+  if (!servers || !servers['ai-mind-map']) {
+    return { ok: false, error: `Entry 'ai-mind-map' not found under '${mcpKey}' in ${configPath}` };
+  }
+
+  // 3. Is the package name correct?
+  const entry = servers['ai-mind-map'] as Record<string, unknown>;
+  const args = entry.args as string[] | undefined;
+  if (args && args.includes('ai-mind-map-server')) {
+    return { ok: false, error: `Wrong package name 'ai-mind-map-server' in args (should be '${NPM_PACKAGE_NAME}')` };
+  }
+
+  // 4. Is the command valid?
+  const command = entry.command as string | undefined;
+  if (!command || (command !== 'npx' && command !== 'node')) {
+    return { ok: false, error: `Invalid command '${command}' (expected 'npx' or 'node')` };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Auto-fix common config problems in a config file.
+ * Returns true if any fixes were applied.
+ */
+function autoFixConfig(configPath: string, mcpKey: string): VerifyResult {
+  const config = readJsonFile(configPath);
+  if (!config) return { ok: false, error: 'Cannot read config file' };
+
+  const servers = config[mcpKey] as Record<string, unknown> | undefined;
+  if (!servers || !servers['ai-mind-map']) return { ok: true }; // nothing to fix
+
+  const entry = servers['ai-mind-map'] as Record<string, unknown>;
+  let fixed = false;
+
+  // Fix 1: Wrong package name
+  const args = entry.args as string[] | undefined;
+  if (args) {
+    const idx = args.indexOf('ai-mind-map-server');
+    if (idx !== -1) {
+      args[idx] = NPM_PACKAGE_NAME;
+      entry.args = args;
+      fixed = true;
+    }
+  }
+
+  // Fix 2: Add version metadata
+  if (!entry._version) {
+    entry._version = getPackageVersion();
+    entry._installedAt = new Date().toISOString();
+    fixed = true;
+  }
+
+  if (fixed) {
+    servers['ai-mind-map'] = entry;
+    config[mcpKey] = servers;
+    writeJsonFile(configPath, config);
+  }
+
+  return { ok: true, autoFixed: fixed };
+}
+
+/** Get the current package version */
+function getPackageVersion(): string {
+  try {
+    const pkgPath = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '..',
+      'package.json',
+    );
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+    return pkg.version ?? '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+
+// ============================================================
+// Robustness: Server Smoke Test
+// ============================================================
+
+/**
+ * Spawn the MCP server as a child process and verify it responds correctly.
+ * Returns diagnostic info about the server's health.
+ */
+async function smokeTestServer(): Promise<{
+  ok: boolean;
+  serverStarts: boolean;
+  toolCount: number;
+  hasInstructions: boolean;
+  error?: string;
+}> {
+  const result = { ok: false, serverStarts: false, toolCount: 0, hasInstructions: false, error: '' };
+
+  try {
+    const runConfig = getServerRunConfig();
+    let cmd: string;
+    let args: string[];
+
+    if (runConfig.mode === 'npx') {
+      cmd = IS_WIN ? 'npx.cmd' : 'npx';
+      args = ['-y', NPM_PACKAGE_NAME];
+    } else {
+      cmd = 'node';
+      args = [runConfig.path!];
+    }
+
+    // We'll try to spawn the server with a timeout
+    const { spawn } = await import('node:child_process');
+
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        child.kill();
+        result.error = 'Server did not respond within 10 seconds';
+        resolve(result);
+      }, 10_000);
+
+      const child = spawn(cmd, args, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env, MINDMAP_PROJECT_ROOT: process.cwd() },
+      });
+
+      let stdout = '';
+
+      child.stdout.on('data', (data: Buffer) => {
+        stdout += data.toString();
+      });
+
+      child.stderr.on('data', (data: Buffer) => {
+        const line = data.toString();
+        // Server logs to stderr via MCP protocol
+        if (line.includes('MCP tools registered') || line.includes('tools registered')) {
+          result.serverStarts = true;
+        }
+        if (line.includes('instructions')) {
+          result.hasInstructions = true;
+        }
+      });
+
+      // Send initialize request via stdin (MCP JSON-RPC over stdio)
+      const initRequest = JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2024-11-05',
+          capabilities: {},
+          clientInfo: { name: 'smoke-test', version: '1.0.0' },
+        },
+      });
+
+      child.stdin.write(initRequest + '\n');
+
+      // Give it a moment then send tools/list
+      setTimeout(() => {
+        const toolsRequest = JSON.stringify({
+          jsonrpc: '2.0',
+          id: 2,
+          method: 'tools/list',
+          params: {},
+        });
+        child.stdin.write(toolsRequest + '\n');
+      }, 2000);
+
+      // After 5 seconds, check what we got
+      setTimeout(() => {
+        clearTimeout(timeout);
+        child.kill();
+
+        // Try to parse responses from stdout
+        try {
+          const lines = stdout.split('\n').filter(l => l.trim());
+          for (const line of lines) {
+            try {
+              const msg = JSON.parse(line);
+              if (msg.id === 1 && msg.result) {
+                result.serverStarts = true;
+                if (msg.result.instructions) {
+                  result.hasInstructions = true;
+                }
+              }
+              if (msg.id === 2 && msg.result?.tools) {
+                result.toolCount = msg.result.tools.length;
+              }
+            } catch {
+              // skip unparseable lines
+            }
+          }
+        } catch {
+          // parsing failed
+        }
+
+        result.ok = result.serverStarts;
+        resolve(result);
+      }, 5000);
+
+      child.on('error', (err) => {
+        clearTimeout(timeout);
+        result.error = `Failed to start: ${err.message}`;
+        resolve(result);
+      });
+    });
+  } catch (err) {
+    result.error = `Smoke test error: ${err instanceof Error ? err.message : String(err)}`;
+    return result;
+  }
+}
+
+// ============================================================
+// Robustness: Misconfig Detection & Migration
+// ============================================================
+
+/**
+ * Check for common misconfigurations and return diagnostics.
+ * Called by `doctor` to detect problems.
+ */
+function detectMisconfigs(): Array<{ agent: string; problem: string; fix: string; fixFn?: () => void }> {
+  const issues: Array<{ agent: string; problem: string; fix: string; fixFn?: () => void }> = [];
+
+  // Check 1: Gemini config in wrong file (mcp.json instead of mcp_config.json)
+  const geminiWrongFile = path.join(HOME, '.gemini', 'config', 'mcp.json');
+  const geminiRightFile = path.join(HOME, '.gemini', 'config', 'mcp_config.json');
+  const wrongConfig = readJsonFile(geminiWrongFile);
+  if (wrongConfig?.mcpServers) {
+    const servers = wrongConfig.mcpServers as Record<string, unknown>;
+    if (servers['ai-mind-map']) {
+      const rightConfig = readJsonFile(geminiRightFile);
+      const rightServers = (rightConfig?.mcpServers as Record<string, unknown>) ?? {};
+      if (!rightServers['ai-mind-map']) {
+        issues.push({
+          agent: 'Antigravity (Gemini)',
+          problem: `Config in mcp.json but Gemini reads mcp_config.json`,
+          fix: 'Move entry to mcp_config.json',
+          fixFn: () => {
+            // Copy entry to correct file
+            const config = readJsonFile(geminiRightFile) ?? { mcpServers: {} };
+            const mcpServers = (config.mcpServers as Record<string, unknown>) ?? {};
+            mcpServers['ai-mind-map'] = servers['ai-mind-map'];
+            config.mcpServers = mcpServers;
+            writeJsonFile(geminiRightFile, config);
+            // Remove from wrong file
+            delete servers['ai-mind-map'];
+            if (Object.keys(servers).length === 0) delete wrongConfig.mcpServers;
+            writeJsonFile(geminiWrongFile, wrongConfig);
+          },
+        });
+      }
+    }
+  }
+
+  // Check 2: Wrong package name in any config
+  const configsToCheck = [
+    { agent: 'Claude Code', path: path.join(HOME, '.claude', 'claude_desktop_config.json'), key: 'mcpServers' },
+    { agent: 'Cursor', path: path.join(HOME, '.cursor', 'mcp.json'), key: 'mcpServers' },
+    { agent: 'Antigravity', path: geminiRightFile, key: 'mcpServers' },
+    { agent: 'VS Code', path: path.join(getVSCodeSettingsDir(), 'settings.json'), key: 'mcp.servers' },
+  ];
+
+  for (const check of configsToCheck) {
+    const content = readJsonFile(check.path);
+    if (!content) continue;
+    const servers = content[check.key] as Record<string, unknown> | undefined;
+    if (!servers?.['ai-mind-map']) continue;
+    const entry = servers['ai-mind-map'] as Record<string, unknown>;
+    const args = entry.args as string[] | undefined;
+    if (args?.includes('ai-mind-map-server')) {
+      issues.push({
+        agent: check.agent,
+        problem: `Wrong package name 'ai-mind-map-server' in args`,
+        fix: `Change to '${NPM_PACKAGE_NAME}'`,
+        fixFn: () => {
+          const idx = args.indexOf('ai-mind-map-server');
+          if (idx !== -1) args[idx] = NPM_PACKAGE_NAME;
+          entry.args = args;
+          servers['ai-mind-map'] = entry;
+          content[check.key] = servers;
+          writeJsonFile(check.path, content);
+        },
+      });
+    }
+  }
+
+  // Check 3: Outdated version metadata
+  for (const check of configsToCheck) {
+    const content = readJsonFile(check.path);
+    if (!content) continue;
+    const servers = content[check.key] as Record<string, unknown> | undefined;
+    if (!servers?.['ai-mind-map']) continue;
+    const entry = servers['ai-mind-map'] as Record<string, unknown>;
+    const configVersion = entry._version as string | undefined;
+    const currentVersion = getPackageVersion();
+    if (configVersion && configVersion !== currentVersion && currentVersion !== '0.0.0') {
+      issues.push({
+        agent: check.agent,
+        problem: `Config version ${configVersion} is outdated (current: ${currentVersion})`,
+        fix: 'Update version metadata',
+        fixFn: () => {
+          entry._version = currentVersion;
+          entry._installedAt = new Date().toISOString();
+          servers['ai-mind-map'] = entry;
+          content[check.key] = servers;
+          writeJsonFile(check.path, content);
+        },
+      });
+    }
+  }
+
+  return issues;
+}
+
 /**
  * Merge an MCP server entry into an existing JSON config.
  * Creates the file if it doesn't exist.
@@ -278,7 +661,7 @@ function mergeMcpConfig(
   if (runConfig.mode === 'npx') {
     servers['ai-mind-map'] = {
       command: 'npx',
-      args: ['-y', 'ai-mind-map'],
+      args: ['-y', NPM_PACKAGE_NAME],
       env: {},
     };
   } else {
@@ -388,7 +771,7 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
         const mcpServers = (existing['mcp.servers'] as Record<string, unknown>) ?? {};
         const runConfig = getServerRunConfig();
         mcpServers['ai-mind-map'] = runConfig.mode === 'npx'
-          ? { command: 'npx', args: ['-y', 'ai-mind-map'], env: {} }
+          ? { command: 'npx', args: ['-y', NPM_PACKAGE_NAME], env: {} }
           : { command: 'node', args: [serverEntry], env: {} };
         existing['mcp.servers'] = mcpServers;
         return JSON.stringify(existing, null, 2);
@@ -417,7 +800,7 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
         const mcpServers = (existing['mcp.servers'] as Record<string, unknown>) ?? {};
         const runConfig = getServerRunConfig();
         mcpServers['ai-mind-map'] = runConfig.mode === 'npx'
-          ? { command: 'npx', args: ['-y', 'ai-mind-map'], env: {} }
+          ? { command: 'npx', args: ['-y', NPM_PACKAGE_NAME], env: {} }
           : { command: 'node', args: [serverEntry], env: {} };
         existing['mcp.servers'] = mcpServers;
         return JSON.stringify(existing, null, 2);
@@ -441,14 +824,14 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
         path.join(HOME, '.gemini', 'config'),
         path.join(HOME, '.gemini'),
       ],
-      configPath: path.join(HOME, '.gemini', 'config', 'mcp_config.json'),
+      configPath: findGeminiMcpConfigPath(),
       generateConfig: () => JSON.stringify({ mcpServers: mcpServerEntry(serverEntry) }, null, 2),
       isConfigured: () => hasMcpConfig(
-        path.join(HOME, '.gemini', 'config', 'mcp_config.json'),
+        findGeminiMcpConfigPath(),
         'mcpServers',
       ),
       removeConfig: () => removeMcpConfig(
-        path.join(HOME, '.gemini', 'config', 'mcp_config.json'),
+        findGeminiMcpConfigPath(),
         'mcpServers',
       ),
     },
@@ -466,7 +849,7 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
         const contextServers = (existing['context_servers'] as Record<string, unknown>) ?? {};
         const runConfig = getServerRunConfig();
         const serverConfig = runConfig.mode === 'npx'
-          ? { path: 'npx', args: ['-y', 'ai-mind-map'], env: {} }
+          ? { path: 'npx', args: ['-y', NPM_PACKAGE_NAME], env: {} }
           : { path: 'node', args: [serverEntry], env: {} };
         contextServers['ai-mind-map'] = {
           command: serverConfig,
@@ -516,7 +899,7 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
         if (!exists) {
           const runConfig = getServerRunConfig();
           const serverEntryConfig = runConfig.mode === 'npx'
-            ? { command: 'npx', args: ['-y', 'ai-mind-map'], env: {} }
+            ? { command: 'npx', args: ['-y', NPM_PACKAGE_NAME], env: {} }
             : { command: 'node', args: [serverEntry], env: {} };
 
           modelContextProtocolServers.push({
@@ -577,6 +960,7 @@ export async function installAgents(): Promise<void> {
   const agents = getAgentDefinitions(serverEntry);
   let foundCount = 0;
   let configuredCount = 0;
+  let verifyFailCount = 0;
 
   for (const agent of agents) {
     const detected = agent.probePaths.some((p) => existsSync(p));
@@ -593,6 +977,16 @@ export async function installAgents(): Promise<void> {
     // Check if already configured
     if (agent.isConfigured()) {
       logSkipped(agent.name, 'already configured');
+      // Still verify existing config is correct
+      const mcpKey = ['claude-code', 'cursor', 'antigravity'].includes(agent.id) ? 'mcpServers' : 'mcp.servers';
+      const verifyResult = verifyConfigEntry(agent.configPath, mcpKey);
+      if (!verifyResult.ok) {
+        console.log(`    ${c.yellow}⚠${c.reset} ${c.dim}Verification issue: ${verifyResult.error}${c.reset}`);
+        const fixResult = autoFixConfig(agent.configPath, mcpKey);
+        if (fixResult.autoFixed) {
+          console.log(`    ${c.green}✔${c.reset} ${c.dim}Auto-fixed!${c.reset}`);
+        }
+      }
       continue;
     }
 
@@ -615,7 +1009,23 @@ export async function installAgents(): Promise<void> {
         writeFileSync(agent.configPath, configContent + '\n', 'utf-8');
       }
 
-      logConfigured(agent.name);
+      // ── Post-write verification ──
+      const mcpKey = ['claude-code', 'cursor', 'antigravity'].includes(agent.id) ? 'mcpServers' : 'mcp.servers';
+      const verifyResult = verifyConfigEntry(agent.configPath, mcpKey);
+      if (verifyResult.ok) {
+        logConfigured(agent.name);
+        console.log(`    ${c.green}✔${c.reset} ${c.dim}Verified: config entry is correct${c.reset}`);
+      } else {
+        logConfigured(agent.name);
+        console.log(`    ${c.yellow}⚠${c.reset} ${c.dim}Verify warning: ${verifyResult.error}${c.reset}`);
+        // Attempt auto-fix
+        const fixResult = autoFixConfig(agent.configPath, mcpKey);
+        if (fixResult.autoFixed) {
+          console.log(`    ${c.green}✔${c.reset} ${c.dim}Auto-fixed!${c.reset}`);
+        } else {
+          verifyFailCount++;
+        }
+      }
       configuredCount++;
     } catch (err) {
       logError(agent.name, err instanceof Error ? err.message : String(err));
@@ -630,6 +1040,26 @@ export async function installAgents(): Promise<void> {
     logInfo('Install an agent first, then re-run "ai-mind-map install".');
   } else {
     logOk(`${foundCount} agent(s) detected, ${configuredCount} newly configured.`);
+    if (verifyFailCount > 0) {
+      logWarn(`${verifyFailCount} config(s) have verification warnings — run "ai-mind-map doctor --fix" to repair.`);
+    }
+  }
+
+  // Check for misconfigurations from older versions
+  const misconfigs = detectMisconfigs();
+  if (misconfigs.length > 0) {
+    console.log('');
+    heading('⚠️ Misconfigurations Detected');
+    divider();
+    for (const issue of misconfigs) {
+      console.log(`  ${c.yellow}⚠${c.reset} ${c.bold}${issue.agent}${c.reset}: ${issue.problem}`);
+      if (issue.fixFn) {
+        issue.fixFn();
+        console.log(`    ${c.green}✔${c.reset} AUTO-FIXED: ${issue.fix}`);
+      } else {
+        console.log(`    ${c.dim}Fix: ${issue.fix}${c.reset}`);
+      }
+    }
   }
 
   // Deploy rules files so agents know about our capabilities
@@ -942,24 +1372,7 @@ export async function runDoctor(): Promise<void> {
     }
   }
 
-  // Summary
-  const okCount = results.filter((r) => r.status === 'ok').length;
-  const warnCount = results.filter((r) => r.status === 'warn').length;
-  const failCount = results.filter((r) => r.status === 'fail').length;
 
-  console.log('');
-  divider();
-
-  if (failCount > 0) {
-    logFail(`${okCount} passed, ${warnCount} warnings, ${failCount} failures`);
-    logInfo('Fix the failures above before using AI Mind Map.');
-  } else if (warnCount > 0) {
-    logWarn(`${okCount} passed, ${warnCount} warnings`);
-    logInfo('AI Mind Map should work, but address warnings for best experience.');
-  } else {
-    logOk(`All ${okCount} checks passed!`);
-    logInfo('AI Mind Map is ready to use.');
-  }
 
   // Agent detail table
   if (agentStatuses.some((a) => a.detected)) {
@@ -987,6 +1400,62 @@ export async function runDoctor(): Promise<void> {
         console.log(`    ${c.dim}${agent.configPath}${c.reset}`);
       }
     }
+  }
+
+  // 8. Misconfig detection
+  const misconfigs = detectMisconfigs();
+  if (misconfigs.length > 0) {
+    console.log('');
+    heading('⚠️ Configuration Issues Found');
+    divider();
+
+    const shouldFix = process.argv.includes('--fix');
+
+    for (const issue of misconfigs) {
+      results.push({
+        name: `Config: ${issue.agent}`,
+        status: 'warn',
+        message: issue.problem,
+      });
+
+      console.log(`  ${c.yellow}⚠${c.reset} ${c.bold}${issue.agent}${c.reset}: ${issue.problem}`);
+
+      if (shouldFix && issue.fixFn) {
+        issue.fixFn();
+        console.log(`    ${c.green}✔${c.reset} AUTO-FIXED: ${issue.fix}`);
+      } else if (issue.fixFn) {
+        console.log(`    ${c.dim}Run with --fix to auto-repair: ${issue.fix}${c.reset}`);
+      } else {
+        console.log(`    ${c.dim}Manual fix required: ${issue.fix}${c.reset}`);
+      }
+    }
+  } else {
+    results.push({
+      name: 'Config Integrity',
+      status: 'ok',
+      message: 'No misconfigurations detected',
+    });
+  }
+
+  // Re-print summary with updated results
+  const finalOk = results.filter((r) => r.status === 'ok').length;
+  const finalWarn = results.filter((r) => r.status === 'warn').length;
+  const finalFail = results.filter((r) => r.status === 'fail').length;
+
+  console.log('');
+  divider();
+
+  if (finalFail > 0) {
+    logFail(`${finalOk} passed, ${finalWarn} warnings, ${finalFail} failures`);
+    logInfo('Fix the failures above before using AI Mind Map.');
+  } else if (finalWarn > 0) {
+    logWarn(`${finalOk} passed, ${finalWarn} warnings`);
+    if (!process.argv.includes('--fix')) {
+      logInfo('Run "ai-mind-map doctor --fix" to auto-repair warnings.');
+    }
+  } else {
+    logOk(`All ${finalOk} checks passed!`);
+    logInfo('AI Mind Map is ready to use.');
   }
 
   console.log('');
