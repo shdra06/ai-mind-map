@@ -13,10 +13,11 @@
     Stop wasting tokens re-reading your codebase. Give your AI agent a persistent memory.
   </p>
   <p align="center">
-    <a href="#-quick-start-windows">Quick Start</a> •
+    <a href="#-quick-start">Quick Start</a> •
     <a href="#-how-it-works">How It Works</a> •
     <a href="#-41-mcp-tools">All 41 Tools</a> •
     <a href="#-connect-to-your-ai-agent">Connect</a> •
+    <a href="#-cli-commands">CLI</a> •
     <a href="#-configuration">Config</a>
   </p>
 </p>
@@ -133,110 +134,121 @@ Output:
 
 ## 🔌 Connect To Your AI Agent
 
-### Claude Code
+### Automatic (Recommended)
 
-Add to your Claude Code MCP settings file (`~/.claude/claude_desktop_config.json`):
+```bash
+npx ai-mind-map install
+```
+
+This auto-detects **all 7 agents** and writes the config for you. Done.
+
+### What Gets Written
+
+After running `install`, each agent's config file contains:
 
 ```json
 {
   "mcpServers": {
     "ai-mind-map": {
-      "command": "node",
-      "args": [
-        "C:\\Users\\YOUR_USERNAME\\ai-mind-map\\dist\\index.js",
-        "--project-root",
-        "C:\\Users\\YOUR_USERNAME\\your-project"
-      ]
+      "command": "npx",
+      "args": ["-y", "ai-mind-map-server"]
     }
   }
 }
 ```
 
-> **💡 Tip:** Replace `YOUR_USERNAME` with your Windows username, and point `--project-root` to the project you want indexed.
+This tells the agent: *"When you need MCP tools, run `npx ai-mind-map-server`"*. It downloads from npm on first use, then uses cache.
 
-### Cursor
+### Manual Setup (If You Prefer)
 
-Add to `.cursor/mcp.json` in your project root:
+If you want to configure manually, add this to your agent's config:
+
+<details>
+<summary><b>Claude Code</b> — <code>~/.claude/claude_desktop_config.json</code></summary>
 
 ```json
 {
   "mcpServers": {
     "ai-mind-map": {
-      "command": "node",
-      "args": [
-        "C:\\Users\\YOUR_USERNAME\\ai-mind-map\\dist\\index.js",
-        "--project-root",
-        "."
-      ]
+      "command": "npx",
+      "args": ["-y", "ai-mind-map-server"]
     }
   }
 }
 ```
+</details>
 
-### Windsurf / Codeium
-
-Add to your MCP configuration:
+<details>
+<summary><b>Cursor</b> — <code>~/.cursor/mcp.json</code></summary>
 
 ```json
 {
   "mcpServers": {
     "ai-mind-map": {
-      "command": "node",
-      "args": [
-        "C:\\Users\\YOUR_USERNAME\\ai-mind-map\\dist\\index.js",
-        "--project-root",
-        "C:\\path\\to\\project"
-      ],
-      "transportType": "stdio"
+      "command": "npx",
+      "args": ["-y", "ai-mind-map-server"]
     }
   }
 }
 ```
+</details>
 
-### VS Code (Copilot / Continue.dev)
-
-For any VS Code extension that supports MCP, add to your settings:
+<details>
+<summary><b>VS Code</b> — Settings JSON (<code>Ctrl+Shift+P</code> → "Open User Settings JSON")</summary>
 
 ```json
 {
   "mcp.servers": {
     "ai-mind-map": {
-      "command": "node",
-      "args": [
-        "C:\\Users\\YOUR_USERNAME\\ai-mind-map\\dist\\index.js",
-        "--project-root",
-        "${workspaceFolder}"
-      ]
+      "command": "npx",
+      "args": ["-y", "ai-mind-map-server"]
     }
   }
 }
 ```
+</details>
 
-### Antigravity (Gemini)
-
-Add to your Antigravity MCP config:
+<details>
+<summary><b>Antigravity (Gemini)</b> — <code>~/.gemini/config/mcp.json</code></summary>
 
 ```json
 {
   "mcpServers": {
     "ai-mind-map": {
-      "command": "node",
-      "args": [
-        "C:\\Users\\YOUR_USERNAME\\ai-mind-map\\dist\\index.js",
-        "--project-root",
-        "C:\\path\\to\\project"
-      ]
+      "command": "npx",
+      "args": ["-y", "ai-mind-map-server"]
     }
   }
 }
 ```
+</details>
 
-### Any MCP-Compatible Agent
+<details>
+<summary><b>Windsurf</b> — Settings JSON</summary>
 
-AI Mind Map works with **any tool that supports the Model Context Protocol**. Just configure:
-- **Command:** `node`
-- **Args:** `["path/to/ai-mind-map/dist/index.js", "--project-root", "path/to/your/project"]`
-- **Transport:** `stdio`
+```json
+{
+  "mcp.servers": {
+    "ai-mind-map": {
+      "command": "npx",
+      "args": ["-y", "ai-mind-map-server"]
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>Any MCP-Compatible Agent</b></summary>
+
+```
+Command:   npx
+Args:      -y ai-mind-map-server
+Transport: stdio
+```
+</details>
+
+> **💡 After configuring, restart your AI agent so it picks up the new MCP server.**
 
 ---
 
@@ -337,40 +349,28 @@ Once connected, your AI agent gets these powerful tools:
 
 ---
 
-## 💻 CLI Mode
+## 💻 CLI Commands
 
-Every MCP tool is also available from the command line. No agent required:
+All commands work with `npx` (no install) or after global install (`npm install -g ai-mind-map`):
 
 ```bash
-# Index a project
-ai-mind-map index /path/to/project
+# Setup & Diagnostics
+npx ai-mind-map install              # Auto-configure all AI agents
+npx ai-mind-map doctor               # Check everything is working
+npx ai-mind-map install --uninstall  # Remove configs from all agents
 
-# Search the graph
-ai-mind-map search "authenticate" --type function
+# Index & Search
+npx ai-mind-map index /path/to/project  # Index a codebase
+npx ai-mind-map search "authenticate"   # Search the knowledge graph
+npx ai-mind-map trace "processOrder"    # Trace call chains
 
-# Trace call chains
-ai-mind-map trace "processOrder" --direction both --depth 3
+# Memory
+npx ai-mind-map recall "authentication"  # Recall past knowledge
+npx ai-mind-map remember "We use JWT"    # Store a convention
 
-# Show project structure
-ai-mind-map structure
-
-# Recall memories
-ai-mind-map recall "authentication"
-
-# Store a convention
-ai-mind-map remember "We use camelCase for all function names" --category convention
-
-# Show what changed
-ai-mind-map changes --since last_session
-
-# Auto-configure all AI agents
-ai-mind-map install
-
-# Diagnostics
-ai-mind-map doctor
-
-# Show config
-ai-mind-map config list
+# Status
+npx ai-mind-map status               # Show index stats
+npx ai-mind-map changes              # Show recent changes
 ```
 
 ---
