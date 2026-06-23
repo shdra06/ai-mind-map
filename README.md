@@ -8,18 +8,32 @@
     <a href="https://github.com/shdra06/ai-mind-map/releases"><img src="https://img.shields.io/github/v/release/shdra06/ai-mind-map?label=release" alt="Release"></a>
     <a href="LICENSE"><img src="https://img.shields.io/github/license/shdra06/ai-mind-map" alt="License"></a>
     <a href="https://www.npmjs.com/package/ai-mind-map"><img src="https://img.shields.io/npm/v/ai-mind-map" alt="npm"></a>
+    <a href="https://www.npmjs.com/package/ai-mind-map"><img src="https://img.shields.io/npm/dm/ai-mind-map" alt="npm downloads"></a>
   </p>
   <p align="center">
     Stop wasting tokens re-reading your codebase. Give your AI agent a persistent memory.
   </p>
-  <p align="center">
-    <a href="#-quick-start">Quick Start</a> •
-    <a href="#-how-it-works">How It Works</a> •
-    <a href="#-41-mcp-tools">All 41 Tools</a> •
-    <a href="#-connect-to-your-ai-agent">Connect</a> •
-    <a href="#-cli-commands">CLI</a> •
-    <a href="#-configuration">Config</a>
-  </p>
+</p>
+
+---
+
+## ⚡ Install in One Command
+
+```bash
+npx ai-mind-map install
+```
+
+> Auto-detects Claude, Cursor, VS Code, Windsurf, Antigravity, Zed, Continue.dev — configures all of them instantly. **No config files. No manual setup. Just run and restart your agent.**
+
+---
+
+<p align="center">
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-how-it-works">How It Works</a> •
+  <a href="#-41-mcp-tools">All 41 Tools</a> •
+  <a href="#-connect-to-your-ai-agent">Connect</a> •
+  <a href="#-cli-commands">CLI</a> •
+  <a href="#-configuration">Config</a>
 </p>
 
 ---
