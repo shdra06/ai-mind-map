@@ -970,11 +970,19 @@ You have the AI Mind Map MCP server connected with 32 tools. Use them INSTEAD of
 - Run graph query → \`mindmap_query_graph\`
 
 ## Rules
-1. ALWAYS call \`mindmap_get_context\` at the start of every task
-2. NEVER read a file when \`mindmap_get_signature\` or \`mindmap_get_code_snippet\` suffices
-3. NEVER trace call chains manually — use \`mindmap_trace_flow\`
-4. ALWAYS start debugging with \`mindmap_debug_changes\`
-5. ALWAYS \`mindmap_remember\` important learnings
+1. ALWAYS call \`mindmap_get_context\` at the start of every task — it's free context
+2. PREFER \`mindmap_get_signature\` / \`mindmap_get_code_snippet\` over reading full files — but read the file directly when you need comments, edge cases, or complex logic
+3. PREFER \`mindmap_trace_flow\` for understanding pipelines — but read files directly for dynamic routing, event-driven, or DI-heavy code
+4. START debugging with \`mindmap_debug_changes\` — then read specific files for deeper investigation
+5. Use \`mindmap_remember\` for important learnings and \`mindmap_decide\` for architecture choices
+6. If a Mind Map tool returns unexpected results, the index may be stale — fall back to reading the file directly and run \`mindmap_reindex\`
+
+## When to READ FILES DIRECTLY instead of using Mind Map
+- Understanding complex algorithm logic (signatures miss nuance)
+- Reading comments, TODOs, and inline documentation
+- Small config/env files (faster to just read them)
+- Code using metaprogramming, dynamic dispatch, or reflection
+- When Mind Map returns "not found" but you suspect the code exists (stale index)
 `;
 }
 
