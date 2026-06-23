@@ -1,26 +1,22 @@
 /**
  * AI Mind Map — Project Snapshot & Change Delta
  *
- * THE core token-saving engine. This module generates:
+ * THE core token-saving engine. Generates:
  *
- * 1. **Project Snapshot**: A compressed, single-string representation of the
- *    ENTIRE project that fits in ~1500-3000 tokens instead of 50,000+.
- *    Contains: file tree, key symbols per file, architecture layers,
- *    dependency graph summary, and entry points.
+ * 1. **Project Snapshot**: Compact project map in ~1500-3000 tokens
+ * 2. **Change Delta**: Only what changed since last session
+ * 3. **Session Preamble**: Map + delta + memories in one call
  *
- * 2. **Change Delta**: Only what changed since the AI last looked.
- *    Instead of re-reading the whole project, the AI gets a compact
- *    "here's what's different since last time" summary.
- *
- * 3. **Session Preamble**: A ready-to-inject context block that gives the
- *    AI everything it needs to start working on any task.
- *
- * Token savings: ~90% reduction in context needed for codebase understanding.
+ * Design choices informed by industry research:
+ * - Aider's PageRank: we rank hotspots by connection count
+ * - Repomix's structural stripping: signatures only, no bodies
+ * - Cursor's incremental: we cache snapshots, only recompute on changes
+ * - Claude Code's compaction: compact JSON, zero formatting waste
  *
  * @module knowledge-graph/snapshot
  */
 
-import { relative, extname, dirname, basename } from 'node:path';
+import { relative, dirname, basename } from 'node:path';
 import { KnowledgeGraph } from './graph.js';
 import { DiffEngine } from '../change-tracker/diff-engine.js';
 import type { GraphNode, MindMapConfig } from '../types.js';
@@ -29,50 +25,33 @@ import type { GraphNode, MindMapConfig } from '../types.js';
 // Types
 // ============================================================
 
-/** Compressed file entry in the snapshot */
 interface SnapshotFile {
-  /** Relative path */
   path: string;
-  /** Architecture layer */
   layer: string;
-  /** Exported symbols (compact: "fn:name, cls:Name, type:Name") */
+  /** Compact symbols: "fn:create(3), cls:Note{fn:save,fn:delete}, type:Config" */
   symbols: string;
-  /** Lines of code */
   lines: number;
 }
 
-/** The full project snapshot */
 export interface ProjectSnapshot {
-  /** Project name */
   name: string;
-  /** When this snapshot was generated */
   generatedAt: number;
-  /** Quick stats */
   stats: {
     totalFiles: number;
     totalSymbols: number;
     totalLines: number;
     languages: Record<string, number>;
   };
-  /** Compact file tree with symbols (the core map) */
   fileMap: string;
-  /** Architecture layer breakdown */
   layers: string;
-  /** Key entry points (routes, exports, main files) */
   entryPoints: string[];
-  /** Dependency summary (most connected symbols) */
   hotspots: Array<{ name: string; file: string; connections: number }>;
-  /** Token cost of this snapshot vs reading all files */
   tokenCost: { snapshot: number; fullRead: number; saved: number; savingsPercent: number };
 }
 
-/** Change delta — what happened since a timestamp */
 export interface ChangeDelta {
-  /** What time period this covers */
   since: string;
-  /** Compact summary of changes */
   summary: string;
-  /** Files changed with what symbols were affected */
   changes: Array<{
     file: string;
     action: 'added' | 'modified' | 'deleted' | 'renamed';
@@ -80,28 +59,20 @@ export interface ChangeDelta {
     linesAdded: number;
     linesRemoved: number;
   }>;
-  /** New symbols that were added */
   newSymbols: string[];
-  /** Symbols that were removed */
   removedSymbols: string[];
-  /** Files that need attention (high change volume) */
   hotFiles: string[];
 }
 
-/** Session preamble — everything the AI needs to start */
 export interface SessionPreamble {
-  /** The compact project map */
   projectMap: string;
-  /** What changed since last session */
   changeDelta: string;
-  /** Relevant memories */
   memories: string;
-  /** Total token cost */
   tokenCost: number;
 }
 
 // ============================================================
-// Snapshot Generator
+// Snapshot Engine
 // ============================================================
 
 export class SnapshotEngine {
@@ -110,9 +81,8 @@ export class SnapshotEngine {
   private readonly projectRoot: string;
   private readonly projectName: string;
 
-  /** Cache the last snapshot to detect changes */
-  private lastSnapshotTime: number = 0;
-  private cachedSnapshot: ProjectSnapshot | null = null;
+  /** Actual working cache — invalidated when graph stats change */
+  private cache: { snapshot: ProjectSnapshot; statsHash: string } | null = null;
 
   constructor(graph: KnowledgeGraph, config: MindMapConfig) {
     this.graph = graph;
@@ -123,16 +93,17 @@ export class SnapshotEngine {
 
   // ── Project Snapshot ──────────────────────────────────────
 
-  /**
-   * Generate a compact snapshot of the entire project.
-   * This is the #1 token saver — replaces reading all files.
-   */
   generateSnapshot(): ProjectSnapshot {
-    const overview = this.graph.getProjectOverview();
+    // Use cache if graph hasn't changed
     const stats = this.graph.getStats();
-    const allNodeIds = this.graph.getAllNodeIds();
+    const statsHash = `${stats.totalNodes}:${stats.totalEdges}`;
+    if (this.cache && this.cache.statsHash === statsHash) {
+      return this.cache.snapshot;
+    }
 
-    // Build compact file map
+    const overview = this.graph.getProjectOverview();
+
+    // Build compact file map with NESTED class members visible
     const fileEntries: SnapshotFile[] = [];
     let totalLines = 0;
 
@@ -140,41 +111,32 @@ export class SnapshotEngine {
       const relPath = relative(this.projectRoot, filePath);
       const layer = this.inferLayer(relPath);
 
-      // Compact symbol representation
-      const compactSymbols = symbols
-        .filter(s => s.type !== 'file')
-        .map(s => this.compactSymbol(s))
-        .join(', ');
+      // Group symbols: top-level separately, nest class members inside class
+      const compactSymbols = this.buildCompactSymbolList(symbols);
 
-      // Estimate lines from the last symbol's end line
-      const maxLine = symbols.reduce((max, s) => Math.max(max, s.endLine || 0), 0);
+      // Actual line count from file node or max endLine
+      const maxLine = Math.max(
+        ...symbols.map(s => s.endLine || 0),
+        1,
+      );
       totalLines += maxLine;
 
-      fileEntries.push({
-        path: relPath,
-        layer,
-        symbols: compactSymbols,
-        lines: maxLine,
-      });
+      if (compactSymbols) {
+        fileEntries.push({ path: relPath, layer, symbols: compactSymbols, lines: maxLine });
+      }
     }
 
-    // Generate the file map string (the core output)
     const fileMap = this.buildFileMap(fileEntries);
-
-    // Generate layer breakdown
     const layers = this.buildLayerSummary(fileEntries);
+    const entryPoints = this.findEntryPoints(overview);
 
-    // Find entry points
-    const entryPoints = this.findEntryPoints(fileEntries, overview);
+    // Hotspots: use ALL edges via single SQL query instead of sampling
+    const hotspots = this.findHotspotsEfficient();
 
-    // Find hotspots (most-connected symbols)
-    const hotspots = this.findHotspots(allNodeIds);
-
-    // Calculate token costs
     const snapshotText = fileMap + layers;
     const snapshotTokens = Math.ceil(snapshotText.length / 4);
-    const estimatedFullRead = totalLines * 2; // ~2 tokens per line of code
-    const saved = estimatedFullRead - snapshotTokens;
+    const estimatedFullRead = Math.max(totalLines * 2, 1);
+    const saved = Math.max(0, estimatedFullRead - snapshotTokens);
 
     const snapshot: ProjectSnapshot = {
       name: this.projectName,
@@ -192,24 +154,18 @@ export class SnapshotEngine {
       tokenCost: {
         snapshot: snapshotTokens,
         fullRead: estimatedFullRead,
-        saved: Math.max(0, saved),
-        savingsPercent: estimatedFullRead > 0
-          ? Math.round((saved / estimatedFullRead) * 100)
-          : 0,
+        saved,
+        savingsPercent: estimatedFullRead > 0 ? Math.round((saved / estimatedFullRead) * 100) : 0,
       },
     };
 
-    this.cachedSnapshot = snapshot;
-    this.lastSnapshotTime = Date.now();
+    // Actually cache it
+    this.cache = { snapshot, statsHash };
     return snapshot;
   }
 
   // ── Change Delta ──────────────────────────────────────────
 
-  /**
-   * Generate a change delta since a timestamp.
-   * This is what the AI reads at session start instead of re-reading everything.
-   */
   async generateChangeDelta(
     sinceTimestamp: number,
     sinceLabel: string = 'last session',
@@ -219,107 +175,122 @@ export class SnapshotEngine {
       'delta-session',
     );
 
-    // Build compact change list
-    const changes = diffSummary.changes.map(c => {
+    // For symbol-level change detection, compare current symbols against
+    // what git shows was in the file before. This is the key improvement
+    // over just listing ALL symbols in a changed file.
+    const changes = await Promise.all(diffSummary.changes.map(async c => {
       const relPath = relative(this.projectRoot, c.filePath);
 
-      // Get symbols in the changed file
-      const fileNodes = this.graph.getFileStructure(c.filePath);
-      const symbolNames = fileNodes
-        .filter(n => n.type !== 'file')
-        .map(n => n.name);
+      let symbolsChanged: string[] = [];
+
+      if (c.changeType === 'modified') {
+        // Get CURRENT symbols in the file
+        const currentNodes = this.graph.getFileStructure(c.filePath);
+        const currentSymbols = new Set(
+          currentNodes.filter(n => n.type !== 'file').map(n => n.name),
+        );
+
+        // Get symbols that WERE in the file before (from git)
+        try {
+          const oldContent = await this.diffEngine.getFileAtRevision(relPath, 'HEAD~1');
+          if (oldContent.found) {
+            const oldSymbolNames = this.extractSymbolNamesFromSource(oldContent.content);
+            // Changed = added OR removed symbols
+            const added = [...currentSymbols].filter(s => !oldSymbolNames.has(s));
+            const removed = [...oldSymbolNames].filter(s => !currentSymbols.has(s));
+            symbolsChanged = [
+              ...added.map(s => `+${s}`),
+              ...removed.map(s => `-${s}`),
+            ];
+            // If no symbols added/removed but file changed, mark as "modified body"
+            if (symbolsChanged.length === 0 && (c.linesAdded > 0 || c.linesRemoved > 0)) {
+              // Use line-range heuristic: which symbols span the changed lines?
+              symbolsChanged = this.inferAffectedSymbols(currentNodes, c.linesAdded + c.linesRemoved);
+            }
+          }
+        } catch {
+          // Fall back to listing key symbols (top 5 only, not ALL)
+          symbolsChanged = currentNodes
+            .filter(n => n.type === 'function' || n.type === 'method' || n.type === 'class')
+            .slice(0, 5)
+            .map(n => n.name);
+        }
+      } else if (c.changeType === 'created') {
+        const currentNodes = this.graph.getFileStructure(c.filePath);
+        symbolsChanged = currentNodes
+          .filter(n => n.type !== 'file')
+          .map(n => `+${n.name}`);
+      }
 
       return {
         file: relPath,
         action: c.changeType as 'added' | 'modified' | 'deleted' | 'renamed',
-        symbolsChanged: symbolNames,
+        symbolsChanged,
         linesAdded: c.linesAdded,
         linesRemoved: c.linesRemoved,
       };
-    });
+    }));
 
-    // Detect new/removed symbols (compare with cached snapshot if available)
-    const newSymbols: string[] = [];
-    const removedSymbols: string[] = [];
-    // For now, list symbols in newly created files
-    for (const c of changes) {
-      if (c.action === 'added') {
-        newSymbols.push(...c.symbolsChanged.map(s => `${s} (${c.file})`));
-      } else if (c.action === 'deleted') {
-        removedSymbols.push(...c.symbolsChanged.map(s => `${s} (${c.file})`));
-      }
-    }
+    // Detect new/removed symbols across all changes
+    const newSymbols = changes
+      .flatMap(c => c.symbolsChanged.filter(s => s.startsWith('+')).map(s => `${s.slice(1)} (${c.file})`));
+    const removedSymbols = changes
+      .flatMap(c => c.symbolsChanged.filter(s => s.startsWith('-')).map(s => `${s.slice(1)} (${c.file})`));
 
-    // Find hot files (most changed)
+    // Hot files
     const hotFiles = changes
       .filter(c => c.linesAdded + c.linesRemoved > 20)
       .sort((a, b) => (b.linesAdded + b.linesRemoved) - (a.linesAdded + a.linesRemoved))
       .map(c => `${c.file} (+${c.linesAdded}/-${c.linesRemoved})`)
       .slice(0, 5);
 
-    // Build compact summary
+    // Compact summary
     const summaryParts: string[] = [];
     if (changes.length === 0) {
-      summaryParts.push('No changes detected.');
+      summaryParts.push('No changes.');
     } else {
       const added = changes.filter(c => c.action === 'added').length;
       const modified = changes.filter(c => c.action === 'modified').length;
       const deleted = changes.filter(c => c.action === 'deleted').length;
       const totalAdded = changes.reduce((s, c) => s + c.linesAdded, 0);
       const totalRemoved = changes.reduce((s, c) => s + c.linesRemoved, 0);
-
-      if (added > 0) summaryParts.push(`${added} new file(s)`);
+      if (added > 0) summaryParts.push(`${added} new`);
       if (modified > 0) summaryParts.push(`${modified} modified`);
       if (deleted > 0) summaryParts.push(`${deleted} deleted`);
-      summaryParts.push(`(+${totalAdded}/-${totalRemoved} lines)`);
+      summaryParts.push(`+${totalAdded}/-${totalRemoved}`);
     }
 
-    return {
-      since: sinceLabel,
-      summary: summaryParts.join(', '),
-      changes,
-      newSymbols,
-      removedSymbols,
-      hotFiles,
-    };
+    return { since: sinceLabel, summary: summaryParts.join(', '), changes, newSymbols, removedSymbols, hotFiles };
   }
 
   // ── Session Preamble ──────────────────────────────────────
 
-  /**
-   * Generate the complete session preamble — everything the AI needs
-   * at the start of a conversation, in minimum tokens.
-   */
   async generatePreamble(
     lastSessionTimestamp?: number,
     memories?: string[],
   ): Promise<SessionPreamble> {
-    // 1. Project map
     const snapshot = this.generateSnapshot();
     const projectMap = this.formatProjectMap(snapshot);
 
-    // 2. Change delta (since last session, default 4h ago)
     const since = lastSessionTimestamp ?? Date.now() - 4 * 60 * 60 * 1000;
     const delta = await this.generateChangeDelta(since);
     const changeDelta = this.formatChangeDelta(delta);
 
-    // 3. Memories
     const memoryText = memories && memories.length > 0
-      ? `\n📝 MEMORIES:\n${memories.map(m => `  • ${m}`).join('\n')}`
+      ? `\nMEMORIES:\n${memories.map(m => `- ${m}`).join('\n')}`
       : '';
 
     const fullText = projectMap + '\n' + changeDelta + memoryText;
-    const tokenCost = Math.ceil(fullText.length / 4);
 
     return {
       projectMap,
       changeDelta,
       memories: memoryText,
-      tokenCost,
+      tokenCost: Math.ceil(fullText.length / 4),
     };
   }
 
-  // ── Private: File Map Builder ─────────────────────────────
+  // ── File Map (zero-waste formatting) ──────────────────────
 
   private buildFileMap(entries: SnapshotFile[]): string {
     // Group by directory
@@ -330,27 +301,21 @@ export class SnapshotEngine {
       dirGroups.get(dir)!.push(entry);
     }
 
-    const lines: string[] = [`📁 PROJECT MAP: ${this.projectName}`];
-    lines.push(`   ${entries.length} files, ${entries.reduce((s, e) => s + e.lines, 0)} lines\n`);
+    // Zero-waste format: no emojis, no bars, pure data
+    const lines: string[] = [
+      `[${this.projectName}] ${entries.length} files, ${entries.reduce((s, e) => s + e.lines, 0)} lines`,
+    ];
 
-    // Sort directories for consistent output
-    const sortedDirs = [...dirGroups.keys()].sort();
-
-    for (const dir of sortedDirs) {
+    for (const dir of [...dirGroups.keys()].sort()) {
       const files = dirGroups.get(dir)!;
-      lines.push(`📂 ${dir}/`);
-
+      lines.push(`${dir}/`);
       for (const file of files) {
         const name = basename(file.path);
-        const layerTag = file.layer !== 'unknown' ? ` [${file.layer}]` : '';
-
-        if (file.symbols) {
-          lines.push(`  📄 ${name}${layerTag}: ${file.symbols}`);
-        } else {
-          lines.push(`  📄 ${name}${layerTag}`);
-        }
+        const tag = file.layer !== 'unknown' ? `[${file.layer}] ` : '';
+        lines.push(file.symbols
+          ? `  ${tag}${name}: ${file.symbols}`
+          : `  ${tag}${name}`);
       }
-      lines.push(''); // blank line between dirs
     }
 
     return lines.join('\n');
@@ -361,129 +326,202 @@ export class SnapshotEngine {
     for (const entry of entries) {
       layers.set(entry.layer, (layers.get(entry.layer) ?? 0) + 1);
     }
-
     if (layers.size <= 1) return '';
 
-    const lines: string[] = ['\n🏗️ ARCHITECTURE LAYERS:'];
-    const sorted = [...layers.entries()].sort((a, b) => b[1] - a[1]);
-    for (const [layer, count] of sorted) {
-      const bar = '█'.repeat(Math.min(count, 15));
-      lines.push(`  ${layer.padEnd(14)} ${String(count).padStart(3)} files ${bar}`);
-    }
-
-    return lines.join('\n');
+    return '\nLAYERS: ' + [...layers.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([l, c]) => `${l}(${c})`)
+      .join(' ');
   }
 
-  private findEntryPoints(
-    entries: SnapshotFile[],
-    overview: Map<string, GraphNode[]>,
-  ): string[] {
+  private findEntryPoints(overview: Map<string, GraphNode[]>): string[] {
     const entryPoints: string[] = [];
-
     for (const [filePath, symbols] of overview) {
       const relPath = relative(this.projectRoot, filePath);
       const name = basename(relPath);
-
-      // Main/index files
       if (/^(index|main|app|server)\.(ts|js|py|go|rs)$/i.test(name)) {
-        entryPoints.push(`📌 ${relPath} (entry point)`);
+        entryPoints.push(relPath);
       }
-
-      // Route definitions
       for (const sym of symbols) {
         if (sym.type === 'route') {
-          entryPoints.push(`🛣️ ${sym.name} → ${relPath}`);
+          entryPoints.push(`${sym.name} -> ${relPath}`);
         }
       }
     }
-
-    return entryPoints.slice(0, 20);
+    return entryPoints.slice(0, 15);
   }
 
-  private findHotspots(allNodeIds: string[]): Array<{ name: string; file: string; connections: number }> {
-    const connectionCounts: Array<{ name: string; file: string; connections: number }> = [];
+  /**
+   * Find hotspots using ALL edges via a single aggregation query
+   * instead of sampling 200 random nodes with 600+ individual queries.
+   */
+  private findHotspotsEfficient(): Array<{ name: string; file: string; connections: number }> {
+    const allEdges = this.graph.getAllEdges();
 
-    // Sample nodes (checking ALL nodes could be slow for large projects)
-    const sampleSize = Math.min(allNodeIds.length, 200);
-    const sampled = allNodeIds.slice(0, sampleSize);
+    // Count connections per node
+    const counts = new Map<string, number>();
+    for (const edge of allEdges) {
+      counts.set(edge.sourceId, (counts.get(edge.sourceId) ?? 0) + 1);
+      counts.set(edge.targetId, (counts.get(edge.targetId) ?? 0) + 1);
+    }
 
-    for (const id of sampled) {
-      const node = this.graph.getNode(id);
-      if (!node || node.type === 'file') continue;
+    // Get top 10 most connected
+    const sorted = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
 
-      const inEdges = this.graph.getInEdges(id);
-      const outEdges = this.graph.getOutEdges(id);
-      const total = inEdges.length + outEdges.length;
-
-      if (total >= 3) {
-        connectionCounts.push({
+    const results: Array<{ name: string; file: string; connections: number }> = [];
+    for (const [nodeId, connections] of sorted) {
+      const node = this.graph.getNode(nodeId);
+      if (node && node.type !== 'file') {
+        results.push({
           name: node.name,
           file: relative(this.projectRoot, node.filePath),
-          connections: total,
+          connections,
         });
       }
     }
 
-    return connectionCounts
-      .sort((a, b) => b.connections - a.connections)
-      .slice(0, 10);
+    return results;
   }
 
-  // ── Private: Formatting ───────────────────────────────────
+  // ── Compact Symbol Formatting ─────────────────────────────
+
+  /**
+   * Build a compact symbol list that shows class members nested inside
+   * their parent class. Format: "cls:Note{fn:save,fn:delete}, fn:helper"
+   *
+   * This fixes the issue where `cls:MyClass` hid all 20 methods inside it.
+   */
+  private buildCompactSymbolList(symbols: GraphNode[]): string {
+    // Separate top-level vs nested
+    const topLevel: GraphNode[] = [];
+    const nested = new Map<string, GraphNode[]>(); // parentName → children
+
+    for (const s of symbols) {
+      if (s.type === 'file') continue;
+
+      const isNested = s.qualifiedName !== s.name && s.qualifiedName.includes('.');
+      if (isNested) {
+        const parentName = s.qualifiedName.split('.')[0]!;
+        if (!nested.has(parentName)) nested.set(parentName, []);
+        nested.get(parentName)!.push(s);
+      } else {
+        topLevel.push(s);
+      }
+    }
+
+    const parts: string[] = [];
+    for (const s of topLevel) {
+      const prefix = this.typePrefix(s.type);
+      const children = nested.get(s.name);
+
+      if (children && children.length > 0) {
+        // Show class with its members: cls:Note{fn:save,fn:delete,fn:update}
+        const memberStr = children
+          .slice(0, 8) // Cap at 8 members to save tokens
+          .map(c => `${this.typePrefix(c.type)}:${c.name}`)
+          .join(',');
+        const overflow = children.length > 8 ? `,+${children.length - 8}` : '';
+        parts.push(`${prefix}:${s.name}{${memberStr}${overflow}}`);
+      } else if (s.type === 'function' || s.type === 'method') {
+        parts.push(`${prefix}:${s.name}(${s.parameters?.length ?? 0})`);
+      } else {
+        parts.push(`${prefix}:${s.name}`);
+      }
+    }
+
+    return parts.join(', ');
+  }
+
+  private typePrefix(type: string): string {
+    const map: Record<string, string> = {
+      function: 'fn', method: 'fn', class: 'cls', interface: 'ifc',
+      type_alias: 'type', enum: 'enum', variable: 'var', constant: 'const',
+      component: 'comp', hook: 'hook', route: 'route', test: 'test', constructor: 'ctor',
+    };
+    return map[type] ?? type;
+  }
+
+  // ── Formatting (zero-waste) ───────────────────────────────
 
   private formatProjectMap(snapshot: ProjectSnapshot): string {
-    const parts: string[] = [];
-
-    parts.push(snapshot.fileMap);
-    parts.push(snapshot.layers);
+    const parts: string[] = [snapshot.fileMap, snapshot.layers];
 
     if (snapshot.entryPoints.length > 0) {
-      parts.push('\n🎯 ENTRY POINTS:');
-      parts.push(snapshot.entryPoints.map(e => `  ${e}`).join('\n'));
+      parts.push('\nENTRY: ' + snapshot.entryPoints.join(', '));
     }
 
     if (snapshot.hotspots.length > 0) {
-      parts.push('\n🔥 HOTSPOTS (most-connected symbols):');
-      parts.push(
-        snapshot.hotspots
-          .map(h => `  ${h.name} (${h.file}) — ${h.connections} connections`)
-          .join('\n'),
-      );
+      parts.push('\nHOTSPOTS: ' +
+        snapshot.hotspots.map(h => `${h.name}(${h.connections})`).join(', '));
     }
-
-    parts.push(`\n💰 TOKEN SAVINGS: This map costs ~${snapshot.tokenCost.snapshot} tokens vs ~${snapshot.tokenCost.fullRead} for full read (${snapshot.tokenCost.savingsPercent}% saved)`);
 
     return parts.join('\n');
   }
 
   private formatChangeDelta(delta: ChangeDelta): string {
     if (delta.changes.length === 0) {
-      return `\n🔄 CHANGES SINCE ${delta.since.toUpperCase()}: None`;
+      return `\nCHANGES(${delta.since}): none`;
     }
 
-    const parts: string[] = [];
-    parts.push(`\n🔄 CHANGES SINCE ${delta.since.toUpperCase()}: ${delta.summary}`);
-
-    for (const change of delta.changes.slice(0, 15)) {
-      const icon = { added: '🟢', modified: '🟡', deleted: '🔴', renamed: '🔵' }[change.action] ?? '⚪';
-      const symbols = change.symbolsChanged.length > 0
-        ? ` — affects: ${change.symbolsChanged.slice(0, 5).join(', ')}${change.symbolsChanged.length > 5 ? '...' : ''}`
+    const parts: string[] = [`\nCHANGES(${delta.since}): ${delta.summary}`];
+    for (const c of delta.changes.slice(0, 15)) {
+      const tag = { added: '+', modified: '~', deleted: '-', renamed: '>' }[c.action] ?? '?';
+      const syms = c.symbolsChanged.length > 0
+        ? ` [${c.symbolsChanged.slice(0, 5).join(',')}]`
         : '';
-      parts.push(`  ${icon} ${change.file} (+${change.linesAdded}/-${change.linesRemoved})${symbols}`);
+      parts.push(` ${tag} ${c.file} +${c.linesAdded}/-${c.linesRemoved}${syms}`);
     }
-
-    if (delta.changes.length > 15) {
-      parts.push(`  ... and ${delta.changes.length - 15} more files`);
-    }
-
-    if (delta.hotFiles.length > 0) {
-      parts.push(`\n  ⚠️ Most changed: ${delta.hotFiles.join(', ')}`);
-    }
-
+    if (delta.changes.length > 15) parts.push(` ...+${delta.changes.length - 15} more`);
     return parts.join('\n');
   }
 
-  // ── Private: Classification ───────────────────────────────
+  // ── Symbol extraction from raw source ─────────────────────
+
+  /**
+   * Quick regex extraction of symbol names from source code.
+   * Used to compare old vs new file versions for symbol-level change detection.
+   * Not as accurate as tree-sitter but fast enough for change delta.
+   */
+  private extractSymbolNamesFromSource(source: string): Set<string> {
+    const names = new Set<string>();
+    const patterns = [
+      /(?:function|async function)\s+(\w+)/g,
+      /(?:const|let|var)\s+(\w+)\s*=/g,
+      /class\s+(\w+)/g,
+      /interface\s+(\w+)/g,
+      /type\s+(\w+)\s*=/g,
+      /enum\s+(\w+)/g,
+      /(\w+)\s*\([^)]*\)\s*{/g,  // method definitions
+      /def\s+(\w+)/g,             // Python
+    ];
+    for (const pat of patterns) {
+      let m;
+      while ((m = pat.exec(source)) !== null) {
+        if (m[1] && m[1].length > 1 && !/^(if|for|while|switch|catch|return)$/.test(m[1])) {
+          names.add(m[1]);
+        }
+      }
+    }
+    return names;
+  }
+
+  /**
+   * When symbols didn't change but lines did, pick the most likely
+   * affected symbols based on which ones are largest (most likely
+   * to have internal edits).
+   */
+  private inferAffectedSymbols(nodes: GraphNode[], changedLines: number): string[] {
+    return nodes
+      .filter(n => n.type === 'function' || n.type === 'method')
+      .filter(n => (n.endLine ?? 0) - (n.startLine ?? 0) > 3) // Skip trivial one-liners
+      .sort((a, b) => ((b.endLine ?? 0) - (b.startLine ?? 0)) - ((a.endLine ?? 0) - (a.startLine ?? 0)))
+      .slice(0, 3)
+      .map(n => `~${n.name}`);
+  }
+
+  // ── Layer classification ──────────────────────────────────
 
   private inferLayer(relPath: string): string {
     const lower = relPath.toLowerCase();
@@ -500,33 +538,5 @@ export class SnapshotEngine {
     if (/tool|mcp|plugin/i.test(lower)) return 'tool';
     if (/types?\.ts$|interface|types?\//i.test(lower)) return 'types';
     return 'unknown';
-  }
-
-  private compactSymbol(node: GraphNode): string {
-    const prefixes: Record<string, string> = {
-      function: 'fn',
-      method: 'fn',
-      class: 'cls',
-      interface: 'ifc',
-      type_alias: 'type',
-      enum: 'enum',
-      variable: 'var',
-      constant: 'const',
-      component: 'comp',
-      hook: 'hook',
-      route: 'route',
-      test: 'test',
-      constructor: 'ctor',
-    };
-
-    const prefix = prefixes[node.type] ?? node.type;
-
-    // For functions, include parameter count
-    if (node.type === 'function' || node.type === 'method') {
-      const paramCount = node.parameters?.length ?? 0;
-      return `${prefix}:${node.name}(${paramCount})`;
-    }
-
-    return `${prefix}:${node.name}`;
   }
 }

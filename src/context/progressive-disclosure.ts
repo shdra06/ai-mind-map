@@ -238,9 +238,24 @@ function buildTier2(
 ): string {
   const sections: string[] = [];
 
-  // ── Graph results ──────────────────────────────────
+  // ── Graph results (sorted by relevance to query) ──
   if (data.graphNodes && data.graphNodes.length > 0) {
-    const graphSection = formatGraphNodes(data.graphNodes);
+    // Sort nodes by relevance to the query so the most important ones
+    // fit within the token budget. Without this, random insertion-order
+    // nodes fill the budget and relevant ones get dropped.
+    let sortedNodes = data.graphNodes;
+    if (query && query.length > 0) {
+      const q = query.toLowerCase();
+      const queryTerms = q.split(/[\s,./\\-]+/).filter(t => t.length > 1);
+
+      sortedNodes = [...data.graphNodes].sort((a, b) => {
+        const aScore = relevanceScore(a, q, queryTerms);
+        const bScore = relevanceScore(b, q, queryTerms);
+        return bScore - aScore; // Higher score = more relevant = first
+      });
+    }
+
+    const graphSection = formatGraphNodes(sortedNodes);
     const enforced = budgetMgr.enforceComponentBudget('graphResults', graphSection);
     budgetMgr.recordUsage('graphResults', enforced);
     if (enforced.length > 0) {
@@ -558,4 +573,43 @@ function estimateNaiveCost(
   }
 
   return cost;
+}
+
+// ── Relevance Scoring ────────────────────────────────────────
+
+/**
+ * Score a graph node's relevance to a query string.
+ * Higher score = more relevant = displayed first within token budget.
+ *
+ * Scoring:
+ *   100 — exact name match
+ *    50 — name contains query as substring
+ *    20 — file path contains query
+ *    10 — per matching query term in name/qualifiedName
+ *     5 — per matching query term in file path
+ */
+function relevanceScore(node: GraphNode, query: string, queryTerms: string[]): number {
+  let score = 0;
+  const nameLower = (node.name || '').toLowerCase();
+  const qualLower = (node.qualifiedName || '').toLowerCase();
+  const fileLower = (node.filePath || '').toLowerCase();
+
+  // Exact name match
+  if (nameLower === query) score += 100;
+  // Name contains query
+  else if (nameLower.includes(query)) score += 50;
+  // Qualified name contains query
+  else if (qualLower.includes(query)) score += 40;
+
+  // File path contains query
+  if (fileLower.includes(query)) score += 20;
+
+  // Per-term matching
+  for (const term of queryTerms) {
+    if (nameLower.includes(term)) score += 10;
+    if (qualLower.includes(term)) score += 8;
+    if (fileLower.includes(term)) score += 5;
+  }
+
+  return score;
 }

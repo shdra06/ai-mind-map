@@ -725,31 +725,32 @@ export class KnowledgeGraph {
   }
 
   /**
-   * Get the project overview: all files with their top-level symbols.
+   * Get the project overview: all files with their symbols.
    *
    * Returns a compact representation of the entire project structure,
    * suitable for a repo map / table of contents.
+   *
+   * Includes nested members (class methods, interface members) — not
+   * just top-level symbols — so the AI actually knows what each class does.
+   *
+   * Uses a single SQL query instead of one-per-file (N+1 → 1).
    */
   getProjectOverview(): Map<string, GraphNode[]> {
     const overview = new Map<string, GraphNode[]>();
 
-    // Get all file nodes
-    const fileRows = this.db.prepare(
-      "SELECT DISTINCT filePath FROM nodes WHERE type = 'file' ORDER BY filePath",
-    ).all() as { filePath: string }[];
+    // Single query: get ALL non-file nodes, ordered by file then line
+    const allSymbols = this.db.prepare(`
+      SELECT * FROM nodes
+      WHERE type != 'file'
+      ORDER BY filePath, startLine
+    `).all() as any[];
 
-    for (const { filePath } of fileRows) {
-      // Get top-level symbols (nodes whose qualifiedName equals their name,
-      // meaning they aren't nested inside a class/interface)
-      const symbols = this.db.prepare(`
-        SELECT * FROM nodes
-        WHERE filePath = ?
-          AND type != 'file'
-          AND qualifiedName = name
-        ORDER BY startLine
-      `).all(filePath) as any[];
-
-      overview.set(filePath, symbols.map((r: any) => this.rowToNode(r)));
+    for (const row of allSymbols) {
+      const node = this.rowToNode(row);
+      if (!overview.has(node.filePath)) {
+        overview.set(node.filePath, []);
+      }
+      overview.get(node.filePath)!.push(node);
     }
 
     return overview;

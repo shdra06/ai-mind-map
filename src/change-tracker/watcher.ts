@@ -341,7 +341,11 @@ export class FileWatcher extends EventEmitter {
     this.debounceTimer = null;
 
     // Append to the undrained buffer so polling consumers can pick them up.
+    // Cap at 10,000 entries to prevent unbounded memory growth when idle.
     this.undrainedChanges.push(...events);
+    if (this.undrainedChanges.length > 10_000) {
+      this.undrainedChanges = this.undrainedChanges.slice(-5_000);
+    }
 
     this.emit('changes', events);
   }

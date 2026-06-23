@@ -107,7 +107,7 @@ const COMPRESSION_LEVELS: [CompressionLevel, ...CompressionLevel[]] = [
 
 function mcpText(result: ToolResult) {
   return {
-    content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+    content: [{ type: 'text' as const, text: JSON.stringify(result) }],
   };
 }
 
