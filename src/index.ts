@@ -1035,7 +1035,7 @@ async function main(): Promise<void> {
   const server = new McpServer(
     {
       name: 'ai-mind-map',
-      version: '1.4.5',
+      version: '1.4.6',
     },
     {
       instructions: [
@@ -1043,13 +1043,13 @@ async function main(): Promise<void> {
         '',
         'You have access to AI Mind Map, a persistent code memory system that saves you from re-reading files and losing context between sessions.',
         '',
-        '## 🚀 FIRST CALL (every new conversation):',
-        'Call `mindmap_session_resume` FIRST. It returns:',
+        '## 🚀 Recommended Tool Usage',
+        'To get context on a new project or resume a previous task, consider calling `mindmap_session_resume`. It returns:',
         '- What the previous AI worked on',
         '- What code changed since then (function-level diffs)',
         '- Project structure + tech stack',
         '- Hot files (most frequently changed)',
-        'This ONE call replaces reading 10+ files.',
+        'This ONE call can replace reading 10+ files.',
         '',
         '## 📋 Tool Selection Guide:',
         '',
@@ -1084,7 +1084,7 @@ async function main(): Promise<void> {
         '- `mindmap_session_end` → Save summary so next AI can resume instantly',
         '',
         '## ⚡ Token-Saving Rules:',
-        '1. ALWAYS call `mindmap_session_resume` first — never start blind',
+        '1. Consider calling `mindmap_session_resume` to get context without reading files',
         '2. Use `mindmap_file_digest` BEFORE reading a full file — you may not need the full file',
         '3. Use `mindmap_verify` to check if cached code is still valid — avoid re-reading',
         '4. Use `mindmap_changelog` instead of re-reading files to see what changed',
