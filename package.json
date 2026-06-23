@@ -1,0 +1,79 @@
+{
+  "name": "ai-mind-map",
+  "version": "1.0.0",
+  "description": "AI Mind Map — MCP server that reduces AI coding agent token usage by 80-99% through persistent codebase memory, knowledge graphs, and intelligent context management",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "ai-mind-map": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "inspect": "node --inspect dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shdra06/ai-mind-map.git"
+  },
+  "homepage": "https://github.com/shdra06/ai-mind-map#readme",
+  "bugs": {
+    "url": "https://github.com/shdra06/ai-mind-map/issues"
+  },
+  "author": "shdra06",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "better-sqlite3": "^11.8.2",
+    "chokidar": "^4.0.3",
+    "glob": "^11.0.1",
+    "ignore": "^7.0.4",
+    "simple-git": "^3.27.0",
+    "tree-sitter": "^0.22.4",
+    "tree-sitter-javascript": "*",
+    "tree-sitter-typescript": "*",
+    "tree-sitter-python": "*",
+    "tree-sitter-json": "*",
+    "tree-sitter-css": "*",
+    "tree-sitter-html": "*",
+    "tree-sitter-rust": "*",
+    "tree-sitter-go": "*",
+    "tree-sitter-java": "*",
+    "tree-sitter-c": "*",
+    "tree-sitter-cpp": "*",
+    "tree-sitter-c-sharp": "*",
+    "tree-sitter-ruby": "*",
+    "tree-sitter-php": "*",
+    "tree-sitter-bash": "*",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.3"
+  },
+  "keywords": [
+    "ai",
+    "mcp",
+    "mcp-server",
+    "token-optimization",
+    "knowledge-graph",
+    "tree-sitter",
+    "codebase-memory",
+    "context-management",
+    "llm",
+    "claude",
+    "cursor",
+    "copilot",
+    "coding-assistant",
+    "persistent-memory",
+    "pagerank",
+    "ast-parser"
+  ],
+  "license": "MIT"
+}

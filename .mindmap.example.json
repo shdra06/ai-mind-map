@@ -1,0 +1,21 @@
+{
+  "languages": [],
+  "ignore": ["node_modules", "dist", ".git"],
+  "tokenBudgets": {
+    "graphResults": 2000,
+    "changeSummary": 1000,
+    "memoryRetrieval": 1500,
+    "fileContent": 3000,
+    "totalContext": 10000
+  },
+  "memory": {
+    "maxMemories": 500,
+    "decayRate": 0.95,
+    "importanceThreshold": 0.1,
+    "maxDecisions": 200
+  },
+  "compression": "moderate",
+  "watchEnabled": true,
+  "watchDebounceMs": 500,
+  "maxFileSize": 524288
+}
