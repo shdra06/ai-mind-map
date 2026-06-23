@@ -120,128 +120,168 @@ export interface AppInteractionMap {
   filesByLayer: Record<string, FlowLayer>;
 }
 
-// ============================================================
-// Pattern Detectors
-// ============================================================
+/**
+ * ── Multi-Signal Layer Classification Engine ──────────────────
+ *
+ * Instead of first-match-wins, we score every file across ALL layers
+ * using multiple independent signals, then pick the highest score.
+ *
+ * Signals (weighted):
+ *   1. Content patterns   (weight: 3) — regex on file body
+ *   2. Path patterns      (weight: 2) — regex on file path/name
+ *   3. Directory patterns  (weight: 2) — known folder names
+ *   4. Import/Inheritance (weight: 4) — what the file imports or extends
+ *   5. Symbol name hints  (weight: 1) — names of functions/classes in file
+ */
 
-/** Patterns that identify each layer */
-const LAYER_PATTERNS: Array<{ layer: FlowLayer; patterns: RegExp[] }> = [
-  {
-    layer: 'route',
-    patterns: [
-      /\.(get|post|put|delete|patch|all|use)\s*\(\s*['"`]/,          // Express
-      /router\.(get|post|put|delete|patch)/,                          // Express Router
-      /app\.(get|post|put|delete|patch)/,                             // Express app
-      /@(Get|Post|Put|Delete|Patch|All)\s*\(/,                        // NestJS decorators
-      /@app\.(route|get|post|put|delete)\s*\(/,                       // Flask/FastAPI
-      /@(api_view|action)\s*\(/,                                      // Django DRF
-    ],
-  },
-  {
-    layer: 'ui_event',
-    patterns: [
-      /on(Click|Change|Submit|Press|Focus|Blur|Drag|Drop|Key|Mouse|Touch|Scroll)/,
-      /addEventListener\s*\(\s*['"`]/,
-      /\$\.(on|click|submit|change|keydown|keyup)\s*\(/,              // jQuery
-      /@click|@submit|@change|v-on:/,                                  // Vue
-      /\(click\)|\(submit\)|\(change\)/,                               // Angular
-      /on:click|on:submit|on:change/,                                  // Svelte
-      /_Click\b|_Loaded\b|_Closing\b|_Closed\b|_KeyDown\b|_KeyUp\b|_MouseDown\b|_MouseUp\b|_SelectionChanged\b|_TextChanged\b|_Checked\b|_Unchecked\b|_DragEnter\b|_Drop\b|_PreviewKeyDown\b|_GotFocus\b|_LostFocus\b|_SizeChanged\b|_Toggled\b/,  // WPF event handlers
-      /RoutedEventHandler|EventHandler|\+=.*EventHandler/,             // C# event wiring
-    ],
-  },
-  {
-    layer: 'state_update',
-    patterns: [
-      /setState\s*\(/,                                                 // React class
-      /useState|useReducer|useContext/,                                 // React hooks
-      /dispatch\s*\(/,                                                  // Redux
-      /store\.(commit|dispatch|state)\s*\(/,                           // Vuex
-      /\$store\.(commit|dispatch)/,                                    // Vuex in components
-      /writable\s*\(|derived\s*\(/,                                    // Svelte stores
-      /signal\s*\(|computed\s*\(/,                                     // Angular signals / Solid
-      /atom\s*\(|selector\s*\(/,                                       // Recoil/Jotai
-      /createSlice|createAsyncThunk/,                                  // Redux Toolkit
-      /INotifyPropertyChanged|OnPropertyChanged|RaisePropertyChanged|DependencyProperty\.Register|SetValue\(|GetValue\(/,  // WPF property change
-      /ObservableCollection|BindingList/,                              // WPF observable collections
-    ],
-  },
-  {
-    layer: 'api_call',
-    patterns: [
-      /fetch\s*\(\s*['"`]/,                                            // fetch API
-      /axios\.(get|post|put|delete|patch|request)\s*\(/,               // Axios
-      /\$http\.(get|post|put|delete)/,                                 // Angular $http
-      /HttpClient/,                                                     // Angular HttpClient
-      /useSWR|useQuery|useMutation/,                                   // React Query/SWR
-      /api\.(get|post|put|delete|patch)\s*\(/,                         // custom API client
-      /request\s*\(\s*['"`](GET|POST|PUT|DELETE)/,                     // generic HTTP
-      /HttpClient|WebClient|HttpWebRequest|RestClient|HttpRequestMessage/,  // C# HTTP
-      /\.GetAsync\(|\.PostAsync\(|\.PutAsync\(|\.DeleteAsync\(/,       // C# async HTTP
-    ],
-  },
-  {
-    layer: 'database',
-    patterns: [
-      /\.(find|findOne|findMany|create|update|delete|upsert|aggregate)\s*\(/,  // Prisma/Mongoose
-      /\.(select|insert|update|delete|where|from)\s*\(/,               // Query builders
-      /db\.(query|execute|prepare|run|all|get)\s*\(/,                  // SQLite/raw DB
-      /Model\.(find|create|update|destroy)/,                           // Sequelize
-      /getRepository|createQueryBuilder/,                              // TypeORM
-      /SELECT\s|INSERT\s|UPDATE\s|DELETE\s/,                           // Raw SQL
-      /collection\.(find|insert|update|delete)/,                       // MongoDB
-      /SqlConnection|SqlCommand|DbContext|DbSet|ExecuteNonQuery|ExecuteReader|ExecuteScalar/,  // ADO.NET/EF
-      /SQLiteConnection|SQLiteCommand|DatabaseHelper/,                 // SQLite
-    ],
-  },
-  {
-    layer: 'middleware',
-    patterns: [
-      /app\.use\s*\(/,                                                 // Express middleware
-      /router\.use\s*\(/,                                              // Express Router middleware
-      /@UseGuards|@UseInterceptors|@UsePipes/,                         // NestJS
-      /middleware\s*=\s*\[/,                                           // Django
-    ],
-  },
-  {
-    layer: 'validator',
-    patterns: [
-      /validate|sanitize|schema\.parse|Joi\.|yup\.|z\.object/,        // Validation
-      /IsNotEmpty|IsEmail|IsString|MinLength/,                         // class-validator
-      /body\(\s*['"`]|param\(\s*['"`]|query\(\s*['"`]/,               // express-validator
-      /DataAnnotations|Required|StringLength|RegularExpression|Range\[/,  // C# validation attributes
-      /FluentValidation|AbstractValidator|RuleFor/,                    // FluentValidation
-    ],
-  },
-  {
-    layer: 'ui_component',
-    patterns: [
-      /function\s+\w+\s*\([^)]*\)\s*{[^}]*return\s*\(?</,            // React functional component
-      /export\s+default\s+\{[^}]*template\s*:/,                       // Vue SFC
-      /@Component\s*\(\s*{/,                                           // Angular component
-      /React\.createElement|jsx|tsx/,                                   // React
-      /UserControl|Window|Page|ContentControl|ItemsControl|DependencyObject/,  // WPF base classes
-      /partial class.*:.*Window|partial class.*:.*UserControl|partial class.*:.*Page/,  // WPF code-behind
-      /InitializeComponent\(\)/,                                       // WPF initialization
-    ],
-  },
-];
+interface LayerSignal {
+  layer: FlowLayer;
+  patterns: RegExp[];
+  weight: number;
+  source: 'content' | 'path' | 'directory' | 'import' | 'symbol_name';
+}
 
-/** Patterns that identify "service" vs "controller" vs "repository" by file path */
-const PATH_LAYER_PATTERNS: Array<{ layer: FlowLayer; patterns: RegExp[] }> = [
-  { layer: 'ui_component', patterns: [/Window/i, /Control/i, /View(?!Model)/i, /Style/i, /Theme/i, /^App\./i] },
-  { layer: 'controller', patterns: [/ViewModel/i, /EventHandler/i, /Interaction/i, /WndProc/i] },
-  { layer: 'service', patterns: [/Manager/i, /Service/i, /Engine/i, /Provider/i, /Helper/i, /Tool/i, /Crypto/i, /Clock/i, /Secrets?/i, /Daemon/i, /Scheduler/i, /Discovery/i, /Auth/i] },
-  { layer: 'database', patterns: [/Data/i, /Database/i, /Storage/i, /Cache/i, /Persist/i] },
-  { layer: 'validator', patterns: [/Validator/i, /Parser/i, /Converter/i] },
-  { layer: 'util', patterns: [/Matcher/i, /Comparer/i, /Sorter/i, /Logger/i, /Profiler/i, /Tracker/i, /Queue/i, /Diagnostic/i, /Telemetry/i] },
-  { layer: 'controller', patterns: [/controller/i, /handler/i, /endpoint/i, /route/i] },
-  { layer: 'service', patterns: [/service/i, /business/i, /logic/i, /use.?case/i, /manager/i] },
-  { layer: 'repository', patterns: [/repo/i, /repository/i, /dao/i, /data.?access/i, /store/i, /dal/i] },
-  { layer: 'middleware', patterns: [/middleware/i, /guard/i, /interceptor/i, /filter/i] },
-  { layer: 'validator', patterns: [/valid/i, /schema/i, /dto/i] },
-  { layer: 'ui_component', patterns: [/component/i, /view/i, /page/i, /screen/i, /widget/i] },
-  { layer: 'util', patterns: [/util/i, /helper/i, /lib/i, /common/i, /shared/i] },
+/** All classification signals, organized by source */
+const CLASSIFICATION_SIGNALS: LayerSignal[] = [
+  // ────── CONTENT PATTERNS (weight: 3) ──────
+  // Route definitions
+  { source: 'content', weight: 3, layer: 'route', patterns: [
+    /\.(get|post|put|delete|patch|all|use)\s*\(\s*['"`]/, /router\.(get|post|put|delete|patch)/,
+    /app\.(get|post|put|delete|patch)/, /@(Get|Post|Put|Delete|Patch|All)\s*\(/,
+    /@app\.(route|get|post|put|delete)\s*\(/, /@(api_view|action)\s*\(/,
+  ]},
+  // UI events
+  { source: 'content', weight: 3, layer: 'ui_event', patterns: [
+    /on(Click|Change|Submit|Press|Focus|Blur|Drag|Drop|Key|Mouse|Touch|Scroll)/,
+    /addEventListener\s*\(\s*['"`]/, /\$\.(on|click|submit|change|keydown|keyup)\s*\(/,
+    /@click|@submit|@change|v-on:/, /\(click\)|\(submit\)|\(change\)/,
+    /on:click|on:submit|on:change/,
+    /_Click\b|_Loaded\b|_Closing\b|_Closed\b|_KeyDown\b|_KeyUp\b|_MouseDown\b|_MouseUp\b|_SelectionChanged\b|_TextChanged\b|_Checked\b|_Unchecked\b|_DragEnter\b|_Drop\b|_PreviewKeyDown\b|_GotFocus\b|_LostFocus\b|_SizeChanged\b|_Toggled\b/,
+    /RoutedEventHandler|EventHandler|\+=.*EventHandler/,
+  ]},
+  // State management
+  { source: 'content', weight: 3, layer: 'state_update', patterns: [
+    /setState\s*\(/, /useState|useReducer|useContext/, /dispatch\s*\(/,
+    /store\.(commit|dispatch|state)\s*\(/, /\$store\.(commit|dispatch)/,
+    /writable\s*\(|derived\s*\(/, /signal\s*\(|computed\s*\(/,
+    /atom\s*\(|selector\s*\(/, /createSlice|createAsyncThunk/,
+    /INotifyPropertyChanged|OnPropertyChanged|RaisePropertyChanged/,
+    /DependencyProperty\.Register|SetValue\(|GetValue\(/,
+    /ObservableCollection|BindingList/,
+  ]},
+  // API/HTTP calls
+  { source: 'content', weight: 3, layer: 'api_call', patterns: [
+    /fetch\s*\(\s*['"`]/, /axios\.(get|post|put|delete|patch|request)\s*\(/,
+    /\$http\.(get|post|put|delete)/, /HttpClient/,
+    /useSWR|useQuery|useMutation/, /api\.(get|post|put|delete|patch)\s*\(/,
+    /request\s*\(\s*['"`](GET|POST|PUT|DELETE)/,
+    /WebClient|HttpWebRequest|RestClient|HttpRequestMessage/,
+    /\.GetAsync\(|\.PostAsync\(|\.PutAsync\(|\.DeleteAsync\(/,
+  ]},
+  // Database
+  { source: 'content', weight: 3, layer: 'database', patterns: [
+    /\.(find|findOne|findMany|create|update|delete|upsert|aggregate)\s*\(/,
+    /\.(select|insert|update|delete|where|from)\s*\(/, /db\.(query|execute|prepare|run|all|get)\s*\(/,
+    /Model\.(find|create|update|destroy)/, /getRepository|createQueryBuilder/,
+    /SELECT\s|INSERT\s|UPDATE\s|DELETE\s/, /collection\.(find|insert|update|delete)/,
+    /SqlConnection|SqlCommand|DbContext|DbSet|ExecuteNonQuery|ExecuteReader|ExecuteScalar/,
+    /SQLiteConnection|SQLiteCommand|DatabaseHelper/,
+  ]},
+  // Middleware
+  { source: 'content', weight: 3, layer: 'middleware', patterns: [
+    /app\.use\s*\(/, /router\.use\s*\(/, /@UseGuards|@UseInterceptors|@UsePipes/,
+    /middleware\s*=\s*\[/,
+  ]},
+  // Validation
+  { source: 'content', weight: 3, layer: 'validator', patterns: [
+    /validate|sanitize|schema\.parse|Joi\.|yup\.|z\.object/,
+    /IsNotEmpty|IsEmail|IsString|MinLength/, /body\(\s*['"`]|param\(\s*['"`]|query\(\s*['"`]/,
+    /DataAnnotations|Required|StringLength|RegularExpression|Range\[/,
+    /FluentValidation|AbstractValidator|RuleFor/,
+  ]},
+  // UI components
+  { source: 'content', weight: 3, layer: 'ui_component', patterns: [
+    /function\s+\w+\s*\([^)]*\)\s*{[^}]*return\s*\(?</,
+    /export\s+default\s+\{[^}]*template\s*:/, /@Component\s*\(\s*{/,
+    /React\.createElement|jsx|tsx/,
+    /UserControl|Window|Page|ContentControl|ItemsControl|DependencyObject/,
+    /partial class.*:.*Window|partial class.*:.*UserControl|partial class.*:.*Page/,
+    /InitializeComponent\(\)/,
+  ]},
+
+  // ────── PATH PATTERNS (weight: 2) ──────
+  { source: 'path', weight: 2, layer: 'ui_component', patterns: [/Window/i, /Control/i, /View(?!Model)/i, /Style/i, /Theme/i, /^App\./i, /\.xaml$/i] },
+  { source: 'path', weight: 2, layer: 'controller', patterns: [/ViewModel/i, /EventHandler/i, /Interaction/i, /WndProc/i] },
+  { source: 'path', weight: 2, layer: 'service', patterns: [/Manager/i, /Service/i, /Engine/i, /Provider/i, /Helper/i, /Tool/i, /Crypto/i, /Clock/i, /Secrets?/i, /Daemon/i, /Scheduler/i, /Discovery/i, /Auth/i] },
+  { source: 'path', weight: 2, layer: 'database', patterns: [/Database/i, /Storage/i, /Cache/i, /Persist/i] },
+  { source: 'path', weight: 2, layer: 'validator', patterns: [/Validator/i, /Converter/i] },
+  { source: 'path', weight: 2, layer: 'util', patterns: [/Matcher/i, /Comparer/i, /Sorter/i, /Logger/i, /Profiler/i, /Tracker/i, /Queue/i, /Diagnostic/i, /Telemetry/i, /NativeMethods/i] },
+  { source: 'path', weight: 2, layer: 'route', patterns: [/route/i, /endpoint/i] },
+  { source: 'path', weight: 2, layer: 'middleware', patterns: [/middleware/i, /guard/i, /interceptor/i, /filter/i] },
+  { source: 'path', weight: 2, layer: 'repository', patterns: [/repo(?:sitory)?/i, /dao/i, /data.?access/i, /dal/i] },
+
+  // ────── DIRECTORY PATTERNS (weight: 2) ──────
+  { source: 'directory', weight: 2, layer: 'controller', patterns: [/^controllers?\//i, /^handlers?\//i, /^viewmodels?\//i, /^ViewModels\//] },
+  { source: 'directory', weight: 2, layer: 'service', patterns: [/^services?\//i, /^classes\//i, /^business\//i, /^logic\//i, /^managers?\//i] },
+  { source: 'directory', weight: 2, layer: 'repository', patterns: [/^repositor(y|ies)\//i, /^data\//i, /^dal\//i, /^dao\//i, /^persistence\//i] },
+  { source: 'directory', weight: 2, layer: 'ui_component', patterns: [/^components?\//i, /^views?\//i, /^pages?\//i, /^screens?\//i, /^widgets?\//i, /^windows?\//i, /^controls?\//i, /^styles?\//i, /^layouts?\//i, /^Windows\//] },
+  { source: 'directory', weight: 2, layer: 'middleware', patterns: [/^middlewares?\//i, /^guards?\//i, /^interceptors?\//i, /^pipes?\//i] },
+  { source: 'directory', weight: 2, layer: 'validator', patterns: [/^validators?\//i, /^schemas?\//i, /^dtos?\//i] },
+  { source: 'directory', weight: 2, layer: 'util', patterns: [/^utils?\//i, /^helpers?\//i, /^lib\//i, /^common\//i, /^shared\//i, /^tools?\//i, /^Utils\//] },
+  { source: 'directory', weight: 2, layer: 'route', patterns: [/^routes?\//i, /^api\//i, /^endpoints?\//i] },
+  { source: 'directory', weight: 2, layer: 'database', patterns: [/^migrations?\//i, /^models?\//i, /^entities?\//i, /^seeds?\//i] },
+  { source: 'directory', weight: 2, layer: 'ui_event', patterns: [/^events?\//i, /^listeners?\//i] },
+
+  // ────── IMPORT / INHERITANCE PATTERNS (weight: 4 — strongest signal) ──────
+  { source: 'import', weight: 4, layer: 'ui_component', patterns: [
+    /:\s*Window\b|:\s*UserControl\b|:\s*Page\b|:\s*ContentPage\b/, // C#/WPF/MAUI inheritance
+    /extends\s+(Component|React\.Component|PureComponent)\b/,       // React class components
+    /extends\s+(StatelessWidget|StatefulWidget|State)\b/,           // Flutter/Dart
+    /import\s+.*SwiftUI|import\s+.*UIKit/,                          // Swift UI frameworks
+    /import\s+.*\b(react|vue|svelte|angular)\b/i,                   // JS UI frameworks
+    /@Composable\b/,                                                 // Jetpack Compose (Kotlin)
+  ]},
+  { source: 'import', weight: 4, layer: 'controller', patterns: [
+    /:\s*ViewModel\b|:\s*ObservableObject\b/,                       // C# MVVM
+    /extends\s+ChangeNotifier\b/,                                    // Flutter
+    /@Controller\b|@RestController\b/,                               // Spring/NestJS
+    /class\s+\w+Controller\b/,                                       // *Controller naming convention
+  ]},
+  { source: 'import', weight: 4, layer: 'service', patterns: [
+    /@Injectable\b|@Service\b/,                                      // NestJS/Spring/Angular
+    /class\s+\w+(Service|Manager|Engine|Provider)\b/,                // Service naming convention
+  ]},
+  { source: 'import', weight: 4, layer: 'database', patterns: [
+    /:\s*DbContext\b|:\s*DbSet\b/,                                  // Entity Framework
+    /import\s+.*prisma|import\s+.*typeorm|import\s+.*sequelize/i,   // JS ORMs
+    /@Entity\b|@Table\b|@Column\b/,                                  // ORM decorators
+    /import\s+.*mongoose/i,                                          // MongoDB
+    /import\s+.*sqlite|import\s+.*pg\b|import\s+.*mysql/i,          // DB drivers
+  ]},
+  { source: 'import', weight: 4, layer: 'api_call', patterns: [
+    /import\s+.*HttpClient|using\s+.*System\.Net\.Http/,             // C# / Angular HttpClient
+    /import\s+.*axios|import\s+.*node-fetch|import\s+.*got\b/i,     // JS HTTP libraries
+    /import\s+.*requests\b|from\s+requests\s+import/,               // Python requests
+    /import\s+.*retrofit|import\s+.*okhttp/i,                        // Android HTTP
+  ]},
+  { source: 'import', weight: 4, layer: 'state_update', patterns: [
+    /:\s*INotifyPropertyChanged\b/,                                  // C# WPF/MVVM
+    /import\s+.*redux|import\s+.*zustand|import\s+.*mobx/i,         // JS state libs
+    /import\s+.*@ngrx|import\s+.*vuex|import\s+.*pinia/i,           // Framework stores
+    /import\s+.*bloc\b|import\s+.*riverpod/i,                       // Flutter state
+  ]},
+  { source: 'import', weight: 4, layer: 'validator', patterns: [
+    /import\s+.*class-validator|import\s+.*joi\b|import\s+.*yup\b|import\s+.*zod\b/i,
+    /using\s+.*FluentValidation|using\s+.*DataAnnotations/,
+  ]},
+
+  // ────── SYMBOL NAME PATTERNS (weight: 1 — weakest signal) ──────
+  { source: 'symbol_name', weight: 1, layer: 'event_handler', patterns: [/^(handle|on)[A-Z]/, /_Click$|_Loaded$|_Changed$|_KeyDown$/] },
+  { source: 'symbol_name', weight: 1, layer: 'state_update', patterns: [/^use[A-Z]/, /^set[A-Z].*State$/] },
+  { source: 'symbol_name', weight: 1, layer: 'api_call', patterns: [/^fetch[A-Z]|^(get|post|put|delete)[A-Z].*Api$|Async$/] },
+  { source: 'symbol_name', weight: 1, layer: 'validator', patterns: [/^validate|^sanitize|^check[A-Z]|^is[A-Z].*Valid$/] },
+  { source: 'symbol_name', weight: 1, layer: 'util', patterns: [/^(format|parse|convert|transform|serialize|deserialize|encode|decode)[A-Z]/] },
+  { source: 'symbol_name', weight: 1, layer: 'database', patterns: [/^(save|load|persist|query|find|fetch|insert|update|delete)(?:All|By|One|Many)?$/] },
 ];
 
 // ============================================================
@@ -332,34 +372,24 @@ export class FlowAnalyzer {
   }
 
   /**
-   * Classify a single file by its layer in the architecture.
+   * Classify a single file by its layer using weighted multi-signal scoring.
    */
   classifyFile(filePath: string): FlowLayer {
-    // First try content-based detection
-    try {
-      const content = readFileSync(filePath, 'utf-8');
-      for (const { layer, patterns } of LAYER_PATTERNS) {
-        for (const pattern of patterns) {
-          if (pattern.test(content)) {
-            return layer;
-          }
-        }
-      }
-    } catch {
-      // File might not exist, fall through to path-based
-    }
+    const result = this.scoreFile(filePath);
+    return result.layer;
+  }
 
-    // Then try path-based detection
-    const relPath = relative(this.projectRoot, filePath);
-    for (const { layer, patterns } of PATH_LAYER_PATTERNS) {
-      for (const pattern of patterns) {
-        if (pattern.test(relPath)) {
-          return layer;
-        }
-      }
-    }
-
-    return 'unknown';
+  /**
+   * Full classification with confidence details.
+   * Returns the winning layer, confidence score, all signal hits, and runner-up layers.
+   */
+  getFileClassification(filePath: string): {
+    layer: FlowLayer;
+    confidence: number;
+    signals: Array<{ source: string; layer: FlowLayer; weight: number }>;
+    runnerUp?: FlowLayer;
+  } {
+    return this.scoreFile(filePath);
   }
 
   /**
@@ -400,7 +430,7 @@ export class FlowAnalyzer {
         layer,
         fileCount: data.files.size,
         symbolCount: data.symbols.length,
-        files: [...data.files].slice(0, 10),
+        files: [...data.files].slice(0, 20),
         keySymbols: data.symbols.slice(0, 15),
       }))
       .sort((a, b) => b.symbolCount - a.symbolCount);
@@ -691,67 +721,134 @@ export class FlowAnalyzer {
     return components;
   }
 
-  // ── Private: Classification ─────────────────────────────────
+  // ── Private: Multi-Signal Scoring Engine ────────────────────
+
+  /** Score a file across ALL layers and return the best match */
+  private scoreFile(filePath: string): {
+    layer: FlowLayer;
+    confidence: number;
+    signals: Array<{ source: string; layer: FlowLayer; weight: number }>;
+    runnerUp?: FlowLayer;
+  } {
+    const scores = new Map<FlowLayer, number>();
+    const signals: Array<{ source: string; layer: FlowLayer; weight: number }> = [];
+    const relPath = relative(this.projectRoot, filePath);
+    const fileName = basename(filePath);
+
+    // Read file content once (cached for all content/import checks)
+    let content: string | null = null;
+    try {
+      content = readFileSync(filePath, 'utf-8');
+    } catch {
+      // Can't read, rely on path-only signals
+    }
+
+    // Get symbol names for this file from the graph
+    const fileNodes = this.graph.getFileStructure(filePath);
+    const symbolNames = fileNodes
+      .filter(n => n.type === 'function' || n.type === 'method' || n.type === 'class')
+      .map(n => n.name);
+
+    for (const signal of CLASSIFICATION_SIGNALS) {
+      let matched = false;
+
+      switch (signal.source) {
+        case 'content':
+          if (content) {
+            matched = signal.patterns.some(p => p.test(content!));
+          }
+          break;
+
+        case 'path':
+          matched = signal.patterns.some(p => p.test(fileName) || p.test(relPath));
+          break;
+
+        case 'directory':
+          matched = signal.patterns.some(p => p.test(relPath));
+          break;
+
+        case 'import':
+          if (content) {
+            matched = signal.patterns.some(p => p.test(content!));
+          }
+          break;
+
+        case 'symbol_name':
+          matched = symbolNames.some(name =>
+            signal.patterns.some(p => p.test(name)),
+          );
+          break;
+      }
+
+      if (matched) {
+        const current = scores.get(signal.layer) ?? 0;
+        scores.set(signal.layer, current + signal.weight);
+        signals.push({ source: signal.source, layer: signal.layer, weight: signal.weight });
+      }
+    }
+
+    // Find the winner
+    if (scores.size === 0) {
+      return { layer: 'unknown', confidence: 0, signals };
+    }
+
+    const sorted = [...scores.entries()].sort((a, b) => b[1] - a[1]);
+    const [winnerLayer, winnerScore] = sorted[0]!;
+    const totalScore = sorted.reduce((sum, [, s]) => sum + s, 0);
+    const confidence = Math.round((winnerScore / totalScore) * 100);
+    const runnerUp = sorted.length > 1 ? sorted[1]![0] : undefined;
+
+    return { layer: winnerLayer, confidence, signals, runnerUp };
+  }
+
+  /** File classification cache to avoid re-reading files */
+  private fileClassCache = new Map<string, FlowLayer>();
 
   private classifyFilesByLayer(allNodes: GraphNode[]): Record<string, FlowLayer> {
     const result: Record<string, FlowLayer> = {};
     const files = new Set(allNodes.map((n) => n.filePath));
+    this.fileClassCache.clear();
 
     for (const filePath of files) {
       const relPath = relative(this.projectRoot, filePath);
       if (result[relPath]) continue;
 
-      // Try path-based first (faster)
-      let layer: FlowLayer = 'unknown';
-      for (const { layer: l, patterns } of PATH_LAYER_PATTERNS) {
-        if (patterns.some((p) => p.test(relPath))) {
-          layer = l;
-          break;
-        }
-      }
-
-      // If still unknown, try content-based
-      if (layer === 'unknown') {
-        try {
-          const content = readFileSync(filePath, 'utf-8');
-          for (const { layer: l, patterns } of LAYER_PATTERNS) {
-            if (patterns.some((p) => p.test(content))) {
-              layer = l;
-              break;
-            }
-          }
-        } catch {
-          // Can't read, keep unknown
-        }
-      }
-
-      result[relPath] = layer;
+      const scored = this.scoreFile(filePath);
+      result[relPath] = scored.layer;
+      this.fileClassCache.set(filePath, scored.layer);
     }
 
     return result;
   }
 
   private classifySymbol(node: GraphNode, relPath: string): FlowLayer {
-    // Check node type first
+    // Check node type first (explicit types override scoring)
     if (node.type === 'route') return 'route';
     if (node.type === 'component') return 'ui_component';
     if (node.type === 'hook') return 'state_update';
 
-    // Check by name patterns
-    if (/^(handle|on)[A-Z]/.test(node.name)) return 'event_handler';
-    if (/^(use[A-Z])/.test(node.name)) return 'state_update';
+    // Check symbol name signals
+    for (const signal of CLASSIFICATION_SIGNALS) {
+      if (signal.source === 'symbol_name') {
+        if (signal.patterns.some(p => p.test(node.name))) {
+          return signal.layer;
+        }
+      }
+    }
 
     // Check by signature content
     const sig = (node.signature || '').toLowerCase();
     if (/\b(req\s*,\s*res|request\s*,\s*response|ctx)\b/.test(sig)) return 'controller';
     if (/\bdb\b|\bprisma\b|\bmodel\b|\brepository\b/i.test(sig)) return 'repository';
 
-    // Check path-based
-    for (const { layer, patterns } of PATH_LAYER_PATTERNS) {
-      if (patterns.some((p) => p.test(relPath))) return layer;
-    }
+    // Fall back to file-level classification (cached)
+    const cached = this.fileClassCache.get(node.filePath);
+    if (cached) return cached;
 
-    return 'unknown';
+    // Score the file if not cached
+    const scored = this.scoreFile(node.filePath);
+    this.fileClassCache.set(node.filePath, scored.layer);
+    return scored.layer;
   }
 
   private buildLayerSummary(
