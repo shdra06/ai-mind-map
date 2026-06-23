@@ -1,0 +1,52 @@
+# AI Mind Map MCP — Tool Awareness Rules
+
+You have the AI Mind Map MCP server connected. It provides 32 specialized tools that eliminate the need to re-read code files. ALWAYS prefer these tools over raw file reading.
+
+## When to use which tool:
+
+### Understanding Code
+- `mindmap_architecture` — Full project overview (DON'T read every file)
+- `mindmap_layer_overview` — Which files are UI/service/DB/etc.
+- `mindmap_get_structure` — File tree with symbol counts
+- `mindmap_get_file_map` — All symbols in a file (table of contents)
+- `mindmap_get_signature` — Function signature without body (DON'T open the file)
+- `mindmap_get_code_snippet` — Read ONLY the exact function code needed
+
+### Understanding Flow & Behavior
+- `mindmap_trace_flow` — **CRITICAL**: Traces full pipeline (button → handler → API → DB)
+- `mindmap_interaction_map` — Complete app behavioral blueprint (routes, events, components)
+- `mindmap_classify_file` — What architecture layer a file belongs to
+- `mindmap_trace_dependencies` — Call chain analysis
+
+### Finding Things
+- `mindmap_search` — Find symbols by name
+- `mindmap_search_code` — Grep-like text search (indexed files only)
+- `mindmap_find_references` — Who calls/uses a symbol
+- `mindmap_query_graph` — Cypher queries: `MATCH (f:Function)-[:CALLS]->(g) RETURN f.name, g.name`
+
+### Debugging
+- `mindmap_debug_changes` — **USE FIRST when debugging**: shows ACTUAL git diffs + blast radius
+- `mindmap_file_before` — What file looked like before changes
+- `mindmap_file_history` — Commit history for a file
+- `mindmap_impact_analysis` — What else breaks if this changes
+- `mindmap_what_changed` — Recent changes summary
+- `mindmap_dead_code` — Find unused functions
+
+### Memory (persists across sessions)
+- `mindmap_recall` — Search stored knowledge
+- `mindmap_remember` — Store important facts/conventions
+- `mindmap_get_decisions` — Past architectural decisions
+- `mindmap_decide` — Record a new decision
+- `mindmap_session_summary` — What happened in previous sessions
+
+### Context
+- `mindmap_get_context` — **ALWAYS call at task start** — smart context loading
+- `mindmap_compress` — Compress large outputs (logs, stack traces)
+- `mindmap_status` — Index stats and token savings
+
+## Rules:
+1. Call `mindmap_get_context` at the START of every new task
+2. NEVER re-read files — use `mindmap_get_signature` or `mindmap_get_code_snippet`
+3. NEVER manually trace call chains — use `mindmap_trace_flow`
+4. When debugging, ALWAYS start with `mindmap_debug_changes`
+5. Store learnings with `mindmap_remember`, decisions with `mindmap_decide`

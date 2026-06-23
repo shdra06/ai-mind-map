@@ -579,6 +579,10 @@ export async function installAgents(): Promise<void> {
     logOk(`${foundCount} agent(s) detected, ${configuredCount} newly configured.`);
   }
 
+  // Deploy rules files so agents know about our capabilities
+  console.log('');
+  deployRulesFiles();
+
   console.log('');
 }
 
@@ -933,4 +937,142 @@ export async function runDoctor(): Promise<void> {
   }
 
   console.log('');
+}
+
+// ============================================================
+// Rules File Deployment
+// ============================================================
+
+/** The core rules content that teaches AI agents about our tools */
+function getToolAwarenessRules(): string {
+  return `# AI Mind Map MCP — Tool Awareness
+
+You have the AI Mind Map MCP server connected with 32 tools. Use them INSTEAD of reading raw files.
+
+## Quick Lookup: "I need to..." → Use this tool
+
+- Understand the project → \`mindmap_architecture\`
+- Find a function → \`mindmap_search\`, \`mindmap_get_code_snippet\`
+- Trace what a button/feature does → \`mindmap_trace_flow\`
+- See all routes/events/components → \`mindmap_interaction_map\`
+- Know what layer a file is → \`mindmap_classify_file\`
+- Debug a crash → \`mindmap_debug_changes\` (shows ACTUAL diffs)
+- See previous file version → \`mindmap_file_before\`
+- Know what changed recently → \`mindmap_what_changed\`
+- Get blast radius of a change → \`mindmap_impact_analysis\`
+- Remember something → \`mindmap_remember\`
+- Recall past knowledge → \`mindmap_recall\`
+- Record a decision → \`mindmap_decide\`
+- Start a new task → \`mindmap_get_context\` (ALWAYS call first)
+- Get function signature → \`mindmap_get_signature\` (DON'T open the file)
+- Find who calls a function → \`mindmap_find_references\`
+- Find dead code → \`mindmap_dead_code\`
+- Run graph query → \`mindmap_query_graph\`
+
+## Rules
+1. ALWAYS call \`mindmap_get_context\` at the start of every task
+2. NEVER read a file when \`mindmap_get_signature\` or \`mindmap_get_code_snippet\` suffices
+3. NEVER trace call chains manually — use \`mindmap_trace_flow\`
+4. ALWAYS start debugging with \`mindmap_debug_changes\`
+5. ALWAYS \`mindmap_remember\` important learnings
+`;
+}
+
+/**
+ * Deploy rules files into the user's project so AI agents automatically
+ * know about Mind Map's capabilities.
+ *
+ * Creates:
+ *   - CLAUDE.md (for Claude Code)
+ *   - .cursorrules (for Cursor)
+ *   - .agents/AGENTS.md (for Antigravity/Gemini)
+ *   - .github/copilot-instructions.md (for GitHub Copilot)
+ *   - .windsurfrules (for Windsurf)
+ */
+export function deployRulesFiles(projectRoot?: string): void {
+  const root = projectRoot ?? process.cwd();
+  const rules = getToolAwarenessRules();
+
+  const deployments: Array<{
+    name: string;
+    filePath: string;
+    content: string;
+    agent: string;
+  }> = [
+    {
+      name: 'CLAUDE.md',
+      filePath: path.join(root, 'CLAUDE.md'),
+      content: rules,
+      agent: 'Claude Code',
+    },
+    {
+      name: '.cursorrules',
+      filePath: path.join(root, '.cursorrules'),
+      content: rules,
+      agent: 'Cursor',
+    },
+    {
+      name: '.agents/AGENTS.md',
+      filePath: path.join(root, '.agents', 'AGENTS.md'),
+      content: rules,
+      agent: 'Antigravity / Gemini',
+    },
+    {
+      name: '.github/copilot-instructions.md',
+      filePath: path.join(root, '.github', 'copilot-instructions.md'),
+      content: rules,
+      agent: 'GitHub Copilot',
+    },
+    {
+      name: '.windsurfrules',
+      filePath: path.join(root, '.windsurfrules'),
+      content: rules,
+      agent: 'Windsurf',
+    },
+  ];
+
+  heading('📋 Deploying AI Agent Rules Files');
+  console.log(`  ${c.dim}These files teach each AI agent about Mind Map\'s 32 tools${c.reset}`);
+  console.log('');
+
+  let deployed = 0;
+  let skipped = 0;
+
+  for (const dep of deployments) {
+    // Skip if file already exists with our content
+    if (existsSync(dep.filePath)) {
+      try {
+        const existing = readFileSync(dep.filePath, 'utf-8');
+        if (existing.includes('AI Mind Map MCP')) {
+          console.log(`  ${c.yellow}⊘${c.reset} ${dep.name} ${c.dim}(already has Mind Map rules)${c.reset}`);
+          skipped++;
+          continue;
+        }
+        // File exists but doesn't have our rules — append
+        const separator = '\n\n---\n\n';
+        writeFileSync(dep.filePath, existing + separator + dep.content, 'utf-8');
+        console.log(`  ${c.green}✓${c.reset} ${dep.name} ${c.dim}(appended Mind Map rules)${c.reset} — for ${dep.agent}`);
+        deployed++;
+      } catch {
+        console.log(`  ${c.red}✗${c.reset} ${dep.name} ${c.dim}(failed to read/write)${c.reset}`);
+      }
+    } else {
+      // Create new file
+      try {
+        const dir = path.dirname(dep.filePath);
+        if (!existsSync(dir)) {
+          mkdirSync(dir, { recursive: true });
+        }
+        writeFileSync(dep.filePath, dep.content, 'utf-8');
+        console.log(`  ${c.green}✓${c.reset} ${dep.name} ${c.dim}(created)${c.reset} — for ${dep.agent}`);
+        deployed++;
+      } catch {
+        console.log(`  ${c.red}✗${c.reset} ${dep.name} ${c.dim}(failed to create)${c.reset}`);
+      }
+    }
+  }
+
+  console.log('');
+  logOk(`${deployed} rules file(s) deployed, ${skipped} already up-to-date.`);
+  console.log(`  ${c.dim}Each AI agent will now know about all 32 Mind Map tools.${c.reset}`);
 }
