@@ -27,6 +27,9 @@ import {
 } from './parser.js';
 import type { ParseResult } from './parser.js';
 
+/** Maximum file size to index (default 512KB). Files larger than this are skipped to prevent OOM. */
+const MAX_FILE_SIZE_BYTES = 512 * 1024;
+
 // ============================================================
 // Types
 // ============================================================
@@ -250,36 +253,41 @@ export class Indexer {
     for (let i = 0; i < parseResults.length; i++) {
       const result = parseResults[i];
 
-      if (result.nodes.length === 0 && result.parseErrors.length > 0) {
-        stats.filesSkipped++;
-        stats.parseErrors += result.parseErrors.length;
-        continue;
-      }
+      // If any single file fails, log and continue
+      try {
+        if (result.nodes.length === 0 && result.parseErrors.length > 0) {
+          stats.filesSkipped++;
+          stats.parseErrors += result.parseErrors.length;
+          continue;
+        }
 
-      stats.filesParsed++;
-      stats.nodesCreated += result.nodes.length;
-      stats.edgesCreated += result.edges.length;
+        stats.filesParsed++;
+        stats.nodesCreated += result.nodes.length;
+        stats.edgesCreated += result.edges.length;
 
-      // Track language distribution
-      if (result.language !== 'unknown') {
-        stats.languages[result.language] = (stats.languages[result.language] ?? 0) + 1;
-      }
+        // Track language distribution
+        if (result.language !== 'unknown') {
+          stats.languages[result.language] = (stats.languages[result.language] ?? 0) + 1;
+        }
 
-      if (result.parseErrors.length > 0) {
-        stats.parseErrors += result.parseErrors.length;
-      }
+        if (result.parseErrors.length > 0) {
+          stats.parseErrors += result.parseErrors.length;
+        }
 
-      // Store in graph
-      this.graph.replaceFileData(result.filePath, result.nodes, result.edges);
+        // Store in graph
+        this.graph.replaceFileData(result.filePath, result.nodes, result.edges);
 
-      if (i % 50 === 0) {
-        onProgress?.({
-          phase: 'storing',
-          current: i + 1,
-          total: parseResults.length,
-          currentFile: result.filePath,
-          message: `Stored ${i + 1}/${parseResults.length} files`,
-        });
+        if (i % 50 === 0) {
+          onProgress?.({
+            phase: 'storing',
+            current: i + 1,
+            total: parseResults.length,
+            currentFile: result.filePath,
+            message: `Stored ${i + 1}/${parseResults.length} files`,
+          });
+        }
+      } catch {
+        stats.parseErrors++;
       }
     }
 
@@ -463,8 +471,13 @@ export class Indexer {
     if (this.ig.ignores(relPath)) return null;
     if (!isSupportedFile(filePath)) return null;
 
+    // Skip files that are too large (prevent OOM)
+    const fileStat = await stat(filePath).catch(() => null);
+    if (!fileStat || fileStat.size > MAX_FILE_SIZE_BYTES) {
+      return null;
+    }
+
     try {
-      const fileStat = await stat(filePath);
       if (fileStat.size > this.config.maxFileSize) return null;
       if (fileStat.size === 0) return null;
     } catch {
@@ -548,6 +561,56 @@ export class Indexer {
       totalFiles: currentFiles.length,
       staleness,
       needsReindex: staleness > 0.1, // More than 10% stale
+    };
+  }
+
+  /** Validate the index against the filesystem. Returns files that are stale, missing, or orphaned. */
+  async validateIndex(): Promise<{
+    staleFiles: string[];    // files changed since last index
+    missingFiles: string[];  // indexed but deleted from disk
+    unindexedFiles: string[]; // on disk but not in index
+    healthy: boolean;
+  }> {
+    const indexedFiles = this.graph.getIndexedFiles();
+    const diskFiles = await this.scanFiles();
+    const diskSet = new Set(diskFiles);
+    const indexSet = new Set(indexedFiles);
+
+    const missingFiles: string[] = [];
+    const staleFiles: string[] = [];
+    const unindexedFiles: string[] = [];
+
+    // Check indexed files against disk
+    for (const f of indexedFiles) {
+      if (!diskSet.has(f)) {
+        missingFiles.push(f);
+      } else {
+        // Check if file changed
+        try {
+          const content = readFileSync(f, 'utf-8');
+          const currentHash = (await import('./parser.js')).generateContentHash(content);
+          const indexedHash = this.graph.getFileHash(f);
+          if (indexedHash && currentHash !== indexedHash) {
+            staleFiles.push(f);
+          }
+        } catch {
+          staleFiles.push(f);
+        }
+      }
+    }
+
+    // Check for unindexed files
+    for (const f of diskFiles) {
+      if (!indexSet.has(f)) {
+        unindexedFiles.push(f);
+      }
+    }
+
+    return {
+      staleFiles,
+      missingFiles,
+      unindexedFiles,
+      healthy: staleFiles.length === 0 && missingFiles.length === 0 && unindexedFiles.length === 0,
     };
   }
 }

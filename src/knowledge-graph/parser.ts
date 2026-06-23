@@ -52,6 +52,21 @@ const EXTENSION_MAP: Record<string, string> = {
   '.sh': 'bash',
   '.bash': 'bash',
   '.zsh': 'bash',
+  '.kt': 'kotlin',
+  '.kts': 'kotlin',
+  '.swift': 'swift',
+  '.dart': 'dart',
+  '.scala': 'scala',
+  '.sc': 'scala',
+  '.yaml': 'yaml',
+  '.yml': 'yaml',
+  '.toml': 'toml',
+  '.xml': 'xml',
+  '.xaml': 'xaml',
+  '.sql': 'sql',
+  '.proto': 'protobuf',
+  '.graphql': 'graphql',
+  '.gql': 'graphql',
 };
 
 /** Maps language identifiers to tree-sitter grammar package names */
@@ -821,6 +836,81 @@ const REGEX_PATTERNS: Record<string, RegexPattern[]> = {
     { pattern: /^(?:function\s+)?(\w+)\s*\(\)\s*\{/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
     { pattern: /^(\w+)\s*=\s*/gm, type: 'variable', nameGroup: 1, signatureGroup: 0 },
   ],
+  kotlin: [
+    { pattern: /(?:public|private|protected|internal)?\s*(?:data\s+|sealed\s+|abstract\s+|open\s+|inner\s+)?class\s+(\w+)/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:public|private|protected|internal)?\s*(?:fun)\s+(?:<[^>]*>\s+)?(\w+)\s*(\([^)]*\))/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:public|private|protected|internal)?\s*interface\s+(\w+)/gm, type: 'interface', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:public|private|protected|internal)?\s*(?:enum\s+class|enum)\s+(\w+)/gm, type: 'enum', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:public|private|protected|internal)?\s*object\s+(\w+)/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:public|private|protected|internal)?\s*(?:val|var)\s+(\w+)\s*(?::\s*[\w<>\[\]?,\s]+)?\s*(?:=|$)/gm, type: 'variable', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:public|private|protected|internal)?\s*typealias\s+(\w+)/gm, type: 'type_alias', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^package\s+([\w.]+)/gm, type: 'namespace', nameGroup: 1, signatureGroup: 0 },
+  ],
+  swift: [
+    { pattern: /(?:public|private|fileprivate|internal|open)?\s*(?:final\s+)?class\s+(\w+)/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:public|private|fileprivate|internal|open)?\s*struct\s+(\w+)/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:public|private|fileprivate|internal|open)?\s*(?:static\s+|class\s+)?func\s+(\w+)\s*(\([^)]*\))/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:public|private|fileprivate|internal|open)?\s*protocol\s+(\w+)/gm, type: 'interface', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:public|private|fileprivate|internal|open)?\s*enum\s+(\w+)/gm, type: 'enum', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:public|private|fileprivate|internal|open)?\s*extension\s+(\w+)/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:public|private|fileprivate|internal|open)?\s*typealias\s+(\w+)/gm, type: 'type_alias', nameGroup: 1, signatureGroup: 0 },
+  ],
+  dart: [
+    { pattern: /(?:abstract\s+)?class\s+(\w+)(?:<[^>]*>)?(?:\s+extends\s+[\w<>,\s]+)?(?:\s+(?:with|implements)\s+[\w<>,\s]+)?\s*\{/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:Future<[^>]*>|void|int|double|bool|String|dynamic|[\w<>]+)\s+(\w+)\s*(\([^)]*\))\s*(?:async\s*)?\{/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /enum\s+(\w+)\s*\{/gm, type: 'enum', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /mixin\s+(\w+)(?:\s+on\s+[\w<>,\s]+)?\s*\{/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /extension\s+(\w+)\s+on\s+[\w<>,\s]+\s*\{/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /typedef\s+(\w+)/gm, type: 'type_alias', nameGroup: 1, signatureGroup: 0 },
+  ],
+  scala: [
+    { pattern: /(?:sealed\s+|abstract\s+|final\s+)?(?:case\s+)?class\s+(\w+)/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:private\s*(?:\[\w+\])?\s*|protected\s*(?:\[\w+\])?\s*)?def\s+(\w+)(?:\[.*?\])?\s*(\([^)]*\))/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /trait\s+(\w+)/gm, type: 'interface', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /object\s+(\w+)/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:val|var)\s+(\w+)\s*(?::\s*[\w\[\]<>,\s]+)?\s*=/gm, type: 'variable', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /type\s+(\w+)/gm, type: 'type_alias', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^package\s+([\w.]+)/gm, type: 'namespace', nameGroup: 1, signatureGroup: 0 },
+  ],
+  yaml: [
+    { pattern: /^(\w[\w-]*)\s*:/gm, type: 'variable', nameGroup: 1, signatureGroup: 0 },
+  ],
+  toml: [
+    { pattern: /^\[([\w.-]+)\]/gm, type: 'namespace', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^(\w[\w-]*)\s*=/gm, type: 'variable', nameGroup: 1, signatureGroup: 0 },
+  ],
+  xml: [
+    { pattern: /<(\w+:[\w.]+|\w+\.\w+)[^>]*(?:x:Class|x:Name)\s*=\s*"([^"]+)"/gm, type: 'class', nameGroup: 2, signatureGroup: 0 },
+    { pattern: /<(Window|Page|UserControl|ResourceDictionary|Application)[\s>]/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+  ],
+  xaml: [
+    { pattern: /x:Class\s*=\s*"([^"]+)"/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /x:Name\s*=\s*"([^"]+)"/gm, type: 'variable', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /x:Key\s*=\s*"([^"]+)"/gm, type: 'variable', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:Click|Command|Loaded|Closing|TextChanged|SelectionChanged)\s*=\s*"([^"]+)"/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /<Style[^>]*TargetType\s*=\s*"\{?x:Type\s+([\w:]+)\}?"/gm, type: 'type_alias', nameGroup: 1, signatureGroup: 0 },
+  ],
+  sql: [
+    { pattern: /CREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:`?\w+`?\.)?`?(\w+)`?/gim, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /CREATE\s+(?:OR\s+REPLACE\s+)?(?:FUNCTION|PROCEDURE)\s+(?:`?\w+`?\.)?`?(\w+)`?\s*(\([^)]*\))/gim, type: 'function', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+(?:`?\w+`?\.)?`?(\w+)`?/gim, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?`?(\w+)`?/gim, type: 'variable', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /CREATE\s+TRIGGER\s+(?:IF\s+NOT\s+EXISTS\s+)?`?(\w+)`?/gim, type: 'function', nameGroup: 1, signatureGroup: 0 },
+  ],
+  protobuf: [
+    { pattern: /message\s+(\w+)\s*\{/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /service\s+(\w+)\s*\{/gm, type: 'interface', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /rpc\s+(\w+)\s*(\([^)]*\))/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /enum\s+(\w+)\s*\{/gm, type: 'enum', nameGroup: 1, signatureGroup: 0 },
+  ],
+  graphql: [
+    { pattern: /type\s+(\w+)(?:\s+implements\s+[\w&\s]+)?\s*\{/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /input\s+(\w+)\s*\{/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /interface\s+(\w+)\s*\{/gm, type: 'interface', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /enum\s+(\w+)\s*\{/gm, type: 'enum', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /scalar\s+(\w+)/gm, type: 'type_alias', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:query|mutation|subscription)\s+(\w+)/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
+  ],
 };
 
 /** Detect doc comment above a line index */
@@ -963,6 +1053,11 @@ function parseWithRegex(
     c: /#include\s+[<"]([^>"]+)[>"]/gm,
     cpp: /#include\s+[<"]([^>"]+)[>"]/gm,
     bash: /(?:source|\.)\s+['"]?([^'";\s]+)['"]?/gm,
+    kotlin: /import\s+([\w.]+)/gm,
+    swift: /import\s+(\w+)/gm,
+    dart: /import\s+['"]([^'"]+)['"]/gm,
+    scala: /import\s+([\w.{}]+)/gm,
+    sql: /-- no imports/gm,
   };
 
   const importRegex = importPatterns[language];

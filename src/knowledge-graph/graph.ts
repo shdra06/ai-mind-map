@@ -120,15 +120,38 @@ export class KnowledgeGraph {
    * @param dbPath - Path to the SQLite database file (or ':memory:' for in-memory)
    */
   constructor(dbPath: string) {
-    this.db = new Database(dbPath);
-
-    // Enable WAL mode for better concurrent read/write performance
-    this.db.pragma('journal_mode = WAL');
-    this.db.pragma('synchronous = NORMAL');
-    this.db.pragma('foreign_keys = ON');
-    this.db.pragma('cache_size = -64000'); // 64MB cache
-
-    this.initializeSchema();
+    try {
+      this.db = new Database(dbPath);
+      this.db.pragma('journal_mode = WAL');
+      this.db.pragma('synchronous = NORMAL');
+      this.db.pragma('foreign_keys = ON');
+      this.db.pragma('cache_size = -64000');
+      this.initializeSchema();
+    } catch (err) {
+      // If DB is corrupt, delete and retry once
+      try {
+        if (dbPath !== ':memory:') {
+          const fs = require('node:fs');
+          if (fs.existsSync(dbPath)) {
+            fs.unlinkSync(dbPath);
+            // Also remove WAL/SHM files
+            try { fs.unlinkSync(dbPath + '-wal'); } catch {}
+            try { fs.unlinkSync(dbPath + '-shm'); } catch {}
+          }
+          this.db = new Database(dbPath);
+          this.db.pragma('journal_mode = WAL');
+          this.db.pragma('synchronous = NORMAL');
+          this.db.pragma('foreign_keys = ON');
+          this.db.pragma('cache_size = -64000');
+          this.initializeSchema();
+          console.error('[ai-mind-map] Recovered from corrupt database — rebuilt from scratch');
+        } else {
+          throw err;
+        }
+      } catch {
+        throw new Error(`[ai-mind-map] Failed to initialize database at ${dbPath}: ${err}`);
+      }
+    }
   }
 
   /** Initialize or migrate the database schema */
@@ -931,6 +954,20 @@ export class KnowledgeGraph {
    */
   close(): void {
     this.db.close();
+  }
+
+  /** Check database health — verifies tables exist and are queryable */
+  isHealthy(): { healthy: boolean; error?: string; stats?: { nodes: number; edges: number; files: number } } {
+    try {
+      const nodes = (this.db.prepare('SELECT COUNT(*) as c FROM nodes').get() as any).c;
+      const edges = (this.db.prepare('SELECT COUNT(*) as c FROM edges').get() as any).c;
+      const files = (this.db.prepare("SELECT COUNT(*) as c FROM nodes WHERE type = 'file'").get() as any).c;
+      // Verify FTS is working
+      this.db.prepare("SELECT * FROM nodes_fts WHERE nodes_fts MATCH 'test' LIMIT 1").all();
+      return { healthy: true, stats: { nodes, edges, files } };
+    } catch (err: any) {
+      return { healthy: false, error: err?.message ?? String(err) };
+    }
   }
 
   /**
