@@ -628,51 +628,80 @@ export class KnowledgeGraph {
   /**
    * Full-text search across node names, signatures, and doc comments.
    *
-   * Uses FTS5 with porter stemming and unicode support.
+   * Uses FTS5 with porter stemming and unicode support, combined with
+   * LIKE search for exact substring matching. CamelCase/PascalCase queries
+   * are split into individual words for FTS5 matching.
    *
-   * @param query - Search query (supports FTS5 syntax: AND, OR, NOT, prefix*)
+   * @param query - Search query
    * @param limit - Maximum results (default 20)
    * @returns Matching nodes sorted by relevance
    */
   search(query: string, limit: number = 20): GraphNode[] {
-    if (!query.trim()) return [];
+    const trimmed = query.trim();
+    if (!trimmed) return [];
 
+    const likePattern = `%${trimmed}%`;
+    const sanitized = this.sanitizeFtsQuery(trimmed);
+
+    // Always run LIKE search. Combine with FTS via UNION when possible.
     try {
-      // Sanitize the query for FTS5
-      const sanitized = this.sanitizeFtsQuery(query);
-
       const rows = this.db.prepare(`
-        SELECT n.* FROM nodes_fts fts
-        JOIN nodes n ON fts.id = n.id
-        WHERE nodes_fts MATCH ?
-        ORDER BY rank
-        LIMIT ?
-      `).all(sanitized, limit) as any[];
+        SELECT * FROM (
+          SELECT n.*, CASE
+            WHEN n.name = @query THEN 0
+            WHEN n.name LIKE @like THEN 1
+            WHEN n.qualifiedName LIKE @like THEN 2
+            WHEN n.signature LIKE @like THEN 3
+            ELSE 4
+          END AS relevance
+          FROM nodes_fts fts
+          JOIN nodes n ON fts.id = n.id
+          WHERE nodes_fts MATCH @fts
+
+          UNION
+
+          SELECT n.*, CASE
+            WHEN n.name = @query THEN 0
+            WHEN n.name LIKE @like THEN 1
+            WHEN n.qualifiedName LIKE @like THEN 2
+            WHEN n.signature LIKE @like THEN 3
+            ELSE 4
+          END AS relevance
+          FROM nodes n
+          WHERE n.name LIKE @like
+            OR n.qualifiedName LIKE @like
+            OR n.signature LIKE @like
+            OR n.docComment LIKE @like
+        )
+        GROUP BY id
+        ORDER BY MIN(relevance), name
+        LIMIT @limit
+      `).all({ query: trimmed, like: likePattern, fts: sanitized, limit }) as any[];
 
       return rows.map((r: any) => this.rowToNode(r));
     } catch {
-      // If FTS query fails, fall back to LIKE search
-      return this.searchLike(query, limit);
+      return this.searchLike(trimmed, limit);
     }
   }
 
-  /** Sanitize a query string for FTS5 */
+  /** Split camelCase/PascalCase into words and build an FTS5 AND query */
   private sanitizeFtsQuery(query: string): string {
-    // Escape special FTS5 characters and wrap each term in quotes if needed
-    const terms = query
-      .replace(/[{}[\]()^~@!$]/g, ' ')
-      .split(/\s+/)
-      .filter(Boolean);
+    const stripped = query.replace(/[{}[\]()^~@!$]/g, ' ');
 
-    if (terms.length === 0) return '""';
-
-    // If single term, do prefix search
-    if (terms.length === 1) {
-      return `"${terms[0]}"*`;
+    const words: string[] = [];
+    for (const token of stripped.split(/\s+/).filter(Boolean)) {
+      const parts = token
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+        .replace(/[_\-./\\]/g, ' ')
+        .split(/\s+/)
+        .map(p => p.toLowerCase())
+        .filter(Boolean);
+      words.push(...parts);
     }
 
-    // Multiple terms: OR search
-    return terms.map(t => `"${t}"*`).join(' OR ');
+    if (words.length === 0) return '""';
+    return words.map(w => `"${w}"`).join(' AND ');
   }
 
   /** Fallback LIKE-based search */
@@ -682,10 +711,16 @@ export class KnowledgeGraph {
       SELECT * FROM nodes
       WHERE name LIKE ? OR qualifiedName LIKE ? OR signature LIKE ? OR docComment LIKE ?
       ORDER BY
-        CASE WHEN name LIKE ? THEN 0 ELSE 1 END,
+        CASE
+          WHEN name = ? THEN 0
+          WHEN name LIKE ? THEN 1
+          WHEN qualifiedName LIKE ? THEN 2
+          WHEN signature LIKE ? THEN 3
+          ELSE 4
+        END,
         name
       LIMIT ?
-    `).all(pattern, pattern, pattern, pattern, pattern, limit) as any[];
+    `).all(pattern, pattern, pattern, pattern, query, pattern, pattern, pattern, limit) as any[];
 
     return rows.map((r: any) => this.rowToNode(r));
   }

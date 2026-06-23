@@ -146,6 +146,8 @@ const LAYER_PATTERNS: Array<{ layer: FlowLayer; patterns: RegExp[] }> = [
       /@click|@submit|@change|v-on:/,                                  // Vue
       /\(click\)|\(submit\)|\(change\)/,                               // Angular
       /on:click|on:submit|on:change/,                                  // Svelte
+      /_Click\b|_Loaded\b|_Closing\b|_Closed\b|_KeyDown\b|_KeyUp\b|_MouseDown\b|_MouseUp\b|_SelectionChanged\b|_TextChanged\b|_Checked\b|_Unchecked\b|_DragEnter\b|_Drop\b|_PreviewKeyDown\b|_GotFocus\b|_LostFocus\b|_SizeChanged\b|_Toggled\b/,  // WPF event handlers
+      /RoutedEventHandler|EventHandler|\+=.*EventHandler/,             // C# event wiring
     ],
   },
   {
@@ -160,6 +162,8 @@ const LAYER_PATTERNS: Array<{ layer: FlowLayer; patterns: RegExp[] }> = [
       /signal\s*\(|computed\s*\(/,                                     // Angular signals / Solid
       /atom\s*\(|selector\s*\(/,                                       // Recoil/Jotai
       /createSlice|createAsyncThunk/,                                  // Redux Toolkit
+      /INotifyPropertyChanged|OnPropertyChanged|RaisePropertyChanged|DependencyProperty\.Register|SetValue\(|GetValue\(/,  // WPF property change
+      /ObservableCollection|BindingList/,                              // WPF observable collections
     ],
   },
   {
@@ -172,6 +176,8 @@ const LAYER_PATTERNS: Array<{ layer: FlowLayer; patterns: RegExp[] }> = [
       /useSWR|useQuery|useMutation/,                                   // React Query/SWR
       /api\.(get|post|put|delete|patch)\s*\(/,                         // custom API client
       /request\s*\(\s*['"`](GET|POST|PUT|DELETE)/,                     // generic HTTP
+      /HttpClient|WebClient|HttpWebRequest|RestClient|HttpRequestMessage/,  // C# HTTP
+      /\.GetAsync\(|\.PostAsync\(|\.PutAsync\(|\.DeleteAsync\(/,       // C# async HTTP
     ],
   },
   {
@@ -184,6 +190,8 @@ const LAYER_PATTERNS: Array<{ layer: FlowLayer; patterns: RegExp[] }> = [
       /getRepository|createQueryBuilder/,                              // TypeORM
       /SELECT\s|INSERT\s|UPDATE\s|DELETE\s/,                           // Raw SQL
       /collection\.(find|insert|update|delete)/,                       // MongoDB
+      /SqlConnection|SqlCommand|DbContext|DbSet|ExecuteNonQuery|ExecuteReader|ExecuteScalar/,  // ADO.NET/EF
+      /SQLiteConnection|SQLiteCommand|DatabaseHelper/,                 // SQLite
     ],
   },
   {
@@ -201,6 +209,8 @@ const LAYER_PATTERNS: Array<{ layer: FlowLayer; patterns: RegExp[] }> = [
       /validate|sanitize|schema\.parse|Joi\.|yup\.|z\.object/,        // Validation
       /IsNotEmpty|IsEmail|IsString|MinLength/,                         // class-validator
       /body\(\s*['"`]|param\(\s*['"`]|query\(\s*['"`]/,               // express-validator
+      /DataAnnotations|Required|StringLength|RegularExpression|Range\[/,  // C# validation attributes
+      /FluentValidation|AbstractValidator|RuleFor/,                    // FluentValidation
     ],
   },
   {
@@ -210,12 +220,20 @@ const LAYER_PATTERNS: Array<{ layer: FlowLayer; patterns: RegExp[] }> = [
       /export\s+default\s+\{[^}]*template\s*:/,                       // Vue SFC
       /@Component\s*\(\s*{/,                                           // Angular component
       /React\.createElement|jsx|tsx/,                                   // React
+      /UserControl|Window|Page|ContentControl|ItemsControl|DependencyObject/,  // WPF base classes
+      /partial class.*:.*Window|partial class.*:.*UserControl|partial class.*:.*Page/,  // WPF code-behind
+      /InitializeComponent\(\)/,                                       // WPF initialization
     ],
   },
 ];
 
 /** Patterns that identify "service" vs "controller" vs "repository" by file path */
 const PATH_LAYER_PATTERNS: Array<{ layer: FlowLayer; patterns: RegExp[] }> = [
+  { layer: 'ui_component', patterns: [/Window/i, /Control/i, /View(?!Model)/i, /Style/i, /Theme/i] },
+  { layer: 'controller', patterns: [/ViewModel/i, /EventHandler/i, /Interaction/i, /WndProc/i] },
+  { layer: 'service', patterns: [/Manager/i, /Service/i, /Engine/i, /Provider/i, /Helper/i, /Tool/i] },
+  { layer: 'database', patterns: [/Data/i, /Database/i, /Storage/i, /Cache/i, /Persist/i] },
+  { layer: 'validator', patterns: [/Validator/i, /Parser/i, /Converter/i] },
   { layer: 'controller', patterns: [/controller/i, /handler/i, /endpoint/i, /route/i] },
   { layer: 'service', patterns: [/service/i, /business/i, /logic/i, /use.?case/i, /manager/i] },
   { layer: 'repository', patterns: [/repo/i, /repository/i, /dao/i, /data.?access/i, /store/i, /dal/i] },
@@ -395,7 +413,7 @@ export class FlowAnalyzer {
     const filesInvolved = new Set<string>();
     const sideEffects: string[] = [];
 
-    // BFS through the call graph
+    // BFS through the call graph + partial class methods + inline calls
     const queue: Array<{ node: GraphNode; depth: number }> = [
       { node: startNode, depth: 0 },
     ];
@@ -432,19 +450,35 @@ export class FlowAnalyzer {
         produces: this.inferProduces(node, layer),
       });
 
-      // Follow the call chain
+      // 1. Follow explicit call edges
       const callees = this.graph.findCallees(node.id);
       for (const callee of callees) {
         if (!visited.has(callee.id)) {
           queue.push({ node: callee, depth: depth + 1 });
         }
       }
+
+      // 2. Follow 'uses' and 'depends_on' edges too
+      const outEdges = this.graph.getOutEdges(node.id);
+      for (const edge of outEdges) {
+        if (edge.type !== 'calls' && !visited.has(edge.targetId)) {
+          const target = this.graph.getNode(edge.targetId);
+          if (target && target.type !== 'file') {
+            queue.push({ node: target, depth: depth + 1 });
+          }
+        }
+      }
+
+      // 3. C# partial class discovery: find sibling methods called in the body
+      if (callees.length === 0 && depth < maxDepth) {
+        const inlineCalls = this.discoverInlineCalls(node, visited);
+        for (const callee of inlineCalls) {
+          queue.push({ node: callee, depth: depth + 1 });
+        }
+      }
     }
 
-    // Determine risk level based on what the flow touches
     const riskLevel = this.assessRisk(steps, sideEffects);
-
-    // Generate a meaningful name
     const name = this.generateFlowName(startNode, steps);
 
     return {
@@ -455,6 +489,59 @@ export class FlowAnalyzer {
       riskLevel,
       sideEffects,
     };
+  }
+
+  /**
+   * When the graph has no explicit 'calls' edges (common in C# partial classes),
+   * read the method body and search for method names that exist in the same class
+   * across any partial class file.
+   *
+   * E.g., NotesToggle_Click() calls OpenNotesPanel() which is in a different
+   * partial class file — the static parser may not have created an edge.
+   */
+  private discoverInlineCalls(node: GraphNode, visited: Set<string>): GraphNode[] {
+    const discovered: GraphNode[] = [];
+
+    try {
+      const content = readFileSync(node.filePath, 'utf-8');
+      const lines = content.split('\n');
+      const startIdx = Math.max(0, (node.startLine || 1) - 1);
+      const endIdx = Math.min(lines.length, (node.endLine || node.startLine || 1));
+      const body = lines.slice(startIdx, endIdx).join('\n');
+
+      // Find the class this method belongs to
+      const className = node.qualifiedName.includes('.')
+        ? node.qualifiedName.split('.')[0]!
+        : null;
+
+      if (!className) return discovered;
+
+      // Get ALL methods in the same class across all partial class files
+      const classMethods = this.graph.search(className, 100)
+        .filter(n =>
+          n.qualifiedName.startsWith(className + '.') &&
+          (n.type === 'function' || n.type === 'method') &&
+          !visited.has(n.id) &&
+          n.id !== node.id,
+        );
+
+      // Check which of those method names appear in our method body
+      for (const method of classMethods) {
+        // Match method name followed by ( — indicates a call
+        const callPattern = new RegExp(`\\b${this.escapeRegex(method.name)}\\s*\\(`, 'g');
+        if (callPattern.test(body)) {
+          discovered.push(method);
+        }
+      }
+    } catch {
+      // File unreadable, skip
+    }
+
+    return discovered.slice(0, 10); // Cap to prevent explosion
+  }
+
+  private escapeRegex(s: string): string {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   // ── Private: Detection ──────────────────────────────────────
@@ -494,7 +581,7 @@ export class FlowAnalyzer {
     _fileLayerMap: Record<string, FlowLayer>,
   ): InteractionFlow[] {
     const flows: InteractionFlow[] = [];
-    const handlerPattern = /^(handle|on)[A-Z]/;
+    const handlerPattern = /^(handle|on)[A-Z]|_Click$|_Loaded$|_Closing$|_Closed$|_Changed$|_SelectionChanged$|_KeyDown$|_KeyUp$|_MouseDown$|_MouseUp$|_DragEnter$|_Drop$|_Checked$|_Unchecked$|_GotFocus$|_LostFocus$|_TextChanged$/;
 
     const handlers = allNodes.filter(
       (n) =>
