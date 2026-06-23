@@ -787,6 +787,59 @@ export class FlowAnalyzer {
       }
     }
 
+    // ── Score against AI-learned classification rules ──────────
+    try {
+      const learnedRules = this.graph.getLearnedClassificationRules();
+      for (const rule of learnedRules) {
+        if (rule.patterns.length === 0) continue;
+
+        let matched = false;
+        const compiledPatterns = rule.patterns.map(p => {
+          try { return new RegExp(p, 'im'); } catch { return null; }
+        }).filter(Boolean) as RegExp[];
+
+        const targetLayer = rule.layer as FlowLayer;
+
+        switch (rule.source) {
+          case 'content':
+          case 'import':
+            if (content) {
+              matched = compiledPatterns.some(p => p.test(content!));
+            }
+            break;
+          case 'path':
+            matched = compiledPatterns.some(p => p.test(fileName) || p.test(relPath));
+            break;
+          case 'directory':
+            matched = compiledPatterns.some(p => p.test(relPath));
+            break;
+          case 'symbol_name':
+            matched = symbolNames.some(name =>
+              compiledPatterns.some(p => p.test(name)),
+            );
+            break;
+          default:
+            // Try all: path + content
+            matched = compiledPatterns.some(p => p.test(fileName) || p.test(relPath));
+            if (!matched && content) {
+              matched = compiledPatterns.some(p => p.test(content!));
+            }
+            break;
+        }
+
+        if (matched) {
+          const w = rule.weight ?? 2;
+          const current = scores.get(targetLayer) ?? 0;
+          scores.set(targetLayer, current + w);
+          signals.push({ source: `learned:${rule.name}`, layer: targetLayer, weight: w });
+          // Touch the rule to track usage
+          try { this.graph.touchLearnedRule(rule.id); } catch {}
+        }
+      }
+    } catch {
+      // Learned rules table might not exist yet (first run before migration)
+    }
+
     // Find the winner
     if (scores.size === 0) {
       return { layer: 'unknown', confidence: 0, signals };

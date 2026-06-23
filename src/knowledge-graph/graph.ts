@@ -97,9 +97,26 @@ CREATE TABLE IF NOT EXISTS graph_meta (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+-- Learned rules: AI-taught patterns that persist per-project
+CREATE TABLE IF NOT EXISTS learned_rules (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,          -- 'classification' | 'search_alias' | 'code_pattern' | 'convention'
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  rule TEXT NOT NULL,           -- JSON: the actual rule definition
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  used_count INTEGER NOT NULL DEFAULT 0,
+  last_used_at INTEGER,
+  created_by TEXT NOT NULL DEFAULT 'ai'
+);
+
+CREATE INDEX IF NOT EXISTS idx_learned_rules_type ON learned_rules(type);
+CREATE INDEX IF NOT EXISTS idx_learned_rules_name ON learned_rules(name);
 `;
 
-const SCHEMA_VERSION = '1';
+const SCHEMA_VERSION = '2';
 
 // ============================================================
 // KnowledgeGraph Class
@@ -947,6 +964,143 @@ export class KnowledgeGraph {
       this.db.prepare('DELETE FROM edges').run();
       this.db.prepare('DELETE FROM nodes').run();
     })();
+  }
+
+  // ============================================================
+  // Learned Rules (Self-Evolving AI)
+  // ============================================================
+
+  /** Rule type for the learned_rules table */
+  static readonly RULE_TYPES = ['classification', 'search_alias', 'code_pattern', 'convention'] as const;
+
+  /**
+   * Teach the system a new rule. The rule persists in SQLite and is
+   * loaded automatically on future sessions.
+   */
+  addLearnedRule(rule: {
+    type: 'classification' | 'search_alias' | 'code_pattern' | 'convention';
+    name: string;
+    description: string;
+    rule: Record<string, unknown>;
+    createdBy?: 'ai' | 'user';
+  }): { id: string; created: boolean } {
+    const id = `lr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const now = Date.now();
+
+    // Check for duplicate by name + type
+    const existing = this.db.prepare(
+      'SELECT id FROM learned_rules WHERE name = ? AND type = ?',
+    ).get(rule.name, rule.type) as { id: string } | undefined;
+
+    if (existing) {
+      // Update existing rule
+      this.db.prepare(
+        'UPDATE learned_rules SET description = ?, rule = ?, updated_at = ? WHERE id = ?',
+      ).run(rule.description, JSON.stringify(rule.rule), now, existing.id);
+      return { id: existing.id, created: false };
+    }
+
+    this.db.prepare(`
+      INSERT INTO learned_rules (id, type, name, description, rule, created_at, updated_at, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, rule.type, rule.name, rule.description, JSON.stringify(rule.rule), now, now, rule.createdBy ?? 'ai');
+
+    return { id, created: true };
+  }
+
+  /**
+   * Get all learned rules, optionally filtered by type.
+   */
+  getLearnedRules(type?: string): Array<{
+    id: string;
+    type: string;
+    name: string;
+    description: string;
+    rule: Record<string, unknown>;
+    createdAt: number;
+    updatedAt: number;
+    usedCount: number;
+    lastUsedAt: number | null;
+    createdBy: string;
+  }> {
+    let rows: any[];
+    if (type) {
+      rows = this.db.prepare('SELECT * FROM learned_rules WHERE type = ? ORDER BY used_count DESC').all(type);
+    } else {
+      rows = this.db.prepare('SELECT * FROM learned_rules ORDER BY type, used_count DESC').all();
+    }
+
+    return rows.map((r: any) => ({
+      id: r.id,
+      type: r.type,
+      name: r.name,
+      description: r.description,
+      rule: JSON.parse(r.rule),
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      usedCount: r.used_count,
+      lastUsedAt: r.last_used_at,
+      createdBy: r.created_by,
+    }));
+  }
+
+  /**
+   * Increment usage counter for a learned rule (called when the rule is actually applied).
+   */
+  touchLearnedRule(id: string): void {
+    this.db.prepare(
+      'UPDATE learned_rules SET used_count = used_count + 1, last_used_at = ? WHERE id = ?',
+    ).run(Date.now(), id);
+  }
+
+  /**
+   * Delete a learned rule by ID or name.
+   */
+  deleteLearnedRule(idOrName: string): boolean {
+    const result = this.db.prepare(
+      'DELETE FROM learned_rules WHERE id = ? OR name = ?',
+    ).run(idOrName, idOrName);
+    return result.changes > 0;
+  }
+
+  /**
+   * Get classification rules learned by the AI.
+   * Returns them in a format ready to merge with CLASSIFICATION_SIGNALS.
+   */
+  getLearnedClassificationRules(): Array<{
+    layer: string;
+    source: string;
+    patterns: string[];    // regex strings
+    weight: number;
+    name: string;
+    id: string;
+  }> {
+    const rules = this.getLearnedRules('classification');
+    return rules.map(r => ({
+      layer: (r.rule as any).layer ?? 'unknown',
+      source: (r.rule as any).source ?? 'path',
+      patterns: (r.rule as any).patterns ?? [],
+      weight: (r.rule as any).weight ?? 2,
+      name: r.name,
+      id: r.id,
+    }));
+  }
+
+  /**
+   * Get search aliases learned by the AI.
+   * When user searches for X, also search for Y, Z.
+   */
+  getLearnedSearchAliases(): Array<{
+    term: string;
+    aliases: string[];
+    id: string;
+  }> {
+    const rules = this.getLearnedRules('search_alias');
+    return rules.map(r => ({
+      term: (r.rule as any).term ?? r.name,
+      aliases: (r.rule as any).aliases ?? [],
+      id: r.id,
+    }));
   }
 
   /**

@@ -81,6 +81,7 @@ import { registerDebugTools } from './tools/debug-tools.js';
 import { registerFlowTools } from './tools/flow-tools.js';
 import { registerSnapshotTools } from './tools/snapshot-tools.js';
 import { registerSmartTools } from './tools/smart-tools.js';
+import { registerEvolvingTools } from './tools/evolving-tools.js';
 
 // ============================================================
 // Logger — writes to stderr so MCP stdio is uncontaminated
@@ -132,7 +133,35 @@ function createGraphAdapter(
 ): IKnowledgeGraph {
   return {
     search: (query: string, type?: NodeType, limit?: number): GraphNode[] => {
-      const results = graph.search(query, limit ?? 20);
+      const maxResults = limit ?? 20;
+      let results = graph.search(query, maxResults);
+
+      // Expand with learned search aliases
+      try {
+        const aliases = graph.getLearnedSearchAliases();
+        const lowerQuery = query.toLowerCase();
+        for (const alias of aliases) {
+          if (alias.term.toLowerCase() === lowerQuery) {
+            for (const alt of alias.aliases) {
+              if (results.length >= maxResults) break;
+              const aliasResults = graph.search(alt, Math.max(3, maxResults - results.length));
+              const existingIds = new Set(results.map(r => r.id));
+              for (const r of aliasResults) {
+                if (!existingIds.has(r.id) && results.length < maxResults) {
+                  results.push(r);
+                  existingIds.add(r.id);
+                }
+              }
+            }
+            // Touch the alias to track usage
+            try { graph.touchLearnedRule(alias.id); } catch {}
+            break;
+          }
+        }
+      } catch {
+        // Learned rules table might not exist
+      }
+
       if (type) {
         return results.filter((n: GraphNode) => n.type === type);
       }
@@ -926,7 +955,10 @@ async function main(): Promise<void> {
   registerSmartTools(server, graph, config, tokenEstimator);
   log('debug', 'Registered smart tools (3)');
 
-  log('info', '🔧 All 38 MCP tools registered:');
+  registerEvolvingTools(server, graph, config, tokenEstimator);
+  log('debug', 'Registered evolving tools (3)');
+
+  log('info', '🔧 All 41 MCP tools registered:');
   log('info', '  Graph:    mindmap_search, mindmap_get_structure, mindmap_trace_dependencies, mindmap_get_signature, mindmap_find_references, mindmap_get_file_map');
   log('info', '  Changes:  mindmap_what_changed, mindmap_session_diff, mindmap_impact_analysis');
   log('info', '  Memory:   mindmap_recall, mindmap_remember, mindmap_get_decisions, mindmap_decide, mindmap_session_summary');
@@ -936,6 +968,7 @@ async function main(): Promise<void> {
   log('info', '  Snapshot: mindmap_project_map, mindmap_change_delta, mindmap_session_start ⭐');
   log('info', '  Advanced: mindmap_query_graph, mindmap_dead_code, mindmap_architecture, mindmap_get_code_snippet, mindmap_search_code, mindmap_list_projects, mindmap_health');
   log('info', '  Smart:    mindmap_explain ⭐, mindmap_git_changes ⭐, mindmap_smart_search ⭐');
+  log('info', '  Evolving: mindmap_teach ⭐, mindmap_get_learned, mindmap_forget');
 
   // ── 8. Auto-index on first run ─────────────────────────────
   const stats = graph.getStats();
