@@ -16,6 +16,7 @@
 
 import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 import Database from 'better-sqlite3';
 
@@ -118,7 +119,7 @@ function truncate(str: string, maxLen: number): string {
 function getVersion(): string {
   try {
     const pkgPath = path.resolve(
-      path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')),
+      path.dirname(fileURLToPath(import.meta.url)),
       '..',
       'package.json',
     );

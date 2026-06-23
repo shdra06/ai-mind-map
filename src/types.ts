@@ -260,7 +260,7 @@ export const DEFAULT_CONFIG: MindMapConfig = {
   projectRoot: process.cwd(),
   languages: [],  // Auto-detect
   ignore: [
-    'node_modules', '.git', 'dist', 'build', 'out', '.next',
+    'node_modules', '.git', '.mindmap', 'dist', 'build', 'out', '.next',
     '__pycache__', '.pytest_cache', 'venv', '.venv', 'env',
     'target', 'bin/Debug', 'bin/Release', 'obj',
     '.idea', '.vscode', '.vs',

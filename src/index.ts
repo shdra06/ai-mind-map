@@ -82,6 +82,8 @@ import { registerFlowTools } from './tools/flow-tools.js';
 import { registerSnapshotTools } from './tools/snapshot-tools.js';
 import { registerSmartTools } from './tools/smart-tools.js';
 import { registerEvolvingTools } from './tools/evolving-tools.js';
+import { registerAdvancedTools } from './tools/advanced-tools.js';
+
 
 // ============================================================
 // Logger — writes to stderr so MCP stdio is uncontaminated
@@ -902,6 +904,15 @@ async function main(): Promise<void> {
   });
   log('info', `✅ Memory initialized (session: ${sessionMemory.getCurrentSessionId()})`);
 
+  // Apply memory decay on startup
+  try {
+    const decayed = persistentMemory.applyDecay();
+    log('info', `Applied time-based memory decay at startup (${decayed} memories decayed)`);
+  } catch (err) {
+    log('warn', 'Failed to apply memory decay at startup', err);
+  }
+
+
   // Context Engine — no class instances needed; uses module-level functions
   log('info', '✅ Context Engine initialized');
 
@@ -957,6 +968,10 @@ async function main(): Promise<void> {
 
   registerEvolvingTools(server, graph, config, tokenEstimator);
   log('debug', 'Registered evolving tools (3)');
+
+  registerAdvancedTools(server, graph, config, tokenEstimator);
+  log('debug', 'Registered advanced tools (7)');
+
 
   log('info', '🔧 All 41 MCP tools registered:');
   log('info', '  Graph:    mindmap_search, mindmap_get_structure, mindmap_trace_dependencies, mindmap_get_signature, mindmap_find_references, mindmap_get_file_map');

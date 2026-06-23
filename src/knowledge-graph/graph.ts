@@ -8,6 +8,7 @@
  * Inspired by codebase-memory-mcp's Cypher-like queries.
  */
 
+import fs from 'node:fs';
 import Database from 'better-sqlite3';
 import type {
   GraphNode,
@@ -142,13 +143,13 @@ export class KnowledgeGraph {
       this.db.pragma('journal_mode = WAL');
       this.db.pragma('synchronous = NORMAL');
       this.db.pragma('foreign_keys = ON');
+      this.db.pragma('busy_timeout = 5000');
       this.db.pragma('cache_size = -64000');
       this.initializeSchema();
     } catch (err) {
       // If DB is corrupt, delete and retry once
       try {
         if (dbPath !== ':memory:') {
-          const fs = require('node:fs');
           if (fs.existsSync(dbPath)) {
             fs.unlinkSync(dbPath);
             // Also remove WAL/SHM files
@@ -159,6 +160,7 @@ export class KnowledgeGraph {
           this.db.pragma('journal_mode = WAL');
           this.db.pragma('synchronous = NORMAL');
           this.db.pragma('foreign_keys = ON');
+          this.db.pragma('busy_timeout = 5000');
           this.db.pragma('cache_size = -64000');
           this.initializeSchema();
           console.error('[ai-mind-map] Recovered from corrupt database — rebuilt from scratch');

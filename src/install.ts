@@ -21,6 +21,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { homedir, platform } from 'node:os';
 import process from 'node:process';
 import type { MindMapConfig } from './types.js';
@@ -109,9 +110,7 @@ const IS_MAC = platform() === 'darwin';
  * - { mode: 'local', path: ... }   — git clone, use absolute path to dist/index.js
  */
 function getServerRunConfig(): { mode: 'npx' | 'global' | 'local'; path?: string } {
-  const thisDir = path.dirname(
-    new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'),
-  );
+  const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
   // Detect if we're running from npx cache (temporary, unstable path)
   const isNpxCache = thisDir.includes('npm-cache') && thisDir.includes('_npx');
@@ -387,11 +386,10 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
       generateConfig: () => {
         const existing = readJsonFile(path.join(getVSCodeSettingsDir(), 'settings.json')) ?? {};
         const mcpServers = (existing['mcp.servers'] as Record<string, unknown>) ?? {};
-        mcpServers['ai-mind-map'] = {
-          command: 'node',
-          args: [serverEntry],
-          env: {},
-        };
+        const runConfig = getServerRunConfig();
+        mcpServers['ai-mind-map'] = runConfig.mode === 'npx'
+          ? { command: 'npx', args: ['-y', 'ai-mind-map-server'], env: {} }
+          : { command: 'node', args: [serverEntry], env: {} };
         existing['mcp.servers'] = mcpServers;
         return JSON.stringify(existing, null, 2);
       },
@@ -417,11 +415,10 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
       generateConfig: () => {
         const existing = readJsonFile(path.join(getWindsurfSettingsDir(), 'settings.json')) ?? {};
         const mcpServers = (existing['mcp.servers'] as Record<string, unknown>) ?? {};
-        mcpServers['ai-mind-map'] = {
-          command: 'node',
-          args: [serverEntry],
-          env: {},
-        };
+        const runConfig = getServerRunConfig();
+        mcpServers['ai-mind-map'] = runConfig.mode === 'npx'
+          ? { command: 'npx', args: ['-y', 'ai-mind-map-server'], env: {} }
+          : { command: 'node', args: [serverEntry], env: {} };
         existing['mcp.servers'] = mcpServers;
         return JSON.stringify(existing, null, 2);
       },
@@ -466,12 +463,12 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
       generateConfig: () => {
         const existing = readJsonFile(path.join(getZedSettingsDir(), 'settings.json')) ?? {};
         const contextServers = (existing['context_servers'] as Record<string, unknown>) ?? {};
+        const runConfig = getServerRunConfig();
+        const serverConfig = runConfig.mode === 'npx'
+          ? { path: 'npx', args: ['-y', 'ai-mind-map-server'], env: {} }
+          : { path: 'node', args: [serverEntry], env: {} };
         contextServers['ai-mind-map'] = {
-          command: {
-            path: 'node',
-            args: [serverEntry],
-            env: {},
-          },
+          command: serverConfig,
           settings: {},
         };
         existing['context_servers'] = contextServers;
@@ -516,11 +513,14 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
           (s: Record<string, unknown>) => s['name'] === 'ai-mind-map',
         );
         if (!exists) {
+          const runConfig = getServerRunConfig();
+          const serverEntryConfig = runConfig.mode === 'npx'
+            ? { command: 'npx', args: ['-y', 'ai-mind-map-server'], env: {} }
+            : { command: 'node', args: [serverEntry], env: {} };
+
           modelContextProtocolServers.push({
             name: 'ai-mind-map',
-            command: 'node',
-            args: [serverEntry],
-            env: {},
+            ...serverEntryConfig,
           });
         }
 
@@ -782,7 +782,7 @@ export async function runDoctor(): Promise<void> {
 
   // 3. TypeScript compilation
   const distDir = path.resolve(
-    path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')),
+    path.dirname(fileURLToPath(import.meta.url)),
     '..',
     'dist',
   );
@@ -1096,6 +1096,20 @@ Call \`mindmap_session_start\` — it returns the entire project map + recent ch
  */
 export function deployRulesFiles(projectRoot?: string): void {
   const root = projectRoot ?? process.cwd();
+
+  // Skip deployment if not explicitly requested and CWD is not a project root (no .git or package.json)
+  if (!projectRoot) {
+    const hasGit = existsSync(path.join(root, '.git'));
+    const hasPkg = existsSync(path.join(root, 'package.json'));
+    if (!hasGit && !hasPkg) {
+      heading('📋 Deploying AI Agent Rules Files');
+      console.log(`  ${c.gray}ℹ${c.reset} Current directory is not a project root (no .git or package.json found).`);
+      console.log(`    Skipping automatic rules files deployment to prevent home directory clutter.`);
+      console.log(`    To deploy rules, run this command inside your project repository.`);
+      return;
+    }
+  }
+
   const rules = getToolAwarenessRules();
 
   const deployments: Array<{

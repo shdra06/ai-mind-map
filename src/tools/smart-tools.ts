@@ -12,7 +12,7 @@
  */
 
 import { z } from 'zod';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
 import { resolve, relative, basename } from 'node:path';
 
@@ -66,9 +66,9 @@ function fail(message: string): ToolResult {
 /**
  * Safe git command execution. Returns stdout or null on failure.
  */
-function gitExec(cmd: string, cwd: string): string | null {
+function gitExec(args: string[], cwd: string): string | null {
   try {
-    return execSync(cmd, { cwd, encoding: 'utf-8', timeout: 15000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+    return execFileSync('git', args, { cwd, encoding: 'utf-8', timeout: 15000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
   } catch {
     return null;
   }
@@ -187,7 +187,7 @@ export function registerSmartTools(
         try {
           const absFilePath = resolve(config.projectRoot, node.filePath);
           const lastLog = gitExec(
-            `git log -1 --format="%ai|||%an|||%s" -- "${absFilePath}"`,
+            ['log', '-1', '--format=%ai|||%an|||%s', '--', absFilePath],
             config.projectRoot,
           );
           if (lastLog) {
@@ -196,7 +196,7 @@ export function registerSmartTools(
             gitInfo.lastAuthor = author;
 
             const recentLogs = gitExec(
-              `git log -5 --format="%h %s" -- "${absFilePath}"`,
+              ['log', '-5', '--format=%h %s', '--', absFilePath],
               config.projectRoot,
             );
             if (recentLogs) {
@@ -286,45 +286,49 @@ export function registerSmartTools(
     },
     async ({ scope }) => {
       try {
-        // Build git diff command based on scope
-        let diffCmd: string;
+        // Build git diff arguments based on scope
+        let diffArgs: string[];
         let descr: string;
 
         switch (scope) {
           case 'uncommitted':
-            diffCmd = 'git diff --numstat HEAD';
+            diffArgs = ['diff', '--numstat', 'HEAD'];
             descr = 'Uncommitted changes vs HEAD';
             break;
           case 'staged':
-            diffCmd = 'git diff --cached --numstat';
+            diffArgs = ['diff', '--cached', '--numstat'];
             descr = 'Staged changes';
             break;
           case 'last_commit':
-            diffCmd = 'git diff --numstat HEAD~1..HEAD';
+            diffArgs = ['diff', '--numstat', 'HEAD~1..HEAD'];
             descr = 'Last commit';
             break;
           case 'last_3_commits':
-            diffCmd = 'git diff --numstat HEAD~3..HEAD';
+            diffArgs = ['diff', '--numstat', 'HEAD~3..HEAD'];
             descr = 'Last 3 commits';
             break;
           case 'last_5_commits':
-            diffCmd = 'git diff --numstat HEAD~5..HEAD';
+            diffArgs = ['diff', '--numstat', 'HEAD~5..HEAD'];
             descr = 'Last 5 commits';
             break;
           case 'branch': {
             // Detect main/master branch
-            const defaultBranch = gitExec(
-              'git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || echo refs/remotes/origin/main',
+            let defaultBranchRef = gitExec(
+              ['symbolic-ref', 'refs/remotes/origin/HEAD'],
               config.projectRoot,
-            )?.replace('refs/remotes/origin/', '') || 'main';
-            diffCmd = `git diff --numstat ${defaultBranch}..HEAD`;
+            );
+            if (!defaultBranchRef) {
+              defaultBranchRef = 'refs/remotes/origin/main';
+            }
+            const defaultBranch = defaultBranchRef.replace('refs/remotes/origin/', '') || 'main';
+            diffArgs = ['diff', '--numstat', `${defaultBranch}..HEAD`];
             descr = `Branch changes vs ${defaultBranch}`;
             break;
           }
         }
 
         // Get file-level numstat
-        const numstat = gitExec(diffCmd, config.projectRoot);
+        const numstat = gitExec(diffArgs, config.projectRoot);
         if (!numstat) {
           return mcpText(ok({
             scope,
@@ -418,8 +422,10 @@ export function registerSmartTools(
         let recentCommits: string[] = [];
         if (scope !== 'uncommitted' && scope !== 'staged') {
           const n = scope === 'last_commit' ? 1 : scope === 'last_3_commits' ? 3 : 5;
-          const logCmd = `git log -${n} --format="%h %an: %s" --no-merges`;
-          const log = gitExec(logCmd, config.projectRoot);
+          const log = gitExec(
+            ['log', `-${n}`, '--format=%h %an: %s', '--no-merges'],
+            config.projectRoot,
+          );
           if (log) {
             recentCommits = log.split('\n').filter(Boolean);
           }
@@ -560,7 +566,7 @@ export function registerSmartTools(
           if (include.includes('git')) {
             const absPath = resolve(config.projectRoot, node.filePath);
             const lastLog = gitExec(
-              `git log -1 --format="%ar by %an: %s" -- "${absPath}"`,
+              ['log', '-1', '--format=%ar by %an: %s', '--', absPath],
               config.projectRoot,
             );
             if (lastLog) {
