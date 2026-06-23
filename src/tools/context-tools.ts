@@ -225,12 +225,19 @@ export function registerContextTools(
   // ── mindmap_reindex ─────────────────────────────────────────
   server.tool(
     'mindmap_reindex',
-    'Force a full re-index of the codebase. Returns indexing statistics when complete.',
+    'Force a full re-index of the codebase. Call this IMMEDIATELY if you see a ' +
+      '_hint about "No codebase index found" or if search/query tools return empty results. ' +
+      'This is a one-time operation (~10-30s) that indexes all code files, ' +
+      'creating a knowledge graph of functions, classes, types, and their relationships. ' +
+      'After indexing, all other tools will return real data.',
     {},
     async () => {
       try {
         const result = await indexer.reindex();
-        return mcpText(ok(result, estimator));
+        return mcpText(ok({
+          ...result,
+          message: `✅ Indexed ${result.filesIndexed} files → ${result.nodesCreated} symbols in ${result.durationMs}ms. All tools are now ready.`,
+        }, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         return mcpText(fail(`reindex failed: ${msg}`));
@@ -246,7 +253,17 @@ export function registerContextTools(
     async () => {
       try {
         const stats = indexer.getStats();
-        return mcpText(ok(stats, estimator));
+
+        // Add explicit guidance if no index exists
+        const response: Record<string, unknown> = { ...stats };
+        if (stats.indexedFiles === 0 && stats.totalNodes === 0) {
+          response._indexStatus = 'NOT_INDEXED';
+          response._message = '⚠️ No codebase has been indexed yet. Call mindmap_reindex to index the project.';
+        } else {
+          response._indexStatus = 'READY';
+        }
+
+        return mcpText(ok(response, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         return mcpText(fail(`status failed: ${msg}`));

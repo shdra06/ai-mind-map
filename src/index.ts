@@ -778,6 +778,94 @@ function ensureDbDirectory(dbPath: string): void {
 }
 
 // ============================================================
+// Session Token Tracker
+// ============================================================
+
+/**
+ * Tracks cumulative token usage across all tool calls in a session.
+ * Every tool response is enriched with `_sessionTokens` metadata
+ * so AI agents always know their token footprint.
+ */
+class SessionTokenTracker {
+  totalToolCalls = 0;
+  totalOutputTokens = 0;
+  totalInputTokens = 0;
+  totalTokensSaved = 0;
+  private startTime = Date.now();
+
+  /** Record a tool call with its input and output token counts. */
+  record(inputTokens: number, outputTokens: number, tokensSaved: number): void {
+    this.totalToolCalls++;
+    this.totalInputTokens += inputTokens;
+    this.totalOutputTokens += outputTokens;
+    this.totalTokensSaved += tokensSaved;
+  }
+
+  /** Get a summary object to include in every tool response. */
+  getSummary() {
+    return {
+      totalToolCalls: this.totalToolCalls,
+      totalInputTokens: this.totalInputTokens,
+      totalOutputTokens: this.totalOutputTokens,
+      totalTokensSaved: this.totalTokensSaved,
+      sessionDurationMs: Date.now() - this.startTime,
+    };
+  }
+}
+
+/**
+ * Intercept an MCP tool response to inject session token metadata.
+ *
+ * Parses the JSON text content, adds `_sessionTokens` and optionally
+ * `_hint` fields, then re-serialises. This works because all our tools
+ * return `{ content: [{ type: 'text', text: JSON.stringify(result) }] }`.
+ */
+function enrichToolResponse(
+  response: { content: Array<{ type: string; text: string }> },
+  tracker: SessionTokenTracker,
+  estimator: { estimate(text: string): number },
+  graphNodeCount: () => number,
+): { content: Array<{ type: string; text: string }> } {
+  if (!response?.content?.[0]?.text) return response;
+
+  try {
+    const result = JSON.parse(response.content[0].text);
+
+    // Estimate tokens for this response
+    const outputTokens = estimator.estimate(response.content[0].text);
+    const tokensSaved = result.tokensSaved ?? 0;
+
+    // Record in tracker
+    tracker.record(0, outputTokens, tokensSaved);
+
+    // Always add session token metadata
+    result._sessionTokens = tracker.getSummary();
+
+    // If result is empty/failed AND graph has no nodes, add auto-index hint
+    const nodeCount = graphNodeCount();
+    if (nodeCount === 0) {
+      const isEmpty = result.success === true && (
+        result.data === null ||
+        (Array.isArray(result.data) && result.data.length === 0) ||
+        (typeof result.data === 'object' && result.data !== null && Object.keys(result.data).length === 0)
+      );
+      const isFail = result.success === false;
+
+      if (isEmpty || isFail) {
+        result._hint = '⚠️ No codebase index found. Call mindmap_reindex to index the project first. ' +
+          'This is a one-time operation that takes ~10-30 seconds depending on project size.';
+      }
+    }
+
+    response.content[0].text = JSON.stringify(result);
+  } catch {
+    // If parsing fails, return original response unchanged
+  }
+
+  return response;
+}
+
+// ============================================================
 // Main entry point
 // ============================================================
 
@@ -947,7 +1035,7 @@ async function main(): Promise<void> {
   const server = new McpServer(
     {
       name: 'ai-mind-map',
-      version: '1.4.0',
+      version: '1.4.5',
     },
     {
       instructions: [
@@ -1001,12 +1089,59 @@ async function main(): Promise<void> {
         '3. Use `mindmap_verify` to check if cached code is still valid — avoid re-reading',
         '4. Use `mindmap_changelog` instead of re-reading files to see what changed',
         '5. Call `mindmap_session_end` when done — save context for next session',
+        '',
+        '## 🔄 Auto-Indexing:',
+        'If any response contains `_hint` about "No codebase index found", call `mindmap_reindex` immediately.',
+        'This indexes the entire codebase (usually takes 10-30 seconds) and only needs to happen once.',
+        'After indexing, all tools will return real data.',
+        '',
+        '## 📊 Token Tracking:',
+        'Every response includes `_sessionTokens` with cumulative usage:',
+        '- `totalToolCalls` — how many MCP tools you have called',
+        '- `totalOutputTokens` — estimated tokens in all responses so far',
+        '- `totalTokensSaved` — estimated tokens saved vs reading raw files',
+        'Use this to monitor your token footprint and optimize usage.',
       ].join('\n'),
     },
   );
 
   // ── 7. Register all tools ─────────────────────────────────
   log('info', 'Registering MCP tools…');
+
+  // ── 7.0 Token tracking middleware ──────────────────────────
+  // Wrap every tool handler to inject session token metadata
+  const tokenTracker = new SessionTokenTracker();
+  const originalToolFn = server.tool.bind(server) as Function;
+
+  // Override server.tool to wrap every handler with token tracking
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (server as any).tool = function (...args: any[]) {
+    // server.tool(name, description, schema, handler) or server.tool(name, description, handler)
+    const lastArgIdx = args.length - 1;
+    const originalHandler = args[lastArgIdx];
+
+    if (typeof originalHandler === 'function') {
+      args[lastArgIdx] = async (...handlerArgs: unknown[]) => {
+        // Estimate input tokens from args
+        const inputStr = JSON.stringify(handlerArgs);
+        const inputTokens = tokenEstimator.estimate(inputStr);
+        tokenTracker.totalInputTokens += inputTokens;
+
+        // Call original handler
+        const response = await originalHandler(...handlerArgs);
+
+        // Enrich response with token tracking
+        return enrichToolResponse(
+          response,
+          tokenTracker,
+          tokenEstimator,
+          () => graph.getStats().totalNodes,
+        );
+      };
+    }
+
+    return originalToolFn.apply(server, args);
+  };
 
   registerGraphTools(server, graphAdapter, tokenEstimator);
   log('debug', 'Registered graph tools (6)');

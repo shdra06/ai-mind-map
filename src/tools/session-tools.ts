@@ -166,6 +166,14 @@ export function registerSessionTools(
           }));
         }
 
+        // CRITICAL: If index is empty, tell the AI to index first
+        if (stats.totalNodes === 0) {
+          result._indexRequired = true;
+          result._action = 'Call mindmap_reindex NOW to index the codebase. ' +
+            'This is a one-time operation (~10-30 seconds). ' +
+            'After indexing, call mindmap_session_resume again for full project context.';
+        }
+
         return mcpText(ok(result, estimator));
       } catch (err: unknown) {
         return mcpText(fail(`Failed to resume session: ${err instanceof Error ? err.message : String(err)}`));
