@@ -6,7 +6,7 @@
  *
  * mindmap_project_map   → THE map. One call = entire project understood.
  * mindmap_change_delta  → Only what changed since last time.
- * mindmap_session_start → Everything combined: map + delta + memories.
+ * mindmap_session_kickoff → Everything combined: map + delta + memories.
  */
 
 import { z } from 'zod';
@@ -123,9 +123,9 @@ Use this at session start AFTER mindmap_project_map to understand the current st
     },
   );
 
-  // ── mindmap_session_start ─────────────────────────────────
+  // ── mindmap_session_kickoff ─────────────────────────────────
   server.tool(
-    'mindmap_session_start',
+    'mindmap_session_kickoff',
     `🚀 SESSION START — the SINGLE most important tool call.
 Returns EVERYTHING the AI needs to start working in ONE call:
 1. Complete project map (all files + symbols)

@@ -1099,7 +1099,7 @@ async function main(): Promise<void> {
   log('info', '  Context:  mindmap_get_context, mindmap_compress, mindmap_reindex, mindmap_status');
   log('info', '  Debug:    mindmap_debug_changes, mindmap_file_before, mindmap_file_history');
   log('info', '  Flow:     mindmap_trace_flow, mindmap_interaction_map, mindmap_classify_file, mindmap_layer_overview');
-  log('info', '  Snapshot: mindmap_project_map, mindmap_change_delta');
+  log('info', '  Snapshot: mindmap_project_map, mindmap_change_delta, mindmap_session_kickoff ⭐');
   log('info', '  Advanced: mindmap_query_graph, mindmap_dead_code, mindmap_architecture, mindmap_get_code_snippet, mindmap_search_code, mindmap_list_projects, mindmap_health');
   log('info', '  Smart:    mindmap_explain ⭐, mindmap_git_changes ⭐, mindmap_smart_search ⭐');
   log('info', '  Evolving: mindmap_teach ⭐, mindmap_get_learned, mindmap_forget');
@@ -1189,7 +1189,8 @@ async function main(): Promise<void> {
             '| Tool | When to Use |',
             '|------|------------|',
             '| `mindmap_session_resume` | **FIRST call every conversation** — returns project context + changes |',
-            '| `mindmap_session_start` | Start tracking a new task |',
+            '| `mindmap_session_kickoff` | Full preamble: project map + change delta + memories in ONE call |',
+            '| `mindmap_session_start` | Start tracking a new task (records agent name + task) |',
             '| `mindmap_session_end` | Save summary for next AI session |',
             '',
             '## 🔍 Finding Code (instead of grep/reading files)',
