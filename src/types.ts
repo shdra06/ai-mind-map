@@ -96,6 +96,8 @@ export interface FileChange {
   linesRemoved: number;
   timestamp: number;
   sessionId: string;
+  /** Actual git diff content (patch hunks) for this file — if available. */
+  diffContent?: string;
 }
 
 export interface ChangeSession {

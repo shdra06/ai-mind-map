@@ -120,6 +120,134 @@ export class DiffEngine {
   }
 
   /**
+   * Get the actual diff content (patch hunks) for changes since a timestamp.
+   * Unlike getChangesSinceTimestamp which only gives summary counts,
+   * this returns the ACTUAL code changes.
+   */
+  async getActualDiff(
+    sinceTimestamp: number,
+    options?: DiffQueryOptions & { filePath?: string; maxLines?: number },
+  ): Promise<{ diff: string; files: string[]; truncated: boolean }> {
+    if (!(await this.ensureGit())) {
+      return { diff: 'Not a git repository — actual diff not available.', files: [], truncated: false };
+    }
+
+    const git = this.git!;
+    const sinceISO = new Date(sinceTimestamp).toISOString();
+
+    try {
+      // Find the oldest commit since the timestamp
+      const log = await git.log({ '--since': sinceISO });
+      const args: string[] = [];
+
+      if (log.total > 0) {
+        const oldestHash = log.all[log.all.length - 1]?.hash;
+        if (oldestHash) {
+          args.push(`${oldestHash}~1`, 'HEAD');
+        }
+      }
+
+      // If no commits, show uncommitted changes
+      if (args.length === 0) {
+        args.push('HEAD');
+      }
+
+      // Add file filter if specified
+      if (options?.filePath) {
+        args.push('--', options.filePath);
+      }
+
+      const rawDiff = await git.diff(args);
+
+      // Also get uncommitted changes
+      const uncommittedArgs = options?.filePath ? ['--', options.filePath] : [];
+      const uncommittedDiff = await git.diff(uncommittedArgs).catch(() => '');
+      const stagedDiff = await git.diff(['--cached', ...uncommittedArgs]).catch(() => '');
+
+      let fullDiff = [rawDiff, uncommittedDiff, stagedDiff].filter(Boolean).join('\n');
+      const files = [...new Set(
+        fullDiff.match(/^diff --git a\/(.+?) b\//gm)?.map(m =>
+          m.replace('diff --git a/', '').replace(/ b\/.*$/, '')
+        ) ?? []
+      )];
+
+      // Truncate if too long
+      const maxLines = options?.maxLines ?? 500;
+      const lines = fullDiff.split('\n');
+      let truncated = false;
+      if (lines.length > maxLines) {
+        fullDiff = lines.slice(0, maxLines).join('\n') +
+          `\n\n... [truncated ${lines.length - maxLines} more lines]`;
+        truncated = true;
+      }
+
+      return { diff: fullDiff || 'No changes found.', files, truncated };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { diff: `Error getting diff: ${msg}`, files: [], truncated: false };
+    }
+  }
+
+  /**
+   * Get the content of a file at a specific git revision.
+   * This lets the AI see "what the file looked like BEFORE the change".
+   *
+   * @param filePath  Relative path within the repo.
+   * @param revision  Git ref — 'HEAD~1', a commit hash, a branch, or 'HEAD'.
+   */
+  async getFileAtRevision(
+    filePath: string,
+    revision: string = 'HEAD~1',
+  ): Promise<{ content: string; revision: string; found: boolean }> {
+    if (!(await this.ensureGit())) {
+      return { content: 'Not a git repository.', revision, found: false };
+    }
+
+    const git = this.git!;
+
+    try {
+      const content = await git.show([`${revision}:${filePath}`]);
+      return { content, revision, found: true };
+    } catch {
+      return {
+        content: `File "${filePath}" not found at revision "${revision}" — it may not have existed yet.`,
+        revision,
+        found: false,
+      };
+    }
+  }
+
+  /**
+   * Get the recent git log for a specific file — who changed it, when, and why.
+   */
+  async getFileHistory(
+    filePath: string,
+    maxCommits: number = 10,
+  ): Promise<Array<{ hash: string; date: string; message: string; author: string }>> {
+    if (!(await this.ensureGit())) {
+      return [];
+    }
+
+    const git = this.git!;
+
+    try {
+      const log = await git.log({
+        file: filePath,
+        maxCount: maxCommits,
+      });
+
+      return log.all.map(entry => ({
+        hash: entry.hash.substring(0, 8),
+        date: entry.date,
+        message: entry.message,
+        author: entry.author_name,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * Detect whether the project root is inside a git repository.
    */
   async isGitRepository(): Promise<boolean> {
