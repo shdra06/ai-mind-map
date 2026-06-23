@@ -303,4 +303,144 @@ export function registerSessionTools(
       }
     },
   );
+
+  // ── mindmap_verify_changes ─────────────────────────────────
+  server.tool(
+    'mindmap_verify_changes',
+    'Verify what actually changed in files after editing them. ' +
+      'Re-parses the specified files and compares with the stored index to show ' +
+      'exactly which functions/classes were added, modified, or deleted. ' +
+      'Use this INSTEAD of re-reading files to verify your edits took effect. ' +
+      'Also updates the index with the new file state.',
+    {
+      files: z.array(z.string()).describe(
+        'List of file paths (absolute or relative to project root) to verify'
+      ),
+    },
+    async ({ files }) => {
+      try {
+        const { parseFile: parse } = await import('../knowledge-graph/parser.js');
+        const { resolve, relative: rel } = await import('node:path');
+
+        const results: Array<{
+          file: string;
+          status: 'modified' | 'added' | 'unchanged' | 'deleted' | 'error';
+          symbolChanges?: {
+            added: string[];
+            modified: string[];
+            deleted: string[];
+          };
+          error?: string;
+        }> = [];
+
+        for (const filePath of files) {
+          // Resolve relative paths against project root
+          const absPath = resolve(config.projectRoot, filePath);
+          const relPath = rel(config.projectRoot, absPath).replace(/\\/g, '/');
+
+          try {
+            // Get old nodes from graph
+            const oldNodes = graph.getNodesForFile(absPath);
+
+            // Re-parse the file
+            const parseResult = await parse(absPath);
+
+            if (!parseResult || parseResult.nodes.length === 0) {
+              if (oldNodes.length > 0) {
+                // File was deleted or emptied
+                results.push({
+                  file: relPath,
+                  status: 'deleted',
+                  symbolChanges: {
+                    added: [],
+                    modified: [],
+                    deleted: oldNodes
+                      .filter(n => n.type !== 'file')
+                      .map(n => `${n.type} ${n.name}`),
+                  },
+                });
+              } else {
+                results.push({ file: relPath, status: 'unchanged' });
+              }
+              continue;
+            }
+
+            // Build name→signature maps for comparison
+            const oldMap = new Map(
+              oldNodes
+                .filter(n => n.type !== 'file')
+                .map(n => [n.name, { type: n.type, signature: n.signature || '' }])
+            );
+            const newMap = new Map(
+              parseResult.nodes
+                .filter(n => n.type !== 'file')
+                .map(n => [n.name, { type: n.type, signature: n.signature || '' }])
+            );
+
+            const added: string[] = [];
+            const modified: string[] = [];
+            const deleted: string[] = [];
+
+            // Find added and modified
+            for (const [name, info] of newMap) {
+              const old = oldMap.get(name);
+              if (!old) {
+                added.push(`${info.type} ${name}`);
+              } else if (old.signature !== info.signature) {
+                modified.push(`${info.type} ${name} (signature changed)`);
+              }
+            }
+
+            // Find deleted
+            for (const [name, info] of oldMap) {
+              if (!newMap.has(name)) {
+                deleted.push(`${info.type} ${name}`);
+              }
+            }
+
+            // Determine status
+            let status: 'modified' | 'added' | 'unchanged' = 'unchanged';
+            if (oldNodes.length === 0 && parseResult.nodes.length > 0) {
+              status = 'added';
+            } else if (added.length > 0 || modified.length > 0 || deleted.length > 0) {
+              status = 'modified';
+            }
+
+            // Update the graph with new data
+            graph.replaceFileData(absPath, parseResult.nodes, parseResult.edges);
+
+            results.push({
+              file: relPath,
+              status,
+              symbolChanges: { added, modified, deleted },
+            });
+
+          } catch (err) {
+            results.push({
+              file: relPath,
+              status: 'error',
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+
+        const totalChanges = results.reduce((sum, r) =>
+          sum + (r.symbolChanges
+            ? r.symbolChanges.added.length + r.symbolChanges.modified.length + r.symbolChanges.deleted.length
+            : 0), 0);
+
+        return mcpText(ok({
+          verified: true,
+          filesChecked: files.length,
+          totalSymbolChanges: totalChanges,
+          files: results,
+          message: totalChanges > 0
+            ? `✅ Verified ${files.length} file(s): ${totalChanges} symbol-level changes detected and index updated.`
+            : `✅ Verified ${files.length} file(s): no symbol-level changes detected.`,
+        }, estimator));
+      } catch (err: unknown) {
+        return mcpText(fail(`verify_changes failed: ${err instanceof Error ? err.message : String(err)}`));
+      }
+    },
+  );
 }

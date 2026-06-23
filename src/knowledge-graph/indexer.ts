@@ -91,6 +91,18 @@ export class Indexer {
     this.changelog = changelog;
   }
 
+  /**
+   * Re-target the indexer to a different project directory.
+   * Reloads .gitignore patterns and updates config.projectRoot.
+   * The graph is NOT cleared — nodes from multiple projects can coexist.
+   */
+  setProjectRoot(newRoot: string): void {
+    this.config.projectRoot = newRoot;
+    // Reset and reload ignore patterns for the new root
+    this.ig = ignore();
+    this.loadIgnorePatterns();
+  }
+
   /** Load ignore patterns from .gitignore and config */
   private loadIgnorePatterns(): void {
     // Add config-specified ignore patterns

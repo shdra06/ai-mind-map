@@ -67,6 +67,17 @@ export interface IIndexer {
     errors: string[];
   }>;
 
+  /** Re-target to a specific project directory and index it. */
+  reindexProject(projectPath: string): Promise<{
+    filesScanned: number;
+    filesIndexed: number;
+    nodesCreated: number;
+    edgesCreated: number;
+    durationMs: number;
+    errors: string[];
+    projectRoot: string;
+  }>;
+
   /** Get current system statistics. */
   getStats(): MindMapStats;
 }
@@ -225,18 +236,29 @@ export function registerContextTools(
   // ── mindmap_reindex ─────────────────────────────────────────
   server.tool(
     'mindmap_reindex',
-    'Force a full re-index of the codebase. Call this IMMEDIATELY if you see a ' +
-      '_hint about "No codebase index found" or if search/query tools return empty results. ' +
-      'This is a one-time operation (~10-30s) that indexes all code files, ' +
-      'creating a knowledge graph of functions, classes, types, and their relationships. ' +
-      'After indexing, all other tools will return real data.',
-    {},
-    async () => {
+    'Index or re-index a codebase. CRITICAL: If you see empty results or _hint about ' +
+      '"No codebase index found", call this with the PROJECT PATH of the code you are working on. ' +
+      'Pass the projectPath parameter — this is the root directory of the user\'s project ' +
+      '(e.g. "E:\\\\myproject" or "/home/user/project"). Without projectPath, it re-indexes the current project. ' +
+      'This creates a knowledge graph of all functions, classes, types, and relationships. ' +
+      'Takes ~10-30 seconds. After indexing, all other tools return real data.',
+    {
+      projectPath: z.string().optional().describe(
+        'Absolute path to the project directory to index. ALWAYS provide this when indexing a new project.'
+      ),
+    },
+    async ({ projectPath }) => {
       try {
-        const result = await indexer.reindex();
+        let result;
+        if (projectPath) {
+          result = await indexer.reindexProject(projectPath);
+        } else {
+          const raw = await indexer.reindex();
+          result = { ...raw, projectRoot: indexer.getStats().projectRoot ?? 'unknown' };
+        }
         return mcpText(ok({
           ...result,
-          message: `✅ Indexed ${result.filesIndexed} files → ${result.nodesCreated} symbols in ${result.durationMs}ms. All tools are now ready.`,
+          message: `✅ Indexed ${result.filesIndexed} files → ${result.nodesCreated} symbols in ${result.durationMs}ms. Project: ${result.projectRoot}. All tools are now ready.`,
         }, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);

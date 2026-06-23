@@ -731,6 +731,40 @@ function createIndexerAdapter(
       }
     },
 
+    reindexProject: async (projectPath: string) => {
+      const startTime = Date.now();
+      const resolvedPath = path.resolve(projectPath);
+      try {
+        // Re-target the indexer to the new project
+        indexer.setProjectRoot(resolvedPath);
+        log('info', `📁 Re-targeted to project: ${resolvedPath}`);
+
+        // Run full index on the new project (don't clear — multi-project)
+        const result = await indexer.fullIndex();
+        return {
+          filesScanned: result.filesScanned,
+          filesIndexed: result.filesParsed,
+          nodesCreated: result.nodesCreated,
+          edgesCreated: result.edgesCreated,
+          durationMs: result.durationMs,
+          errors: result.parseErrors > 0
+            ? [`${result.parseErrors} parse errors encountered`]
+            : [],
+          projectRoot: resolvedPath,
+        };
+      } catch (err) {
+        return {
+          filesScanned: 0,
+          filesIndexed: 0,
+          nodesCreated: 0,
+          edgesCreated: 0,
+          durationMs: Date.now() - startTime,
+          errors: [err instanceof Error ? err.message : String(err)],
+          projectRoot: resolvedPath,
+        };
+      }
+    },
+
     getStats: (): MindMapStats => {
       let dbSize = 0;
       try {
@@ -749,6 +783,7 @@ function createIndexerAdapter(
       const allDecisions = decisionLog.queryDecisions({});
 
       return {
+        projectRoot: config.projectRoot,
         indexedFiles: graphStats.totalFiles,
         totalNodes: graphStats.totalNodes,
         totalEdges: graphStats.totalEdges,
@@ -825,6 +860,7 @@ function enrichToolResponse(
   tracker: SessionTokenTracker,
   estimator: { estimate(text: string): number },
   graphNodeCount: () => number,
+  getProjectInfo: () => { root: string; indexedFiles: number; totalNodes: number },
 ): { content: Array<{ type: string; text: string }> } {
   if (!response?.content?.[0]?.text) return response;
 
@@ -841,6 +877,9 @@ function enrichToolResponse(
     // Always add session token metadata
     result._sessionTokens = tracker.getSummary();
 
+    // Always add project metadata
+    result._project = getProjectInfo();
+
     // If result is empty/failed AND graph has no nodes, add auto-index hint
     const nodeCount = graphNodeCount();
     if (nodeCount === 0) {
@@ -852,8 +891,9 @@ function enrichToolResponse(
       const isFail = result.success === false;
 
       if (isEmpty || isFail) {
-        result._hint = '⚠️ No codebase index found. Call mindmap_reindex to index the project first. ' +
-          'This is a one-time operation that takes ~10-30 seconds depending on project size.';
+        result._hint = '⚠️ No codebase index found. Call mindmap_reindex with the projectPath parameter ' +
+          'set to the root directory of the user\'s project (e.g. "E:\\\\myproject"). ' +
+          'This is a one-time operation that takes ~10-30 seconds.';
       }
     }
 
@@ -1035,7 +1075,7 @@ async function main(): Promise<void> {
   const server = new McpServer(
     {
       name: 'ai-mind-map',
-      version: '1.4.6',
+      version: '1.5.0',
     },
     {
       instructions: [
@@ -1043,13 +1083,13 @@ async function main(): Promise<void> {
         '',
         'You have access to AI Mind Map, a persistent code memory system that saves you from re-reading files and losing context between sessions.',
         '',
-        '## 🚀 Recommended Tool Usage',
-        'To get context on a new project or resume a previous task, consider calling `mindmap_session_resume`. It returns:',
+        '## 🚀 FIRST CALL (every new conversation):',
+        'Call `mindmap_session_resume` FIRST. It returns:',
         '- What the previous AI worked on',
         '- What code changed since then (function-level diffs)',
         '- Project structure + tech stack',
         '- Hot files (most frequently changed)',
-        'This ONE call can replace reading 10+ files.',
+        'This ONE call replaces reading 10+ files.',
         '',
         '## 📋 Tool Selection Guide:',
         '',
@@ -1083,24 +1123,25 @@ async function main(): Promise<void> {
         '### When you finish work:',
         '- `mindmap_session_end` → Save summary so next AI can resume instantly',
         '',
+        '### After editing code:',
+        '- `mindmap_verify_changes` → Verify your edits at the symbol level WITHOUT re-reading files',
+        '',
         '## ⚡ Token-Saving Rules:',
-        '1. Consider calling `mindmap_session_resume` to get context without reading files',
+        '1. ALWAYS call `mindmap_session_resume` first — never start blind',
         '2. Use `mindmap_file_digest` BEFORE reading a full file — you may not need the full file',
-        '3. Use `mindmap_verify` to check if cached code is still valid — avoid re-reading',
+        '3. Use `mindmap_verify_changes` after editing to verify changes — do NOT re-read whole files',
         '4. Use `mindmap_changelog` instead of re-reading files to see what changed',
         '5. Call `mindmap_session_end` when done — save context for next session',
         '',
-        '## 🔄 Auto-Indexing:',
-        'If any response contains `_hint` about "No codebase index found", call `mindmap_reindex` immediately.',
-        'This indexes the entire codebase (usually takes 10-30 seconds) and only needs to happen once.',
-        'After indexing, all tools will return real data.',
+        '## 🔄 Project Indexing:',
+        'Every response includes `_project.root` showing which directory is currently indexed.',
+        'If `_project.totalNodes` is 0, you MUST call `mindmap_reindex` with `projectPath` set to',
+        'the user\'s project directory (e.g. their workspace root). This creates the knowledge graph.',
+        'Example: `mindmap_reindex({ projectPath: "/home/user/my-project" })`',
+        'You can also reindex to switch between projects — the graph supports multiple projects.',
         '',
         '## 📊 Token Tracking:',
-        'Every response includes `_sessionTokens` with cumulative usage:',
-        '- `totalToolCalls` — how many MCP tools you have called',
-        '- `totalOutputTokens` — estimated tokens in all responses so far',
-        '- `totalTokensSaved` — estimated tokens saved vs reading raw files',
-        'Use this to monitor your token footprint and optimize usage.',
+        'Every response includes `_sessionTokens` with cumulative usage.',
       ].join('\n'),
     },
   );
@@ -1130,12 +1171,16 @@ async function main(): Promise<void> {
         // Call original handler
         const response = await originalHandler(...handlerArgs);
 
-        // Enrich response with token tracking
+        // Enrich response with token tracking + project metadata
         return enrichToolResponse(
           response,
           tokenTracker,
           tokenEstimator,
           () => graph.getStats().totalNodes,
+          () => {
+            const s = graph.getStats();
+            return { root: config.projectRoot, indexedFiles: s.totalFiles, totalNodes: s.totalNodes };
+          },
         );
       };
     }
@@ -1239,7 +1284,7 @@ async function main(): Promise<void> {
   log('info', '  Smart:    mindmap_explain ⭐, mindmap_git_changes ⭐, mindmap_smart_search ⭐');
   log('info', '  Evolving: mindmap_teach ⭐, mindmap_get_learned, mindmap_forget');
   log('info', '  Semantic: mindmap_semantic_search ⭐, mindmap_semantic_stats, mindmap_synonyms');
-  log('info', '  Session:  mindmap_session_start ⭐, mindmap_session_resume ⭐⭐, mindmap_session_end, mindmap_changelog ⭐, mindmap_hotspots');
+  log('info', '  Session:  mindmap_session_start 🆕, mindmap_session_resume 🔥🆕, mindmap_session_end, mindmap_changelog 🆕, mindmap_hotspots, mindmap_verify_changes 🆕');
   log('info', '  Digest:   mindmap_digest ⭐, mindmap_file_digest ⭐, mindmap_verify');
 
   // ── 7.3 Register MCP Prompts ──────────────────────────────
@@ -1389,33 +1434,49 @@ async function main(): Promise<void> {
     }
   }
 
-  // ── 8. Auto-index on first run ─────────────────────────────
+  // ── 8. Smart auto-index (only if projectRoot looks like a real project) ──
   if (config.memoryOnly) {
     log('info', '🧠 Running in memoryOnly mode. Bypassing codebase parsing and indexing.');
   } else {
-    const stats = graph.getStats();
-    if (stats.totalNodes === 0) {
-      log('info', '📋 No existing index found. Running initial codebase indexing…');
-      try {
-        const result = await indexer.fullIndex();
-        log('info', `✅ Initial index complete: ${result.filesParsed} files, ${result.nodesCreated} nodes, ${result.edgesCreated} edges`);
-        if (result.parseErrors > 0) {
-          log('warn', `⚠️ ${result.parseErrors} parse errors (non-fatal)`);
-        }
-      } catch (err) {
-        log('warn', `⚠️ Initial indexing failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
-      }
+    // Check if projectRoot is a real project (not an IDE install directory)
+    const projectMarkers = [
+      '.git', 'package.json', 'build.gradle', 'build.gradle.kts',
+      'Cargo.toml', 'go.mod', 'pom.xml', 'CMakeLists.txt',
+      'Makefile', '.project', 'setup.py', 'pyproject.toml',
+      'pubspec.yaml', 'Gemfile', '*.sln', '*.csproj',
+    ];
+    const isRealProject = projectMarkers.some(marker =>
+      existsSync(path.join(config.projectRoot, marker))
+    );
+
+    if (!isRealProject) {
+      log('info', `⚠️ Project root "${config.projectRoot}" does not look like a code project (no .git, package.json, etc.).`);
+      log('info', '   Skipping auto-index. The AI agent will be prompted to call mindmap_reindex with the correct project path.');
     } else {
-      log('info', `📋 Existing index found: ${stats.totalNodes} nodes. Running incremental update…`);
-      try {
-        const result = await indexer.incrementalIndex();
-        log('info', `✅ Incremental update: ${result.filesParsed} files reindexed`);
-      } catch (err) {
-        log('warn', `⚠️ Incremental update failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+      const stats = graph.getStats();
+      if (stats.totalNodes === 0) {
+        log('info', `📋 Real project detected at: ${config.projectRoot}. Running initial indexing…`);
+        try {
+          const result = await indexer.fullIndex();
+          log('info', `✅ Initial index complete: ${result.filesParsed} files, ${result.nodesCreated} nodes, ${result.edgesCreated} edges`);
+          if (result.parseErrors > 0) {
+            log('warn', `⚠️ ${result.parseErrors} parse errors (non-fatal)`);
+          }
+        } catch (err) {
+          log('warn', `⚠️ Initial indexing failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+        }
+      } else {
+        log('info', `📋 Existing index found: ${stats.totalNodes} nodes. Running incremental update…`);
+        try {
+          const result = await indexer.incrementalIndex();
+          log('info', `✅ Incremental update: ${result.filesParsed} files reindexed`);
+        } catch (err) {
+          log('warn', `⚠️ Incremental update failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+        }
       }
     }
 
-    // Build semantic search TF-IDF index from all graph nodes
+    // Build semantic search TF-IDF index from existing graph nodes (if any)
     try {
       const allNodes = graph.getAllNodes();
       const nonFileNodes = allNodes.filter(n => n.type !== 'file');

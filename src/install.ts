@@ -1471,8 +1471,8 @@ function getToolAwarenessRules(): string {
 
 You have the AI Mind Map MCP server connected. It is a persistent code memory system that eliminates redundant file re-reading and context loss between sessions.
 
-## 🚀 Recommended Tool Usage
-To get context on a new project or resume a previous task, call \`mindmap_session_resume\`. It returns:
+## 🚀 FIRST THING TO DO IN EVERY CONVERSATION
+Call \`mindmap_session_resume\` — it returns:
 - What the previous AI agent worked on
 - What code changed since then (function-level diffs, not just file names)
 - Project structure + tech stack
@@ -1546,7 +1546,7 @@ This ONE call replaces reading 10+ files (~2000 tokens instead of 50,000+).
 - System health → \`mindmap_health\`
 
 ## ⚡ Token-Saving Rules
-1. Consider calling \`mindmap_session_resume\` to get context without reading files
+1. ALWAYS call \`mindmap_session_resume\` first — never start blind
 2. PREFER \`mindmap_explain\` over reading files — it gives everything in 1 call
 3. Use \`mindmap_file_digest\` BEFORE reading a full file — you may not need the full file
 4. Use \`mindmap_verify\` to check if cached code is still valid — avoid re-reading

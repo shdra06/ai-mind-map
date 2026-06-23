@@ -312,6 +312,7 @@ export const DEFAULT_CONFIG: MindMapConfig = {
 // ============================================================
 
 export interface MindMapStats {
+  projectRoot: string;
   indexedFiles: number;
   totalNodes: number;
   totalEdges: number;
