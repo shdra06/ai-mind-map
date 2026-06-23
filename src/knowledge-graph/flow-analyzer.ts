@@ -229,11 +229,12 @@ const LAYER_PATTERNS: Array<{ layer: FlowLayer; patterns: RegExp[] }> = [
 
 /** Patterns that identify "service" vs "controller" vs "repository" by file path */
 const PATH_LAYER_PATTERNS: Array<{ layer: FlowLayer; patterns: RegExp[] }> = [
-  { layer: 'ui_component', patterns: [/Window/i, /Control/i, /View(?!Model)/i, /Style/i, /Theme/i] },
+  { layer: 'ui_component', patterns: [/Window/i, /Control/i, /View(?!Model)/i, /Style/i, /Theme/i, /^App\./i] },
   { layer: 'controller', patterns: [/ViewModel/i, /EventHandler/i, /Interaction/i, /WndProc/i] },
-  { layer: 'service', patterns: [/Manager/i, /Service/i, /Engine/i, /Provider/i, /Helper/i, /Tool/i] },
+  { layer: 'service', patterns: [/Manager/i, /Service/i, /Engine/i, /Provider/i, /Helper/i, /Tool/i, /Crypto/i, /Clock/i, /Secrets?/i, /Daemon/i, /Scheduler/i, /Discovery/i, /Auth/i] },
   { layer: 'database', patterns: [/Data/i, /Database/i, /Storage/i, /Cache/i, /Persist/i] },
   { layer: 'validator', patterns: [/Validator/i, /Parser/i, /Converter/i] },
+  { layer: 'util', patterns: [/Matcher/i, /Comparer/i, /Sorter/i, /Logger/i, /Profiler/i, /Tracker/i, /Queue/i, /Diagnostic/i, /Telemetry/i] },
   { layer: 'controller', patterns: [/controller/i, /handler/i, /endpoint/i, /route/i] },
   { layer: 'service', patterns: [/service/i, /business/i, /logic/i, /use.?case/i, /manager/i] },
   { layer: 'repository', patterns: [/repo/i, /repository/i, /dao/i, /data.?access/i, /store/i, /dal/i] },
