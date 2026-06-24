@@ -77,6 +77,33 @@ export class Indexer {
   private ig: ReturnType<typeof ignore>;
   private changelog: ChangelogEngine | null = null;
 
+  // Async lock for indexing operations
+  private _indexLock: Promise<void> = Promise.resolve();
+  private _lockRelease: (() => void) | null = null;
+
+  private async acquireIndexLock(): Promise<() => void> {
+    // Wait for any existing lock to release
+    await this._indexLock;
+    let release: () => void;
+    this._indexLock = new Promise<void>(resolve => { release = resolve; });
+    this._lockRelease = release!;
+    return () => {
+      this._lockRelease = null;
+      release!();
+    };
+  }
+
+  get isIndexing(): boolean {
+    return this._lockRelease !== null;
+  }
+
+  // Optional watcher reference to pause/resume during full reindex
+  private watcher: { pause(): void; resume(): void } | null = null;
+
+  setWatcher(watcher: { pause(): void; resume(): void }): void {
+    this.watcher = watcher;
+  }
+
   /**
    * Per-project-root ignore patterns.
    * When multiple projects are indexed, each keeps its own .gitignore rules.
@@ -260,6 +287,11 @@ export class Indexer {
    * @returns Indexing statistics
    */
   async fullIndex(onProgress?: IndexProgressCallback): Promise<IndexStats> {
+    const release = await this.acquireIndexLock();
+    try {
+    // Pause watcher to prevent races during full reindex
+    this.watcher?.pause();
+
     const startTime = Date.now();
     const stats: IndexStats = {
       filesScanned: 0,
@@ -376,6 +408,13 @@ export class Indexer {
       }
     }
 
+    // Cleanup orphaned edges after full reindex
+    try {
+      this.graph.cleanOrphanedEdges();
+    } catch {
+      // Non-critical cleanup
+    }
+
     // Phase 4: Complete
     stats.durationMs = Date.now() - startTime;
 
@@ -387,6 +426,10 @@ export class Indexer {
     });
 
     return stats;
+    } finally {
+      this.watcher?.resume();
+      release();
+    }
   }
 
   /**
@@ -399,6 +442,8 @@ export class Indexer {
    * @returns Indexing statistics
    */
   async incrementalIndex(onProgress?: IndexProgressCallback): Promise<IndexStats> {
+    const release = await this.acquireIndexLock();
+    try {
     const startTime = Date.now();
     const stats: IndexStats = {
       filesScanned: 0,
@@ -605,6 +650,9 @@ export class Indexer {
     });
 
     return stats;
+    } finally {
+      release();
+    }
   }
 
   /**
@@ -614,6 +662,8 @@ export class Indexer {
    * @returns Parse result, or null if file was skipped
    */
   async indexFile(filePath: string): Promise<ParseResult | null> {
+    const release = await this.acquireIndexLock();
+    try {
     // Determine which project this file belongs to (multi-project support)
     const fileProjectRoot = this.findProjectRootForFile(filePath) ?? this.config.projectRoot;
     const fileIgnore = this.getIgnoreForFile(filePath);
@@ -655,6 +705,9 @@ export class Indexer {
     }
 
     return result;
+    } finally {
+      release();
+    }
   }
 
   /**

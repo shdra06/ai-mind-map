@@ -196,6 +196,13 @@ export class DecisionLog {
     decision: Decision;
     conflicts: DecisionConflict[];
   } {
+    // Input validation
+    if (input.title && input.title.length > 500) input.title = input.title.substring(0, 500);
+    if (input.description && input.description.length > 50000) input.description = input.description.substring(0, 50000) + '... [truncated]';
+    if (input.rationale && input.rationale.length > 50000) input.rationale = input.rationale.substring(0, 50000) + '... [truncated]';
+    if (input.alternatives && input.alternatives.length > 20) input.alternatives = input.alternatives.slice(0, 20);
+    if (input.consequences && input.consequences.length > 20) input.consequences = input.consequences.slice(0, 20);
+
     const now = Date.now();
 
     // ── Conflict detection ───────────────────────────────────

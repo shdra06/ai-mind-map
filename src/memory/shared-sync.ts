@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import type { MindMapConfig, Memory, Decision, MemoryCategory } from '../types.js';
@@ -309,8 +309,12 @@ export async function syncSharedContext(
     .substring(0, 16);
   finalContext._checksum = dataHash;
 
+  // Atomic write: write to temp file first, then rename
   try {
-    writeFileSync(sharedFilePath, JSON.stringify(finalContext, null, 2), 'utf-8');
+    const content = JSON.stringify(finalContext, null, 2);
+    const tmpPath = sharedFilePath + '.tmp.' + process.pid;
+    writeFileSync(tmpPath, content, 'utf-8');
+    renameSync(tmpPath, sharedFilePath);
   } catch (err) {
     throw new Error(`Failed to write shared context file ${config.sharedContextFile}: ${err}`);
   }

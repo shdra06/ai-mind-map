@@ -112,6 +112,7 @@ export class FileWatcher extends EventEmitter {
       ignored: (filePath: string) => this.isIgnored(filePath),
       persistent: true,
       ignoreInitial: true,
+      followSymlinks: false,
       awaitWriteFinish: {
         stabilityThreshold: 200,
         pollInterval: 50,

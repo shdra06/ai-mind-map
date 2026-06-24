@@ -757,7 +757,7 @@ export class KnowledgeGraph {
 
   /** Split camelCase/PascalCase into words and build an FTS5 AND query */
   private sanitizeFtsQuery(query: string): string {
-    const stripped = query.replace(/[{}[\]()^~@!$]/g, ' ');
+    const stripped = query.replace(/[{}[\]()^~@!$"]/g, ' ');
 
     const words: string[] = [];
     for (const token of stripped.split(/\s+/).filter(Boolean)) {
@@ -1215,6 +1215,19 @@ export class KnowledgeGraph {
    */
   getFileIndexCount(): number {
     return (this.db.prepare('SELECT COUNT(*) as c FROM file_index').get() as any)?.c ?? 0;
+  }
+
+  /**
+   * Remove orphaned edges (edges pointing to non-existent nodes).
+   * Should be called periodically or after reindexing.
+   */
+  cleanOrphanedEdges(): number {
+    const result = this.db.prepare(`
+      DELETE FROM edges
+      WHERE sourceId NOT IN (SELECT id FROM nodes)
+         OR targetId NOT IN (SELECT id FROM nodes)
+    `).run();
+    return result.changes;
   }
 
   /**

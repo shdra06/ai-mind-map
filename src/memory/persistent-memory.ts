@@ -252,6 +252,14 @@ export class PersistentMemory {
    * @returns The memory (new or merged).
    */
   createMemory(input: CreateMemoryInput): Memory {
+    // Input validation
+    if (input.content && input.content.length > 50000) {
+      input.content = input.content.substring(0, 50000) + '... [truncated]';
+    }
+    if (input.tags && input.tags.length > 50) {
+      input.tags = input.tags.slice(0, 50);
+    }
+
     const now = Date.now();
     const importance = input.importance ?? CATEGORY_IMPORTANCE[input.category] ?? 0.5;
     const tags = input.tags ?? [];
