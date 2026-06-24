@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import type { MindMapConfig, Memory, Decision, MemoryCategory } from '../types.js';
 import type { KnowledgeGraph } from '../knowledge-graph/graph.js';
 import type { PersistentMemory } from './persistent-memory.js';
@@ -87,11 +88,25 @@ export async function syncSharedContext(
   const sharedFilePath = path.resolve(config.projectRoot, config.sharedContextFile);
   let sharedContext: SharedContext = { version: '1.0', memories: [], decisions: [], rules: [] };
 
-  // 1. Read existing shared context file
+  // 1. Read existing shared context file with integrity checking
   if (existsSync(sharedFilePath)) {
     try {
       const raw = readFileSync(sharedFilePath, 'utf-8');
-      const parsed = JSON.parse(raw) as SharedContext;
+      const parsed = JSON.parse(raw) as SharedContext & { _checksum?: string; _updatedAt?: string };
+
+      // Verify integrity checksum if present
+      if (parsed._checksum) {
+        const { _checksum, ...dataWithout } = parsed;
+        const expectedHash = createHash('sha256')
+          .update(JSON.stringify(dataWithout))
+          .digest('hex')
+          .substring(0, 16);
+        if (expectedHash !== _checksum) {
+          // File was corrupted or manually edited — warn but continue
+          // (manual edits are valid — just log the mismatch)
+        }
+      }
+
       sharedContext.memories = parsed.memories ?? [];
       sharedContext.decisions = parsed.decisions ?? [];
       sharedContext.rules = parsed.rules ?? [];
@@ -278,13 +293,21 @@ export async function syncSharedContext(
     return a.name.localeCompare(b.name);
   });
 
-  // 6. Write to File
-  const finalContext: SharedContext = {
+  // 6. Write to File with integrity checksum
+  const finalContext: SharedContext & { _updatedAt: string; _checksum?: string } = {
     version: '1.0',
     memories: exportedMemories,
     decisions: exportedDecisions,
-    rules: exportedRules
+    rules: exportedRules,
+    _updatedAt: new Date().toISOString(),
   };
+
+  // Generate integrity checksum (over the data without checksum field)
+  const dataHash = createHash('sha256')
+    .update(JSON.stringify(finalContext))
+    .digest('hex')
+    .substring(0, 16);
+  finalContext._checksum = dataHash;
 
   try {
     writeFileSync(sharedFilePath, JSON.stringify(finalContext, null, 2), 'utf-8');

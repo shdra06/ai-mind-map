@@ -96,7 +96,7 @@ describe('isSupportedFile', () => {
 
   it('returns false for unsupported extensions', () => {
     assert.strictEqual(isSupportedFile('readme.md'), false);
-    assert.strictEqual(isSupportedFile('style.css'), false);
+    assert.strictEqual(isSupportedFile('image.bmp'), false);
   });
 });
 

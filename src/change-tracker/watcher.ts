@@ -149,6 +149,17 @@ export class FileWatcher extends EventEmitter {
   }
 
   /**
+   * Add an additional project root to watch (multi-project support).
+   * The chokidar watcher will be extended to include the new directory.
+   */
+  addRoot(newRoot: string): void {
+    const resolved = path.resolve(newRoot);
+    if (this.chokidarWatcher && this.state === 'running') {
+      this.chokidarWatcher.add(resolved);
+    }
+  }
+
+  /**
    * Stop watching entirely and release all resources.
    *
    * After calling `stop()` the instance cannot be restarted — create a new

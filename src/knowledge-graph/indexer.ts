@@ -28,11 +28,11 @@ import {
 import type { ParseResult } from './parser.js';
 import type { ChangelogEngine } from './changelog.js';
 
-/** Maximum file size to index (default 512KB). Files larger than this are skipped to prevent OOM. */
-const MAX_FILE_SIZE_BYTES = 512 * 1024;
+/** Maximum file size to index (1MB). Files larger than this are skipped to prevent OOM. */
+const MAX_FILE_SIZE_BYTES = 1024 * 1024;
 
 /** Memory pressure threshold — pause indexing if heap usage exceeds this fraction. */
-const MEMORY_PRESSURE_THRESHOLD = 0.80;
+const MEMORY_PRESSURE_THRESHOLD = 0.85;
 
 // ============================================================
 // Types
@@ -254,7 +254,7 @@ export class Indexer {
       message: `Parsing ${files.length} files...`,
     });
 
-    const parseResults = await parseFiles(files, 8, (current, total) => {
+    const parseResults = await parseFiles(files, 16, (current, total) => {
       onProgress?.({
         phase: 'parsing',
         current,
@@ -307,6 +307,17 @@ export class Indexer {
             currentFile: result.filePath,
             message: `Stored ${i + 1}/${parseResults.length} files`,
           });
+        }
+
+        // Memory pressure check every 100 files
+        if (i % 100 === 0 && i > 0) {
+          const mem = process.memoryUsage();
+          if (mem.heapUsed / mem.heapTotal > MEMORY_PRESSURE_THRESHOLD) {
+            process.stderr.write(
+              `⚠️ Memory pressure during fullIndex at file ${i}/${parseResults.length}. Stopping early.\n`
+            );
+            break;
+          }
         }
       } catch {
         stats.parseErrors++;

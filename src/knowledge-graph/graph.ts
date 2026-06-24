@@ -704,7 +704,7 @@ export class KnowledgeGraph {
    * @param limit - Maximum results (default 20)
    * @returns Matching nodes sorted by relevance
    */
-  search(query: string, limit: number = 20): GraphNode[] {
+  search(query: string, limit: number = 40): GraphNode[] {
     const trimmed = query.trim();
     if (!trimmed) return [];
 

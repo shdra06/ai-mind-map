@@ -703,6 +703,7 @@ function createIndexerAdapter(
   decisionLog: DecisionLog,
   changeLog: ChangeLog,
   config: MindMapConfig,
+  watcher?: { addRoot(root: string): void } | null,
 ): IIndexer {
   return {
     reindex: async () => {
@@ -738,6 +739,12 @@ function createIndexerAdapter(
         // Re-target the indexer to the new project
         indexer.setProjectRoot(resolvedPath);
         log('info', `📁 Re-targeted to project: ${resolvedPath}`);
+
+        // Also watch the new project directory for changes
+        if (watcher) {
+          watcher.addRoot(resolvedPath);
+          log('info', `👁️ File watcher now also watching: ${resolvedPath}`);
+        }
 
         // Run full index on the new project (don't clear — multi-project)
         const result = await indexer.fullIndex();
@@ -1063,7 +1070,7 @@ async function main(): Promise<void> {
     graph, persistentMemory, decisionLog, changeLog, config,
   );
   const indexerAdapter = createIndexerAdapter(
-    indexer, graph, persistentMemory, decisionLog, changeLog, config,
+    indexer, graph, persistentMemory, decisionLog, changeLog, config, watcher,
   );
 
   // Token estimator using the exported estimateTokens function
@@ -1075,7 +1082,7 @@ async function main(): Promise<void> {
   const server = new McpServer(
     {
       name: 'ai-mind-map',
-      version: '1.5.1',
+      version: '1.6.0',
     },
     {
       instructions: [

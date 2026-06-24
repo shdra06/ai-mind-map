@@ -143,11 +143,11 @@ CREATE TABLE IF NOT EXISTS digest_cache (
 // ============================================================
 
 /** Auto-prune: max entries to keep */
-const MAX_CHANGELOG_ENTRIES = 5000;
-/** Auto-prune: max age in ms (30 days) */
-const MAX_CHANGELOG_AGE_MS = 30 * 24 * 60 * 60 * 1000;
-/** Session auto-end after 30 minutes of inactivity */
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const MAX_CHANGELOG_ENTRIES = 10000;
+/** Auto-prune: max age in ms (90 days) */
+const MAX_CHANGELOG_AGE_MS = 90 * 24 * 60 * 60 * 1000;
+/** Session auto-end after 4 hours of inactivity */
+const SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000;
 
 export class ChangelogEngine {
   private db: Database.Database;
@@ -156,6 +156,22 @@ export class ChangelogEngine {
   constructor(db: Database.Database) {
     this.db = db;
     this.ensureSchema();
+    // Auto-prune on startup to prevent unbounded growth
+    this.startupCleanup();
+  }
+
+  /** Run cleanup tasks on startup: prune old changelogs, end stale sessions */
+  private startupCleanup(): void {
+    try {
+      this.pruneChangelog();
+      this.autoEndStaleSession();
+      // Also clean up very old sessions (>90 days)
+      this.db.prepare(
+        `DELETE FROM changelog_sessions WHERE started_at < ?`
+      ).run(Date.now() - MAX_CHANGELOG_AGE_MS);
+    } catch {
+      // Non-critical — don't block startup
+    }
   }
 
   /** Create changelog tables if they don't exist, with migration support */
