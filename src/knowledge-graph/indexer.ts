@@ -366,7 +366,7 @@ export class Indexer {
           const mem = process.memoryUsage();
           if (mem.heapUsed / mem.heapTotal > MEMORY_PRESSURE_THRESHOLD) {
             process.stderr.write(
-              `⚠️ Memory pressure during fullIndex at file ${i}/${parseResults.length}. Stopping early.\n`
+              `⚠ Memory pressure during fullIndex at file ${i}/${parseResults.length}. Stopping early.\n`
             );
             break;
           }

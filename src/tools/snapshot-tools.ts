@@ -60,7 +60,7 @@ export function registerSnapshotTools(
   // ── mindmap_project_map ───────────────────────────────────
   server.tool(
     'mindmap_project_map',
-    `🗺️ THE PROJECT MAP. Returns a compact representation of the ENTIRE project 
+    ` THE PROJECT MAP. Returns a compact representation of the ENTIRE project 
 in ~1500-3000 tokens instead of 50,000+. Contains:
 - Every file with its symbols (functions, classes, types)
 - Architecture layer classification (UI, service, controller, DB, etc.)
@@ -93,7 +93,7 @@ instead of reading the whole codebase.`,
   // ── mindmap_change_delta ──────────────────────────────────
   server.tool(
     'mindmap_change_delta',
-    `🔄 CHANGE DELTA. Shows ONLY what changed since the last session or a given time.
+    ` CHANGE DELTA. Shows ONLY what changed since the last session or a given time.
 Instead of re-reading the whole project, the AI gets a compact list of:
 - Which files were added/modified/deleted
 - Which symbols were affected in each file
@@ -126,7 +126,7 @@ Use this at session start AFTER mindmap_project_map to understand the current st
   // ── mindmap_session_kickoff ─────────────────────────────────
   server.tool(
     'mindmap_session_kickoff',
-    `🚀 SESSION START — the SINGLE most important tool call.
+    ` SESSION START — the SINGLE most important tool call.
 Returns EVERYTHING the AI needs to start working in ONE call:
 1. Complete project map (all files + symbols)
 2. Change delta (what changed since last session)

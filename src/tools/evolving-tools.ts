@@ -159,8 +159,8 @@ export function registerEvolvingTools(
           description,
           rule: ruleData,
           message: result.created
-            ? `✅ New ${type} rule "${name}" has been learned and will persist across sessions.`
-            : `🔄 Updated existing ${type} rule "${name}" with new definition.`,
+            ? ` New ${type} rule "${name}" has been learned and will persist across sessions.`
+            : ` Updated existing ${type} rule "${name}" with new definition.`,
           hint: type === 'classification'
             ? 'This rule will be automatically used by the classification engine to score files.'
             : type === 'search_alias'
@@ -234,7 +234,7 @@ export function registerEvolvingTools(
           return mcpText(ok({
             deleted: true,
             nameOrId,
-            message: `✅ Rule "${nameOrId}" has been forgotten.`,
+            message: ` Rule "${nameOrId}" has been forgotten.`,
           }, estimator));
         } else {
           return mcpText(fail(`Rule not found: "${nameOrId}". Use mindmap_get_learned to see all rules.`));

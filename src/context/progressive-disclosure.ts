@@ -454,13 +454,13 @@ function formatChanges(changes: FileChange[]): string {
 function changeIcon(type: string): string {
   switch (type) {
     case 'created':
-      return '✚';
+      return '';
     case 'modified':
-      return '✎';
+      return '';
     case 'deleted':
-      return '✖';
+      return '';
     case 'renamed':
-      return '➜';
+      return '';
     default:
       return '•';
   }

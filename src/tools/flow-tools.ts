@@ -66,7 +66,7 @@ export function registerFlowTools(
   // ── mindmap_trace_flow ────────────────────────────────────
   server.tool(
     'mindmap_trace_flow',
-    `🔗 Trace the FULL PIPELINE from a function/button/event to its final effect.
+    ` Trace the FULL PIPELINE from a function/button/event to its final effect.
 Example: "What happens when createNote() is called?" → shows the complete chain:
   createNote() → validateInput() → notesService.save() → db.insert() → emitEvent()
 Each step shows: which layer (UI/controller/service/DB), which file, which function.
@@ -97,7 +97,7 @@ The AI doesn't need to read any code to understand the flow.`,
         const pipeline = flow.steps
           .map((s, i) => {
             const indent = '  '.repeat(Math.min(i, 5));
-            const arrow = i === 0 ? '🟢' : '  →';
+            const arrow = i === 0 ? '' : '  →';
             const layerIcon = getLayerIcon(s.layer);
             return `${indent}${arrow} ${layerIcon} [${s.layer}] ${s.symbolName}() — ${s.filePath}:${s.line}`;
           })
@@ -126,7 +126,7 @@ The AI doesn't need to read any code to understand the flow.`,
   // ── mindmap_interaction_map ───────────────────────────────
   server.tool(
     'mindmap_interaction_map',
-    `🗺️ Get the FULL INTERACTION MAP of the application.
+    ` Get the FULL INTERACTION MAP of the application.
 Shows: all routes → handlers → services → DB calls, all UI events → handlers,
 all components with their actions, state, and data sources.
 Also classifies every file by layer (UI, controller, service, repository, DB, etc.)
@@ -194,7 +194,7 @@ This is the app's behavioral blueprint — the AI reads this ONCE and understand
   // ── mindmap_classify_file ─────────────────────────────────
   server.tool(
     'mindmap_classify_file',
-    `📂 Classify a file by its architectural layer.
+    ` Classify a file by its architectural layer.
 Returns: whether the file is a UI component, controller, service, repository, 
 database layer, middleware, validator, utility, etc.
 Helps the AI understand WHERE a file fits in the architecture without reading it.`,
@@ -228,7 +228,7 @@ Helps the AI understand WHERE a file fits in the architecture without reading it
   // ── mindmap_layer_overview ────────────────────────────────
   server.tool(
     'mindmap_layer_overview',
-    `📊 Show how the app is organized by architectural layers.
+    ` Show how the app is organized by architectural layers.
 Returns: count of files and symbols per layer (UI, controller, service, DB, etc.)
 with the key files and functions in each layer. 
 One-shot understanding of the app's structure.`,
@@ -269,22 +269,22 @@ One-shot understanding of the app's structure.`,
 
 function getLayerIcon(layer: FlowLayer | string): string {
   const icons: Record<string, string> = {
-    ui_event: '🖱️',
-    ui_component: '🧩',
+    ui_event: '',
+    ui_component: '',
     event_handler: '⚡',
-    state_update: '🔄',
-    api_call: '🌐',
-    route: '🛣️',
-    controller: '🎮',
-    service: '⚙️',
-    repository: '📦',
-    database: '🗄️',
-    middleware: '🔗',
-    validator: '✅',
-    util: '🔧',
-    unknown: '❓',
+    state_update: '',
+    api_call: '',
+    route: '',
+    controller: '',
+    service: '⚙',
+    repository: '',
+    database: '',
+    middleware: '',
+    validator: '',
+    util: '',
+    unknown: '',
   };
-  return icons[layer] ?? '❓';
+  return icons[layer] ?? '';
 }
 
 function getLayerDescription(layer: FlowLayer): string {

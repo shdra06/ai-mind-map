@@ -258,7 +258,7 @@ export function registerContextTools(
         }
         return mcpText(ok({
           ...result,
-          message: `✅ Indexed ${result.filesIndexed} files → ${result.nodesCreated} symbols in ${result.durationMs}ms. Project: ${result.projectRoot}. All tools are now ready.`,
+          message: ` Indexed ${result.filesIndexed} files → ${result.nodesCreated} symbols in ${result.durationMs}ms. Project: ${result.projectRoot}. All tools are now ready.`,
         }, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -280,7 +280,7 @@ export function registerContextTools(
         const response: Record<string, unknown> = { ...stats };
         if (stats.indexedFiles === 0 && stats.totalNodes === 0) {
           response._indexStatus = 'NOT_INDEXED';
-          response._message = '⚠️ No codebase has been indexed yet. Call mindmap_reindex to index the project.';
+          response._message = '⚠ No codebase has been indexed yet. Call mindmap_reindex to index the project.';
         } else {
           response._indexStatus = 'READY';
         }

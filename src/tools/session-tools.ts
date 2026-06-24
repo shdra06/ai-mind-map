@@ -435,8 +435,8 @@ export function registerSessionTools(
           totalSymbolChanges: totalChanges,
           files: results,
           message: totalChanges > 0
-            ? `✅ Verified ${files.length} file(s): ${totalChanges} symbol-level changes detected and index updated.`
-            : `✅ Verified ${files.length} file(s): no symbol-level changes detected.`,
+            ? ` Verified ${files.length} file(s): ${totalChanges} symbol-level changes detected and index updated.`
+            : ` Verified ${files.length} file(s): no symbol-level changes detected.`,
         }, estimator));
       } catch (err: unknown) {
         return mcpText(fail(`verify_changes failed: ${err instanceof Error ? err.message : String(err)}`));

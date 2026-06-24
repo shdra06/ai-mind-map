@@ -70,11 +70,11 @@ function logError(name: string, msg: string): void {
 }
 
 function logOk(msg: string): void {
-  console.log(`  ${c.green}✔${c.reset} ${msg}`);
+  console.log(`  ${c.green}${c.reset} ${msg}`);
 }
 
 function logFail(msg: string): void {
-  console.log(`  ${c.red}✖${c.reset} ${msg}`);
+  console.log(`  ${c.red}${c.reset} ${msg}`);
 }
 
 function logWarn(msg: string): void {
@@ -950,7 +950,7 @@ function getAgentDefinitions(serverEntry: string): AgentDefinition[] {
  * Checks 7 agents and writes JSON config for each one found.
  */
 export async function installAgents(): Promise<void> {
-  heading('🔌 AI Mind Map — Agent Installation');
+  heading(' AI Mind Map — Agent Installation');
   divider();
 
   const serverEntry = getServerEntryPath();
@@ -984,7 +984,7 @@ export async function installAgents(): Promise<void> {
         console.log(`    ${c.yellow}⚠${c.reset} ${c.dim}Verification issue: ${verifyResult.error}${c.reset}`);
         const fixResult = autoFixConfig(agent.configPath, mcpKey);
         if (fixResult.autoFixed) {
-          console.log(`    ${c.green}✔${c.reset} ${c.dim}Auto-fixed!${c.reset}`);
+          console.log(`    ${c.green}${c.reset} ${c.dim}Auto-fixed!${c.reset}`);
         }
       }
       continue;
@@ -1014,14 +1014,14 @@ export async function installAgents(): Promise<void> {
       const verifyResult = verifyConfigEntry(agent.configPath, mcpKey);
       if (verifyResult.ok) {
         logConfigured(agent.name);
-        console.log(`    ${c.green}✔${c.reset} ${c.dim}Verified: config entry is correct${c.reset}`);
+        console.log(`    ${c.green}${c.reset} ${c.dim}Verified: config entry is correct${c.reset}`);
       } else {
         logConfigured(agent.name);
         console.log(`    ${c.yellow}⚠${c.reset} ${c.dim}Verify warning: ${verifyResult.error}${c.reset}`);
         // Attempt auto-fix
         const fixResult = autoFixConfig(agent.configPath, mcpKey);
         if (fixResult.autoFixed) {
-          console.log(`    ${c.green}✔${c.reset} ${c.dim}Auto-fixed!${c.reset}`);
+          console.log(`    ${c.green}${c.reset} ${c.dim}Auto-fixed!${c.reset}`);
         } else {
           verifyFailCount++;
         }
@@ -1049,13 +1049,13 @@ export async function installAgents(): Promise<void> {
   const misconfigs = detectMisconfigs();
   if (misconfigs.length > 0) {
     console.log('');
-    heading('⚠️ Misconfigurations Detected');
+    heading('⚠ Misconfigurations Detected');
     divider();
     for (const issue of misconfigs) {
       console.log(`  ${c.yellow}⚠${c.reset} ${c.bold}${issue.agent}${c.reset}: ${issue.problem}`);
       if (issue.fixFn) {
         issue.fixFn();
-        console.log(`    ${c.green}✔${c.reset} AUTO-FIXED: ${issue.fix}`);
+        console.log(`    ${c.green}${c.reset} AUTO-FIXED: ${issue.fix}`);
       } else {
         console.log(`    ${c.dim}Fix: ${issue.fix}${c.reset}`);
       }
@@ -1077,7 +1077,7 @@ export async function installAgents(): Promise<void> {
  * Remove AI Mind Map MCP configurations from all detected agents.
  */
 export async function uninstallAgents(): Promise<void> {
-  heading('🔌 AI Mind Map — Agent Uninstall');
+  heading(' AI Mind Map — Agent Uninstall');
   divider();
 
   const serverEntry = getServerEntryPath();
@@ -1173,7 +1173,7 @@ interface DiagnosticResult {
  * - Detected & configured agents
  */
 export async function runDoctor(): Promise<void> {
-  heading('🩺 AI Mind Map — Diagnostics');
+  heading(' AI Mind Map — Diagnostics');
   divider();
 
   const results: DiagnosticResult[] = [];
@@ -1406,7 +1406,7 @@ export async function runDoctor(): Promise<void> {
   const misconfigs = detectMisconfigs();
   if (misconfigs.length > 0) {
     console.log('');
-    heading('⚠️ Configuration Issues Found');
+    heading('⚠ Configuration Issues Found');
     divider();
 
     const shouldFix = process.argv.includes('--fix');
@@ -1422,7 +1422,7 @@ export async function runDoctor(): Promise<void> {
 
       if (shouldFix && issue.fixFn) {
         issue.fixFn();
-        console.log(`    ${c.green}✔${c.reset} AUTO-FIXED: ${issue.fix}`);
+        console.log(`    ${c.green}${c.reset} AUTO-FIXED: ${issue.fix}`);
       } else if (issue.fixFn) {
         console.log(`    ${c.dim}Run with --fix to auto-repair: ${issue.fix}${c.reset}`);
       } else {
@@ -1471,7 +1471,7 @@ function getToolAwarenessRules(): string {
 
 You have the AI Mind Map MCP server connected. It is a persistent code memory system that eliminates redundant file re-reading and context loss between sessions.
 
-## 🚀 FIRST THING TO DO IN EVERY CONVERSATION
+##  FIRST THING TO DO IN EVERY CONVERSATION
 Call \`mindmap_session_resume\` — it returns:
 - What the previous AI agent worked on
 - What code changed since then (function-level diffs, not just file names)
@@ -1487,27 +1487,27 @@ This ONE call replaces reading 10+ files (~2000 tokens instead of 50,000+).
 - Start tracking a new task → \`mindmap_session_start\`
 - End session, save summary → \`mindmap_session_end\`
 
-### 🔍 Find Code (instead of grep/reading files)
+###  Find Code (instead of grep/reading files)
 - Search by name → \`mindmap_smart_search\` ⭐ (returns full context)
 - Search by concept → \`mindmap_semantic_search\` ⭐ ("authentication", "error handling")
 - Grep text in code → \`mindmap_search_code\`
 - Who calls X? → \`mindmap_trace_dependencies\`
 - All usages of symbol → \`mindmap_find_references\`
 
-### 📖 Read Code (without reading full files)
+###  Read Code (without reading full files)
 - Everything about a symbol → \`mindmap_explain\` ⭐ (signature + callers + callees + doc in ONE call)
 - Read actual source code → \`mindmap_get_code_snippet\`
 - Understand file without reading → \`mindmap_file_digest\` ⭐ (saves 3-10K tokens/file)
 - All symbols in a file → \`mindmap_get_file_map\`
 - Just the signature → \`mindmap_get_signature\` (cheapest read)
 
-### 📊 Understand the Project
+###  Understand the Project
 - Full project summary → \`mindmap_digest\` ⭐ (<2000 tokens)
 - Architecture overview → \`mindmap_architecture\`
 - Full project map → \`mindmap_project_map\`
 - Layer overview → \`mindmap_layer_overview\`
 
-### 🔄 Change Tracking
+###  Change Tracking
 - Symbol-level diffs → \`mindmap_changelog\` ⭐ (added/modified/deleted functions)
 - Git-aware changes → \`mindmap_git_changes\` (maps diffs to symbols)
 - Check if cached code is valid → \`mindmap_verify\` ⭐ (hash check, no re-reading)
@@ -1515,30 +1515,30 @@ This ONE call replaces reading 10+ files (~2000 tokens instead of 50,000+).
 - What changed recently? → \`mindmap_what_changed\`
 - Changes since last session → \`mindmap_session_diff\`
 
-### 🐛 Debug & Investigate
+###  Debug & Investigate
 - Something broke → \`mindmap_debug_changes\` (shows actual git diffs)
 - File before changes → \`mindmap_file_before\`
 - Blast radius → \`mindmap_impact_analysis\`
 - File commit history → \`mindmap_file_history\`
 
-### 🧠 Memory & Decisions (persists across sessions)
+###  Memory & Decisions (persists across sessions)
 - Remember a fact → \`mindmap_remember\`
 - Recall past knowledge → \`mindmap_recall\`
 - Record a decision → \`mindmap_decide\`
 - View decisions → \`mindmap_get_decisions\`
 - Session summary → \`mindmap_session_summary\`
 
-### 🔬 Flow & Architecture
+###  Flow & Architecture
 - Trace a feature flow → \`mindmap_trace_flow\`
 - All routes/events/components → \`mindmap_interaction_map\`
 - What layer is this file? → \`mindmap_classify_file\`
 
-### 🧬 Self-Evolving (teach the system new patterns)
+###  Self-Evolving (teach the system new patterns)
 - Teach a pattern → \`mindmap_teach\` (persists per-project)
 - View learned rules → \`mindmap_get_learned\`
 - Remove a rule → \`mindmap_forget\`
 
-### 🛠️ Advanced
+###  Advanced
 - Cypher graph query → \`mindmap_query_graph\`
 - Find dead code → \`mindmap_dead_code\`
 - Compress logs/output → \`mindmap_compress\`
@@ -1585,7 +1585,7 @@ export function deployRulesFiles(projectRoot?: string): void {
     const hasGit = existsSync(path.join(root, '.git'));
     const hasPkg = existsSync(path.join(root, 'package.json'));
     if (!hasGit && !hasPkg) {
-      heading('📋 Deploying AI Agent Rules Files');
+      heading(' Deploying AI Agent Rules Files');
       console.log(`  ${c.gray}ℹ${c.reset} Current directory is not a project root (no .git or package.json found).`);
       console.log(`    Skipping automatic rules files deployment to prevent home directory clutter.`);
       console.log(`    To deploy rules, run this command inside your project repository.`);
@@ -1633,7 +1633,7 @@ export function deployRulesFiles(projectRoot?: string): void {
     },
   ];
 
-  heading('📋 Deploying AI Agent Rules Files');
+  heading(' Deploying AI Agent Rules Files');
   console.log(`  ${c.dim}These files teach each AI agent about Mind Map\'s 41 tools${c.reset}`);
   console.log('');
 
@@ -1653,10 +1653,10 @@ export function deployRulesFiles(projectRoot?: string): void {
         // File exists but doesn't have our rules — append
         const separator = '\n\n---\n\n';
         writeFileSync(dep.filePath, existing + separator + dep.content, 'utf-8');
-        console.log(`  ${c.green}✓${c.reset} ${dep.name} ${c.dim}(appended Mind Map rules)${c.reset} — for ${dep.agent}`);
+        console.log(`  ${c.green}${c.reset} ${dep.name} ${c.dim}(appended Mind Map rules)${c.reset} — for ${dep.agent}`);
         deployed++;
       } catch {
-        console.log(`  ${c.red}✗${c.reset} ${dep.name} ${c.dim}(failed to read/write)${c.reset}`);
+        console.log(`  ${c.red}${c.reset} ${dep.name} ${c.dim}(failed to read/write)${c.reset}`);
       }
     } else {
       // Create new file
@@ -1666,10 +1666,10 @@ export function deployRulesFiles(projectRoot?: string): void {
           mkdirSync(dir, { recursive: true });
         }
         writeFileSync(dep.filePath, dep.content, 'utf-8');
-        console.log(`  ${c.green}✓${c.reset} ${dep.name} ${c.dim}(created)${c.reset} — for ${dep.agent}`);
+        console.log(`  ${c.green}${c.reset} ${dep.name} ${c.dim}(created)${c.reset} — for ${dep.agent}`);
         deployed++;
       } catch {
-        console.log(`  ${c.red}✗${c.reset} ${dep.name} ${c.dim}(failed to create)${c.reset}`);
+        console.log(`  ${c.red}${c.reset} ${dep.name} ${c.dim}(failed to create)${c.reset}`);
       }
     }
   }

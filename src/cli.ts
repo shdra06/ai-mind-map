@@ -62,11 +62,11 @@ const c = {
 };
 
 function success(msg: string): void {
-  console.log(`${c.green}✔${c.reset} ${msg}`);
+  console.log(`${c.green}${c.reset} ${msg}`);
 }
 
 function error(msg: string): void {
-  console.log(`${c.red}✖${c.reset} ${msg}`);
+  console.log(`${c.red}${c.reset} ${msg}`);
 }
 
 function info(msg: string): void {
@@ -238,7 +238,7 @@ async function cmdServe(): Promise<void> {
 /** ai-mind-map index <project-path> — Index a project */
 async function cmdIndex(args: ParsedArgs): Promise<void> {
   const projectPath = args.positional[0] || process.cwd();
-  heading('🗂️  Indexing Project');
+  heading('  Indexing Project');
   info(`Project: ${path.resolve(projectPath)}`);
   divider();
 
@@ -273,7 +273,7 @@ async function cmdIndex(args: ParsedArgs): Promise<void> {
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    heading('📊 Index Results');
+    heading(' Index Results');
     divider();
     console.log(`  ${pad('Files scanned:', 20)} ${c.bold}${formatNum(stats.filesScanned)}${c.reset}`);
     console.log(`  ${pad('Files parsed:', 20)} ${c.bold}${formatNum(stats.filesParsed)}${c.reset}`);
@@ -320,7 +320,7 @@ async function cmdSearch(args: ParsedArgs): Promise<void> {
 
     results = results.slice(0, limit);
 
-    heading(`🔍 Search Results for "${query}"`);
+    heading(` Search Results for "${query}"`);
     if (typeFilter) info(`Type filter: ${typeFilter}`);
     divider();
 
@@ -391,7 +391,7 @@ async function cmdTrace(args: ParsedArgs): Promise<void> {
       return;
     }
 
-    heading(`🔗 Trace: ${symbolName}`);
+    heading(` Trace: ${symbolName}`);
     info(`Direction: ${direction} | Depth: ${depth}`);
     divider();
 
@@ -440,7 +440,7 @@ async function cmdTrace(args: ParsedArgs): Promise<void> {
       // Blast radius
       const blast = graph.blastRadius(node.id, depth);
       if (blast.length > 0) {
-        console.log(`\n  ${c.red}💥 Blast Radius${c.reset} (${blast.length} affected nodes):`);
+        console.log(`\n  ${c.red} Blast Radius${c.reset} (${blast.length} affected nodes):`);
         for (const affected of blast.slice(0, 10)) {
           console.log(
             `    ${c.yellow}⚡${c.reset} ${affected.qualifiedName} ` +
@@ -469,7 +469,7 @@ async function cmdStructure(args: ParsedArgs): Promise<void> {
   try {
     const overview = graph.getProjectOverview();
 
-    heading('🏗️  Project Structure');
+    heading('  Project Structure');
     info(`Project: ${config.projectRoot}`);
     divider();
 
@@ -511,7 +511,7 @@ async function cmdStatus(args: ParsedArgs): Promise<void> {
 
   const config = await resolveConfig(projectPath);
 
-  heading('📈 AI Mind Map Status');
+  heading(' AI Mind Map Status');
   info(`Project: ${config.projectRoot}`);
   info(`Database: ${config.dbPath}`);
   divider();
@@ -610,7 +610,7 @@ async function cmdRecall(args: ParsedArgs): Promise<void> {
     const memory = new PersistentMemory(db, config.memory);
     const results = memory.queryMemories({ text: query, limit });
 
-    heading(`🧠 Memory Recall: "${query}"`);
+    heading(` Memory Recall: "${query}"`);
     divider();
 
     if (results.length === 0) {
@@ -696,7 +696,7 @@ async function cmdRemember(args: ParsedArgs): Promise<void> {
       source: 'user',
     });
 
-    heading('💾 Memory Stored');
+    heading(' Memory Stored');
     divider();
     console.log(`  ${pad('ID:', 14)} ${c.bold}#${created.id}${c.reset}`);
     console.log(`  ${pad('Category:', 14)} ${getCategoryColor(created.category)}${created.category}${c.reset}`);
@@ -728,7 +728,7 @@ async function cmdDecisions(args: ParsedArgs): Promise<void> {
       limit: 50,
     });
 
-    heading('📋 Decision Log');
+    heading(' Decision Log');
     if (statusFilter) info(`Filter: status = ${statusFilter}`);
     divider();
 
@@ -774,7 +774,7 @@ async function cmdChanges(args: ParsedArgs): Promise<void> {
 
   const config = await resolveConfig();
 
-  heading('📝 Change History');
+  heading(' Change History');
   divider();
 
   if (!existsSync(config.dbPath)) {
@@ -855,7 +855,7 @@ async function cmdConfig(args: ParsedArgs): Promise<void> {
 
   if (subCommand === 'list') {
     const config = await resolveConfig();
-    heading('⚙️  Configuration');
+    heading('⚙  Configuration');
     divider();
     printConfigRecursive(config as unknown as Record<string, unknown>, '');
     divider();
@@ -920,7 +920,7 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
 
 /** ai-mind-map sync — Sync local memories/decisions/rules with team-shared file */
 async function cmdSync(args: ParsedArgs): Promise<void> {
-  heading('🔄 Team Shared Context Synchronization');
+  heading(' Team Shared Context Synchronization');
   divider();
 
   const config = await loadConfig({
@@ -975,7 +975,7 @@ async function cmdSync(args: ParsedArgs): Promise<void> {
 
 /** ai-mind-map update — Check for updates */
 async function cmdUpdate(): Promise<void> {
-  heading('🔄 AI Mind Map — Update');
+  heading(' AI Mind Map — Update');
   divider();
 
   const currentVersion = getVersion();
@@ -1001,7 +1001,7 @@ async function cmdUpdate(): Promise<void> {
   // 2. Compare versions
   if (currentVersion === latestVersion) {
     console.log('');
-    console.log(`  ${c.green}✔${c.reset} You are already on the latest version!`);
+    console.log(`  ${c.green}${c.reset} You are already on the latest version!`);
     console.log('');
     divider();
     return;
@@ -1031,7 +1031,7 @@ async function cmdUpdate(): Promise<void> {
 
   if (isNpx) {
     // npx always uses latest on next run
-    console.log(`  ${c.green}✔${c.reset} You're using npx — next run will automatically use v${latestVersion}`);
+    console.log(`  ${c.green}${c.reset} You're using npx — next run will automatically use v${latestVersion}`);
     info('To force a cache refresh now:');
     console.log(`\n  ${c.bold}npx -y ai-mind-map@latest install${c.reset}\n`);
   } else {
@@ -1045,7 +1045,7 @@ async function cmdUpdate(): Promise<void> {
       console.log(`  ${c.dim}$ ${updateCmd}${c.reset}`);
       execSync(updateCmd, { stdio: 'inherit', timeout: 60_000 });
       console.log('');
-      console.log(`  ${c.green}✔${c.reset} Updated to v${latestVersion}!`);
+      console.log(`  ${c.green}${c.reset} Updated to v${latestVersion}!`);
     } catch (err) {
       warn('Auto-update failed. Update manually:');
       console.log(`\n  ${c.bold}npm install -g ai-mind-map@latest${c.reset}\n`);
@@ -1073,7 +1073,7 @@ async function cmdUpdate(): Promise<void> {
 
   console.log('');
   divider();
-  console.log(`  ${c.green}✔${c.reset} ${c.bold}Update complete!${c.reset} Restart your AI agent to use the new version.`);
+  console.log(`  ${c.green}${c.reset} ${c.bold}Update complete!${c.reset} Restart your AI agent to use the new version.`);
   console.log('');
 }
 

@@ -70,7 +70,7 @@ export function registerDebugTools(
   // this gives the AI everything it needs to diagnose the issue.
   server.tool(
     'mindmap_debug_changes',
-    `🔍 CRASH DEBUGGER: When something broke, use this tool FIRST.
+    ` CRASH DEBUGGER: When something broke, use this tool FIRST.
 Returns: actual git diffs (real code changes, not just counts), 
 list of recently changed files, affected function signatures, 
 and blast radius analysis. This is the most powerful debugging tool available.
@@ -164,8 +164,8 @@ Use when: user reports a crash, bug, or unexpected behavior.`,
 
         const result = {
           title: filePath
-            ? `🔍 Debug Report: ${filePath}`
-            : `🔍 Debug Report: All changes since ${since}`,
+            ? ` Debug Report: ${filePath}`
+            : ` Debug Report: All changes since ${since}`,
           summary: {
             filesChanged: changeSummary.filesAffected,
             totalLinesAdded: changeSummary.totalLinesAdded,

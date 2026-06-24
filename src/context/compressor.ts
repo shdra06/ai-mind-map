@@ -79,7 +79,7 @@ export function detectContentType(text: string): ContentType {
   if (
     /^(PASS|FAIL|ok|not ok|Tests:)/m.test(trimmed) ||
     /\d+ (passing|failing|passed|failed)/m.test(trimmed) ||
-    /^(Test Suite|RUNS?|✓|✗|✘|●)/m.test(trimmed) ||
+    /^(Test Suite|RUNS?|\u2713|\u2717|\u2718|\u25CF)/m.test(trimmed) ||
     /(PASSED|FAILED|ERROR)\s+\[/m.test(trimmed) ||
     /^={3,}\s*(FAILURES|ERRORS)\s*={3,}/m.test(trimmed)
   ) {
@@ -488,7 +488,7 @@ function compressTestOutput(text: string, aggressive: boolean): string {
 
     // Detect failure start.
     if (
-      /^(FAIL|✗|✘|✕|×|not ok|FAILED)/i.test(trimmedLine) ||
+      /^(FAIL|\u2717|\u2718|\u2715|\u00D7|not ok|FAILED)/i.test(trimmedLine) ||
       /AssertionError|Error:|Expected|Received/i.test(trimmedLine)
     ) {
       if (!capturingFailure) {
@@ -503,7 +503,7 @@ function compressTestOutput(text: string, aggressive: boolean): string {
     if (capturingFailure) {
       if (
         trimmedLine === '' ||
-        /^(PASS|✓|ok |Test Suites:|Tests:)/i.test(trimmedLine)
+        /^(PASS|\u2713|ok |Test Suites:|Tests:)/i.test(trimmedLine)
       ) {
         // End of failure block.
         failures.push(failureBuffer.join('\n'));
