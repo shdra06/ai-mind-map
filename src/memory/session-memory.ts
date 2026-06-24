@@ -81,6 +81,7 @@ export class SessionMemory {
 
   constructor(db: Database.Database) {
     this.db = db;
+    this.db.pragma('foreign_keys = ON');
     this.ensureSchema();
     this.prepareStatements();
   }

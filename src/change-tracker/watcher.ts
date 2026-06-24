@@ -15,6 +15,7 @@
  */
 
 import { EventEmitter } from 'node:events';
+import { existsSync, readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import chokidar from 'chokidar';
@@ -158,6 +159,15 @@ export class FileWatcher extends EventEmitter {
     if (this.chokidarWatcher && this.state === 'running') {
       this.chokidarWatcher.add(resolved);
     }
+
+    // M31: Load .gitignore from the new root so its ignore rules apply
+    try {
+      const gitignorePath = path.join(resolved, '.gitignore');
+      if (existsSync(gitignorePath)) {
+        const content = readFileSync(gitignorePath, 'utf-8');
+        this.ignoreFilter.add(content);
+      }
+    } catch { /* ignore */ }
   }
 
   /**
@@ -356,6 +366,7 @@ export class FileWatcher extends EventEmitter {
     // Cap at 10,000 entries to prevent unbounded memory growth when idle.
     this.undrainedChanges.push(...events);
     if (this.undrainedChanges.length > 10_000) {
+      process.stderr.write(`Warning: Watcher event buffer overflow, dropping ${this.undrainedChanges.length - 5000} oldest events\n`);
       this.undrainedChanges = this.undrainedChanges.slice(-5_000);
     }
 

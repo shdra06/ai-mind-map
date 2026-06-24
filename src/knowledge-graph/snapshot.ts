@@ -101,7 +101,7 @@ export class SnapshotEngine {
       return this.cache.snapshot;
     }
 
-    const overview = this.graph.getProjectOverview();
+    const { overview } = this.graph.getProjectOverview();
 
     // Build compact file map with NESTED class members visible
     const fileEntries: SnapshotFile[] = [];

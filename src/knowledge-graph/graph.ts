@@ -536,21 +536,6 @@ export class KnowledgeGraph {
     }));
   }
 
-  /**
-   * Delete all edges for a specific file's nodes.
-   */
-  deleteFileEdges(filePath: string): void {
-    const nodeIds = this.db.prepare('SELECT id FROM nodes WHERE filePath = ?')
-      .all(filePath) as { id: string }[];
-
-    if (nodeIds.length === 0) return;
-
-    const placeholders = nodeIds.map(() => '?').join(',');
-    this.db.prepare(
-      `DELETE FROM edges WHERE sourceId IN (${placeholders}) OR targetId IN (${placeholders})`,
-    ).run(...nodeIds.map(n => n.id), ...nodeIds.map(n => n.id));
-  }
-
   // ============================================================
   // Graph Traversal
   // ============================================================
@@ -749,52 +734,59 @@ export class KnowledgeGraph {
     const likePattern = `%${trimmed}%`;
     const sanitized = this.sanitizeFtsQuery(trimmed);
 
-    // Always run LIKE search. Combine with FTS via UNION when possible.
+    // Always run LIKE search. Combine with FTS via UNION when sanitized query is non-empty.
     try {
-      // Use FTS5 bm25() for proper information-retrieval ranking
-      // bm25 weights: name(10), qualifiedName(5), signature(3), docComment(1)
-      const rows = this.db.prepare(`
-        SELECT * FROM (
-          SELECT n.*, bm25(nodes_fts, 10, 5, 3, 1) AS bm25_score,
-          CASE
-            WHEN n.name = @query THEN 0
-            WHEN n.name LIKE @like THEN 1
-            WHEN n.qualifiedName LIKE @like THEN 2
-            ELSE 3
-          END AS exact_bonus
-          FROM nodes_fts fts
-          JOIN nodes n ON fts.id = n.id
-          WHERE nodes_fts MATCH @fts
+      if (sanitized) {
+        // Use FTS5 bm25() for proper information-retrieval ranking
+        // 4 weights for 4 searchable columns (id is UNINDEXED): name=10, qualifiedName=5, signature=3, docComment=1
+        const rows = this.db.prepare(`
+          SELECT * FROM (
+            SELECT n.*, bm25(nodes_fts, 10, 5, 3, 1) AS bm25_score,
+            CASE
+              WHEN n.name = @query THEN 0
+              WHEN n.name LIKE @like THEN 1
+              WHEN n.qualifiedName LIKE @like THEN 2
+              ELSE 3
+            END AS exact_bonus
+            FROM nodes_fts fts
+            JOIN nodes n ON fts.id = n.id
+            WHERE nodes_fts MATCH @fts
 
-          UNION
+            UNION
 
-          SELECT n.*, 0 AS bm25_score,
-          CASE
-            WHEN n.name = @query THEN 0
-            WHEN n.name LIKE @like THEN 1
-            WHEN n.qualifiedName LIKE @like THEN 2
-            WHEN n.signature LIKE @like THEN 3
-            ELSE 4
-          END AS exact_bonus
-          FROM nodes n
-          WHERE n.name LIKE @like
-            OR n.qualifiedName LIKE @like
-            OR n.signature LIKE @like
-            OR n.docComment LIKE @like
-        )
-        GROUP BY id
-        ORDER BY MIN(exact_bonus), MIN(bm25_score), name
-        LIMIT @limit
-      `).all({ query: trimmed, like: likePattern, fts: sanitized, limit }) as any[];
+            SELECT n.*, 0 AS bm25_score,
+            CASE
+              WHEN n.name = @query THEN 0
+              WHEN n.name LIKE @like THEN 1
+              WHEN n.qualifiedName LIKE @like THEN 2
+              WHEN n.signature LIKE @like THEN 3
+              ELSE 4
+            END AS exact_bonus
+            FROM nodes n
+            WHERE n.name LIKE @like
+              OR n.qualifiedName LIKE @like
+              OR n.signature LIKE @like
+              OR n.docComment LIKE @like
+          )
+          GROUP BY id
+          ORDER BY MIN(exact_bonus), MIN(bm25_score), name
+          LIMIT @limit
+        `).all({ query: trimmed, like: likePattern, fts: sanitized, limit }) as any[];
 
-      return rows.map((r: any) => this.rowToNode(r));
+        return rows.map((r: any) => this.rowToNode(r));
+      } else {
+        // Sanitized FTS query was empty — fall back to LIKE-only search
+        return this.searchLike(trimmed, limit);
+      }
     } catch {
       return this.searchLike(trimmed, limit);
     }
   }
 
-  /** Split camelCase/PascalCase into words and build an FTS5 AND query */
+  /** Split camelCase/PascalCase into words and build an FTS5 AND query.
+   *  Returns empty string if the input is empty/whitespace-only or produces no valid words. */
   private sanitizeFtsQuery(query: string): string {
+    if (!query || query.trim().length === 0) return '';
     const stripped = query.replace(/[{}[\]()^~@!$"]/g, ' ');
 
     const words: string[] = [];
@@ -809,7 +801,7 @@ export class KnowledgeGraph {
       words.push(...parts);
     }
 
-    if (words.length === 0) return '""';
+    if (words.length === 0) return '';
     return words.map(w => `"${w}"`).join(' AND ');
   }
 
@@ -879,15 +871,22 @@ export class KnowledgeGraph {
    *
    * Uses a single SQL query instead of one-per-file (N+1 → 1).
    */
-  getProjectOverview(): Map<string, GraphNode[]> {
+  getProjectOverview(): { overview: Map<string, GraphNode[]>; totalNodes: number; isTruncated: boolean } {
     const overview = new Map<string, GraphNode[]>();
+    const NODE_LIMIT = 10000;
 
-    // Single query: get ALL non-file nodes, ordered by file then line
+    // Count total non-file nodes first so the caller knows if the result is partial
+    const totalNodes = (this.db.prepare(
+      "SELECT COUNT(*) as count FROM nodes WHERE type != 'file'"
+    ).get() as { count: number }).count;
+
+    // Single query: get non-file nodes, capped at NODE_LIMIT to prevent OOM on huge repos
     const allSymbols = this.db.prepare(`
       SELECT * FROM nodes
       WHERE type != 'file'
       ORDER BY filePath, startLine
-    `).all() as any[];
+      LIMIT ?
+    `).all(NODE_LIMIT) as any[];
 
     for (const row of allSymbols) {
       const node = this.rowToNode(row);
@@ -897,7 +896,7 @@ export class KnowledgeGraph {
       overview.get(node.filePath)!.push(node);
     }
 
-    return overview;
+    return { overview, totalNodes, isTruncated: totalNodes > NODE_LIMIT };
   }
 
   /**

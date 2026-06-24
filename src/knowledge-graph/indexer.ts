@@ -13,6 +13,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { relative, join } from 'node:path';
+import v8 from 'node:v8';
 import { glob } from 'glob';
 import ignore from 'ignore';
 import type { MindMapConfig } from '../types.js';
@@ -203,6 +204,12 @@ export class Indexer {
       const nestedIgnores = [
         join(this.config.projectRoot, 'src', '.gitignore'),
         join(this.config.projectRoot, 'packages', '.gitignore'),
+        join(this.config.projectRoot, 'lib', '.gitignore'),
+        join(this.config.projectRoot, 'app', '.gitignore'),
+        join(this.config.projectRoot, 'test', '.gitignore'),
+        join(this.config.projectRoot, 'tests', '.gitignore'),
+        join(this.config.projectRoot, 'cmd', '.gitignore'),
+        join(this.config.projectRoot, 'internal', '.gitignore'),
       ];
       for (const p of nestedIgnores) {
         try {
@@ -237,13 +244,9 @@ export class Indexer {
         absolute: true,
         nodir: true,
         dot: false,
-        ignore: this.config.ignore.map(p => {
-          // Convert simple names to glob patterns
-          if (!p.includes('/') && !p.includes('*')) {
-            return `**/${p}/**`;
-          }
-          return p;
-        }),
+        // Only skip common heavy directories at glob level for performance.
+        // Fine-grained ignore filtering is handled by ig.ignores() below.
+        ignore: ['**/node_modules/**', '**/.git/**'],
       });
       allFiles.push(...matches);
     }
@@ -404,10 +407,10 @@ export class Indexer {
 
         // Memory pressure check every 100 files
         if (i % 100 === 0 && i > 0) {
-          const mem = process.memoryUsage();
-          if (mem.heapUsed / mem.heapTotal > MEMORY_PRESSURE_THRESHOLD) {
+          const heapStats = v8.getHeapStatistics();
+          if (heapStats.used_heap_size / heapStats.heap_size_limit > MEMORY_PRESSURE_THRESHOLD) {
             process.stderr.write(
-              `⚠ Memory pressure during fullIndex at file ${i}/${parseResults.length}. Stopping early.\n`
+              `Memory pressure during fullIndex at file ${i}/${parseResults.length}. Stopping early.\n`
             );
             break;
           }
@@ -688,14 +691,8 @@ export class Indexer {
       return null;
     }
 
-    try {
-      if (fileStat.size > this.config.maxFileSize) return null;
-      if (fileStat.size === 0) return null;
-    } catch {
-      // File may have been deleted
-      this.graph.deleteFileNodes(filePath);
-      return null;
-    }
+    if (fileStat.size > this.config.maxFileSize) return null;
+    if (fileStat.size === 0) return null;
 
     const result = await parseFile(filePath);
 
@@ -872,7 +869,7 @@ export class Indexer {
       } else {
         // Check if file changed
         try {
-          const content = readFileSync(f, 'utf-8');
+          const content = await readFile(f, 'utf-8');
           const currentHash = (await import('./parser.js')).generateContentHash(content);
           const indexedHash = this.graph.getFileHash(f);
           if (indexedHash && currentHash !== indexedHash) {

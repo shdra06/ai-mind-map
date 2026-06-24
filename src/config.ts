@@ -246,6 +246,13 @@ export async function loadConfig(cliArgs?: CliArgs): Promise<MindMapConfig> {
   let merged: MindMapConfig = { ...DEFAULT_CONFIG };
 
   if (fileConfig) {
+    // M33: Warn when .mindmap.json specifies a different projectRoot
+    if (fileConfig.projectRoot && fileConfig.projectRoot !== projectRoot) {
+      process.stderr.write(
+        `[WARN] .mindmap.json specifies projectRoot="${fileConfig.projectRoot}" but resolved root is "${projectRoot}". ` +
+        `The resolved root will be used. Remove projectRoot from .mindmap.json to suppress this warning.\n`
+      );
+    }
     merged = deepMerge(
       merged as unknown as Record<string, unknown>,
       fileConfig as unknown as Partial<Record<string, unknown>>,

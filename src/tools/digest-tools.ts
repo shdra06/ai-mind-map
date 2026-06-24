@@ -9,7 +9,7 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { relative, basename } from 'node:path';
+import { relative, basename, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import type { KnowledgeGraph } from '../knowledge-graph/graph.js';
@@ -73,7 +73,7 @@ export function registerDigestTools(
         }
 
         const stats = graph.getStats();
-        const overview = graph.getProjectOverview();
+        const { overview } = graph.getProjectOverview();
 
         // Build file tree summary
         const filesByDir = new Map<string, string[]>();
@@ -212,9 +212,8 @@ export function registerDigestTools(
         // Resolve file path
         let filePath = args.file;
         if (!filePath.includes(':') && !filePath.startsWith('/')) {
-          filePath = `${config.projectRoot}/${filePath}`;
+          filePath = resolve(config.projectRoot, filePath);
         }
-        filePath = filePath.replace(/\//g, '\\');
 
         // Get all nodes for this file
         const fileNodes = graph.getFileStructure(filePath);
@@ -323,9 +322,8 @@ export function registerDigestTools(
       try {
         let filePath = args.file;
         if (!filePath.includes(':') && !filePath.startsWith('/')) {
-          filePath = `${config.projectRoot}/${filePath}`;
+          filePath = resolve(config.projectRoot, filePath);
         }
-        filePath = filePath.replace(/\//g, '\\');
 
         // Get current file hash from disk
         let diskHash: string | null = null;

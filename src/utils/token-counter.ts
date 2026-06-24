@@ -65,16 +65,32 @@ export function estimateTokens(text: string): number {
 
   // Count non-ASCII characters (each often becomes 2-3 tokens in BPE).
   let nonAsciiCount = 0;
+  let cjkCount = 0;
   for (let i = 0; i < text.length; i++) {
-    if (text.charCodeAt(i) > 127) {
-      nonAsciiCount++;
+    const code = text.charCodeAt(i);
+    if (code > 127) {
+      // CJK Unified Ideographs (U+4E00–U+9FFF), CJK Extension A (U+3400–U+4DBF),
+      // CJK Symbols and Punctuation (U+3000–U+303F), Hiragana/Katakana (U+3040–U+30FF),
+      // Full-width forms (U+FF00–U+FFEF)
+      if (
+        (code >= 0x4E00 && code <= 0x9FFF) ||
+        (code >= 0x3400 && code <= 0x4DBF) ||
+        (code >= 0x3000 && code <= 0x303F) ||
+        (code >= 0x3040 && code <= 0x30FF) ||
+        (code >= 0xFF00 && code <= 0xFFEF)
+      ) {
+        cjkCount++;
+      } else {
+        nonAsciiCount++;
+      }
     }
   }
 
   const estimate =
     baseCount * BASE_MULTIPLIER +
     expensiveCount * EXPENSIVE_CHAR_COST +
-    nonAsciiCount * 0.5;
+    nonAsciiCount * 0.5 +
+    cjkCount * 2.0;
 
   return Math.max(1, Math.round(estimate));
 }

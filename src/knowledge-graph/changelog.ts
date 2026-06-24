@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS changelog_sessions (
   ended_at INTEGER,
   files_modified TEXT,
   summary TEXT,
-  tokens_saved_estimate INTEGER DEFAULT 0
+  tokens_saved_estimate INTEGER DEFAULT 0  -- tokens_saved_estimate: reserved for future use, currently unused
 );
 
 CREATE INDEX IF NOT EXISTS idx_changelog_sessions_started ON changelog_sessions(started_at);
@@ -169,6 +169,10 @@ export class ChangelogEngine {
       this.db.prepare(
         `DELETE FROM changelog_sessions WHERE started_at < ?`
       ).run(Date.now() - MAX_CHANGELOG_AGE_MS);
+      // M21: Prune stale file_hotspots older than 90 days
+      this.db.prepare('DELETE FROM file_hotspots WHERE last_changed_at < ?').run(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      // M22: Clean expired digest_cache entries
+      this.db.prepare('DELETE FROM digest_cache WHERE valid_until < ?').run(Date.now());
     } catch {
       // Non-critical — don't block startup
     }
@@ -459,7 +463,7 @@ export class ChangelogEngine {
       'SELECT * FROM changelog WHERE file_path = ? ORDER BY timestamp DESC LIMIT ?'
     ).all(filePath, limit) as any[];
 
-    return rows.map(this.rowToEntry);
+    return rows.map(row => this.rowToEntry(row));
   }
 
   /**
@@ -470,7 +474,7 @@ export class ChangelogEngine {
       'SELECT * FROM changelog WHERE session_id = ? ORDER BY timestamp ASC'
     ).all(sessionId) as any[];
 
-    return rows.map(this.rowToEntry);
+    return rows.map(row => this.rowToEntry(row));
   }
 
   /**
@@ -563,7 +567,7 @@ export class ChangelogEngine {
       'SELECT * FROM changelog_sessions ORDER BY started_at DESC LIMIT ?'
     ).all(limit) as any[];
 
-    return rows.map(this.rowToSession);
+    return rows.map(row => this.rowToSession(row));
   }
 
   /**
@@ -584,7 +588,7 @@ export class ChangelogEngine {
       if (session && !session.endedAt) return this.currentSessionId;
     }
 
-    // Check if there's a recent unclosed session (< 30 min old)
+    // Check if there's a recent unclosed session (< 4 hours old)
     const recent = this.db.prepare(
       'SELECT id FROM changelog_sessions WHERE ended_at IS NULL AND started_at > ? ORDER BY started_at DESC LIMIT 1'
     ).get(Date.now() - SESSION_TIMEOUT_MS) as any;

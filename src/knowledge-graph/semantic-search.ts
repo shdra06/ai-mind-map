@@ -279,6 +279,7 @@ function computeRawTF(tokens: string[]): SparseVector {
 
 /**
  * Compute the L2 magnitude of a sparse vector.
+ * Note: magnitude is stored in DB for backward compatibility but not used by BM25 scoring.
  */
 function magnitude(vec: SparseVector): number {
   let sumSq = 0;
@@ -290,6 +291,7 @@ function magnitude(vec: SparseVector): number {
 
 /**
  * Compute cosine similarity between two sparse vectors.
+ * Note: Kept for backward compatibility. BM25 scoring is used for search instead.
  */
 function cosineSimilarity(vecA: SparseVector, vecB: SparseVector, magB: number): number {
   const magA = magnitude(vecA);
@@ -497,6 +499,7 @@ export class SemanticSearchEngine {
     }
 
     const tf = computeRawTF(tokens);
+    // magnitude is stored for backward compatibility but not used by BM25 scoring
     const mag = magnitude(tf);
 
     // Store raw TF vector as JSON (IDF will be applied at search time)
@@ -666,25 +669,31 @@ export class SemanticSearchEngine {
       searchTerms = queryTokens;
     }
 
-    // Calculate average document length for BM25
-    let avgDocLength = 0;
-    const allVectors = this.stmtGetAllVectors.all() as Array<{
-      node_id: string;
-      terms: string;
-      magnitude: number;
-      doc_length: number;
-    }>;
-
-    // Pre-compute avg doc length from stored doc_length
-    let totalDocLength = 0;
-    for (const row of allVectors) {
-      totalDocLength += row.doc_length || 0;
+    // Pre-filter: only load vectors containing at least one query term (avoids full table scan)
+    let candidates: Array<{ node_id: string; terms: string; magnitude: number; doc_length: number }>;
+    if (searchTerms.length > 0 && searchTerms.length <= 20) {
+      const termPatterns = searchTerms.map(t => `%"${t.replace(/"/g, '')}":%`);
+      const whereClauses = termPatterns.map(() => 'terms LIKE ?').join(' OR ');
+      try {
+        candidates = this.db.prepare(
+          `SELECT node_id, terms, magnitude, doc_length FROM tfidf_vectors WHERE ${whereClauses}`
+        ).all(...termPatterns) as typeof candidates;
+      } catch {
+        // Fallback to full scan if dynamic SQL fails
+        candidates = this.stmtGetAllVectors.all() as typeof candidates;
+      }
+    } else {
+      candidates = this.stmtGetAllVectors.all() as typeof candidates;
     }
-    avgDocLength = allVectors.length > 0 ? totalDocLength / allVectors.length : 1;
+
+    // Pre-compute avg doc length (use full count for accuracy)
+    const totalCount = (this.db.prepare('SELECT COUNT(*) as cnt FROM tfidf_vectors').get() as { cnt: number }).cnt;
+    const totalLenRow = this.db.prepare('SELECT SUM(doc_length) as total FROM tfidf_vectors').get() as { total: number } | undefined;
+    const avgDocLength = totalCount > 0 ? (totalLenRow?.total || 0) / totalCount : 1;
 
     const results: SemanticSearchResult[] = [];
 
-    for (const row of allVectors) {
+    for (const row of candidates) {
       try {
         const docTF: SparseVector = JSON.parse(row.terms);
         const docLength = row.doc_length || Object.keys(docTF).length;

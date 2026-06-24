@@ -182,9 +182,9 @@ function createGraphAdapter(
     },
 
     getStructure: (depth: number) => {
-      // graph.getProjectOverview() returns Map<string, GraphNode[]>
+      // graph.getProjectOverview() returns { overview, totalNodes, isTruncated }
       // We convert it to the shape expected by IKnowledgeGraph.getStructure
-      const overview = graph.getProjectOverview();
+      const { overview } = graph.getProjectOverview();
       const files: { path: string; symbols: Pick<GraphNode, 'name' | 'type' | 'signature'>[] }[] = [];
       for (const [filePath, nodes] of overview) {
         files.push({
@@ -609,7 +609,7 @@ function createContextAdapter(
     }): ContextPackage => {
       try {
         // Build ProjectInfo for Tier 1
-        const overview = graph.getProjectOverview();
+        const { overview } = graph.getProjectOverview();
         const stats = graph.getStats();
 
         const directoryTree = Array.from(overview.keys())
@@ -806,7 +806,8 @@ function createIndexerAdapter(
         lastChangeAt: null,
         dbSizeBytes: dbSize,
         languageBreakdown: graphStats.languageBreakdown,
-        tokensSavedEstimate: graphStats.totalNodes * 500,
+        // L17: Conservative estimate — avg ~200 tokens per node (signatures + metadata)
+        tokensSavedEstimate: graphStats.totalNodes * 200,
       };
     },
   };
@@ -893,13 +894,23 @@ function enrichToolResponse(
   getProjectInfo: () => { root: string; indexedFiles: number; totalNodes: number },
   inputTokens: number = 0,
 ): { content: Array<{ type: string; text: string }> } {
-  if (!response?.content?.[0]?.text) return response;
+  if (!response?.content || response.content.length === 0) return response;
+
+  // H8: Process the LAST text block, not just content[0]
+  let textIdx = -1;
+  for (let i = response.content.length - 1; i >= 0; i--) {
+    if (response.content[i]?.type === 'text' && response.content[i]?.text) {
+      textIdx = i;
+      break;
+    }
+  }
+  if (textIdx === -1) return response;
 
   try {
-    const result = JSON.parse(response.content[0].text);
+    const result = JSON.parse(response.content[textIdx].text);
 
     // Estimate tokens for this response
-    const outputTokens = estimator.estimate(response.content[0].text);
+    const outputTokens = estimator.estimate(response.content[textIdx].text);
     const tokensSaved = result.tokensSaved ?? 0;
 
     // Record in tracker (inputTokens passed from caller)
@@ -923,7 +934,7 @@ function enrichToolResponse(
     // Always add session token metadata
     result._sessionTokens = tracker.getSummary();
 
-    response.content[0].text = JSON.stringify(result);
+    response.content[textIdx].text = JSON.stringify(result);
   } catch {
     // If parsing fails, return original response unchanged
   }
@@ -1124,12 +1135,6 @@ async function main(): Promise<void> {
         '- Project structure + tech stack',
         '- Hot files (most frequently changed)',
         '',
-        '## Project Indexing:',
-        'Every response includes `_project.root` and `_project.totalNodes`.',
-        'If `_indexRequired: true` appears, you MUST call `mindmap_reindex` with the correct project path.',
-        'NEVER index directories containing: antigravity, .gemini, .cursor, .vscode, AppData, Program Files.',
-        'The graph supports multiple projects — call `mindmap_reindex` with different paths to switch.',
-        '',
         '## Token Tracking:',
         'Every response includes `_sessionTokens` with cumulative usage.',
         '',
@@ -1173,16 +1178,6 @@ async function main(): Promise<void> {
         '3. Use `mindmap_verify_changes` after editing to verify changes â€” do NOT re-read whole files',
         '4. Use `mindmap_changelog` instead of re-reading files to see what changed',
         '5. Call `mindmap_session_end` when done â€” save context for next session',
-        '',
-        '## ðŸ”„ Project Indexing:',
-        'Every response includes `_project.root` showing which directory is currently indexed.',
-        'If `_project.totalNodes` is 0, you MUST call `mindmap_reindex` with `projectPath` set to',
-        'the user\'s project directory (e.g. their workspace root). This creates the knowledge graph.',
-        'Example: `mindmap_reindex({ projectPath: "/home/user/my-project" })`',
-        'You can also reindex to switch between projects â€” the graph supports multiple projects.',
-        '',
-        '## ðŸ“Š Token Tracking:',
-        'Every response includes `_sessionTokens` with cumulative usage.',
       ].join('\n'),
     },
   );
@@ -1195,8 +1190,11 @@ async function main(): Promise<void> {
   const tokenTracker = new SessionTokenTracker();
   const originalToolFn = server.tool.bind(server) as Function;
 
-  // Override server.tool to wrap every handler with token tracking
+  // M1: Override server.tool to wrap every handler with token tracking
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (typeof (server as any).tool !== 'function') {
+    process.stderr.write('[WARN] server.tool is not a function — token tracking middleware cannot be installed\n');
+  } else {
   (server as any).tool = function (...args: any[]) {
     // server.tool(name, description, schema, handler) or server.tool(name, description, handler)
     const lastArgIdx = args.length - 1;
@@ -1228,6 +1226,7 @@ async function main(): Promise<void> {
 
     return originalToolFn.apply(server, args);
   };
+  } // end M1 defensive check
 
   registerGraphTools(server, graphAdapter, tokenEstimator);
   log('debug', 'Registered graph tools (6)');

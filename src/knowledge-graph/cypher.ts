@@ -330,11 +330,16 @@ function tokenize(input: string): Token[] {
     // Numbers (integers and decimals)
     if (/\d/.test(input[pos]) || (input[pos] === '-' && pos + 1 < input.length && /\d/.test(input[pos + 1]) && (tokens.length === 0 || [TokenType.EQ, TokenType.NEQ, TokenType.GT, TokenType.LT, TokenType.GTE, TokenType.LTE, TokenType.COMMA, TokenType.LPAREN, TokenType.AND, TokenType.OR].includes(tokens[tokens.length - 1].type)))) {
       let numStr = '';
+      let hasDot = false;
       if (input[pos] === '-') {
         numStr = '-';
         pos++;
       }
       while (pos < input.length && /[\d.]/.test(input[pos])) {
+        if (input[pos] === '.') {
+          if (hasDot) break; // M16: Only allow one decimal point
+          hasDot = true;
+        }
         numStr += input[pos];
         pos++;
       }
@@ -1241,6 +1246,20 @@ export class CypherEngine {
         `Unknown variable '${ref.variable}'. Available variables: ${[...variableMap.keys()].join(', ')}`,
         '',
       );
+    }
+
+    // M17: Edge variables (aliases starting with 'e') only have 'type', 'sourceId', 'targetId'
+    const isEdgeVariable = info.alias.startsWith('e');
+    if (isEdgeVariable) {
+      const EDGE_COLUMNS: Record<string, string> = { type: 'type', sourceId: 'sourceId', targetId: 'targetId' };
+      const edgeCol = EDGE_COLUMNS[ref.property];
+      if (!edgeCol) {
+        throw new CypherExecutionError(
+          `Property '${ref.property}' is not valid on edge variable '${ref.variable}'. Available edge properties: ${Object.keys(EDGE_COLUMNS).join(', ')}`,
+          '',
+        );
+      }
+      return `${info.alias}.${edgeCol}`;
     }
 
     const column = PROPERTY_TO_COLUMN[ref.property];

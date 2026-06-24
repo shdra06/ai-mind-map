@@ -31,7 +31,7 @@ const EXTENSION_MAP: Record<string, string> = {
   '.mjs': 'javascript',
   '.cjs': 'javascript',
   '.ts': 'typescript',
-  '.tsx': 'typescript',
+  '.tsx': 'tsx',
   '.mts': 'typescript',
   '.cts': 'typescript',
   '.py': 'python',
@@ -161,10 +161,7 @@ export function getSupportedExtensions(): string[] {
   return Object.keys(EXTENSION_MAP);
 }
 
-/** Estimate token count for a string (rough: ~4 chars per token) */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
+
 
 /** Strip leading comment markers from doc comment lines */
 function cleanDocComment(raw: string): string {
@@ -214,7 +211,9 @@ async function getTreeSitterParser(language: string): Promise<{ parser: any; gra
 
     // Load the language grammar
     if (!loadedGrammars.has(language)) {
-      const grammarPkg = GRAMMAR_MAP[language];
+      // TSX uses the same grammar package as TypeScript
+      const lookupLang = language === 'tsx' ? 'typescript' : language;
+      const grammarPkg = GRAMMAR_MAP[lookupLang];
       if (!grammarPkg) return null;
 
       try {
@@ -222,7 +221,12 @@ async function getTreeSitterParser(language: string): Promise<{ parser: any; gra
         let grammar = grammarModule.default ?? grammarModule;
 
         // TypeScript grammar package exports { typescript, tsx }
-        if (language === 'typescript' && grammar.typescript) {
+        if (language === 'tsx' && grammar.tsx) {
+          grammar = grammar.tsx;
+        } else if (language === 'tsx' && grammar.typescript) {
+          // Fallback: use typescript grammar if tsx is not available
+          grammar = grammar.typescript;
+        } else if (language === 'typescript' && grammar.typescript) {
           grammar = grammar.typescript;
         }
 
@@ -278,6 +282,22 @@ function extractFromTreeSitter(
       const text = nodeText(prev);
       if (text.startsWith('/**') || text.startsWith('///') || text.startsWith('# ')) {
         return cleanDocComment(text);
+      }
+    }
+
+    // Check previousSibling (unnamed node traversal) up to 2 nodes back
+    // to catch doc comments separated by empty lines
+    if (!prev || prev.type !== 'comment') {
+      let sibling = node.previousSibling;
+      for (let i = 0; i < 2 && sibling; i++) {
+        if (sibling.type === 'comment') {
+          const text = nodeText(sibling);
+          if (text.startsWith('/**') || text.startsWith('///') || text.startsWith('# ')) {
+            return cleanDocComment(text);
+          }
+          break;
+        }
+        sibling = sibling.previousSibling;
       }
     }
 
@@ -681,7 +701,7 @@ function extractFromTreeSitter(
     else if (t === 'method_declaration') {
       const methodName = nameStr;
       const receiver = tsNode.childForFieldName('receiver');
-      const receiverType = receiver ? nodeText(receiver).replace(/[()]/g, '').split(/\s+/).pop() ?? '' : '';
+      const receiverType = receiver ? nodeText(receiver).replace(/[()]/g, '').split(/\s+/).pop()?.replace(/^\*/, '') ?? '' : '';
       if (methodName) {
         const gNode = makeNode(tsNode, methodName, 'method', receiverType || undefined);
         nodes.push(gNode);
@@ -829,13 +849,13 @@ const REGEX_PATTERNS: Record<string, RegexPattern[]> = {
     { pattern: /^(?:export\s+)?interface\s+(\w+)(?:<[^>]*>)?(?:\s+extends\s+[\w<>,\s]+)?\s*\{/gm, type: 'interface', nameGroup: 1, signatureGroup: 0 },
     { pattern: /^(?:export\s+)?type\s+(\w+)(?:<[^>]*>)?\s*=/gm, type: 'type_alias', nameGroup: 1, signatureGroup: 0 },
     { pattern: /^(?:export\s+)?enum\s+(\w+)\s*\{/gm, type: 'enum', nameGroup: 1, signatureGroup: 0 },
-    { pattern: /^(?:export\s+)?(?:const|let|var)\s+(\w+)\s*(?::\s*[\w<>\[\]|&\s]+)?\s*=\s*(?:async\s+)?(?:\([^)]*\)|[\w]+)\s*(?::\s*[\w<>\[\]|&\s]+)?\s*=>/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^(?:export\s+)?(?:const|let|var)\s+(\w+)\s*(?::\s*[\w<>\[\]|&\s]{1,200})?\s*=\s*(?:async\s+)?(?:\([^)]*\)|[\w]+)\s*(?::\s*[\w<>\[\]|&\s]{1,200})?\s*=>/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
     { pattern: /^\s+(?:public|private|protected)?\s*(?:static\s+)?(?:async\s+)?(\w+)\s*(\([^)]*\))/gm, type: 'method', nameGroup: 1, signatureGroup: 0 },
   ],
   python: [
     { pattern: /^(?:async\s+)?def\s+(\w+)\s*(\([^)]*\))(?:\s*->\s*[\w\[\],\s|]+)?:/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
     { pattern: /^class\s+(\w+)(?:\([^)]*\))?\s*:/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
-    { pattern: /^\s+(?:async\s+)?def\s+(\w+)\s*\(self[^)]*\)(?:\s*->\s*[\w\[\],\s|]+)?:/gm, type: 'method', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^\s+(?:async\s+)?def\s+(\w+)\s*\((?:self|cls)[^)]*\)(?:\s*->\s*[\w\[\],\s|]+)?:/gm, type: 'method', nameGroup: 1, signatureGroup: 0 },
     { pattern: /^\s+@(?:staticmethod|classmethod)\s*\n\s+def\s+(\w+)\s*(\([^)]*\))/gm, type: 'method', nameGroup: 1, signatureGroup: 0 },
   ],
   java: [
@@ -986,7 +1006,7 @@ const REGEX_PATTERNS: Record<string, RegexPattern[]> = {
     { pattern: /^\s*defp\s+(\w+)\s*(\([^)]*\))?/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
     { pattern: /^\s*defmodule\s+([\w.]+)/gm, type: 'module', nameGroup: 1, signatureGroup: 0 },
     { pattern: /^\s*defmacro\s+(\w+)/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
-    { pattern: /^\s*defstruct\b/gm, type: 'class', nameGroup: 0, signatureGroup: 0 },
+
     { pattern: /^\s*defprotocol\s+([\w.]+)/gm, type: 'interface', nameGroup: 1, signatureGroup: 0 },
     { pattern: /^\s*defimpl\s+([\w.]+)/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
     { pattern: /^\s*@callback\s+(\w+)/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
@@ -1122,7 +1142,8 @@ function parseWithRegex(
   };
   nodes.push(fileNode);
 
-  const patterns = REGEX_PATTERNS[language] ?? REGEX_PATTERNS['javascript'] ?? [];
+  // TSX uses TypeScript patterns for regex fallback
+  const patterns = REGEX_PATTERNS[language] ?? (language === 'tsx' ? REGEX_PATTERNS['typescript'] : null) ?? REGEX_PATTERNS['javascript'] ?? [];
 
   // Track matched names to avoid duplicates
   const seen = new Set<string>();

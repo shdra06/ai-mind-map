@@ -573,6 +573,17 @@ export class DecisionLog {
       }
     });
     txn();
+
+    if (toRemove.length === 0 && countRow.cnt > this.maxDecisions) {
+      // Fall back: remove oldest active decisions beyond capacity
+      const overflow = countRow.cnt - this.maxDecisions;
+      const oldestActive = this.db.prepare(
+        'SELECT id FROM decisions WHERE status = ? ORDER BY decided_at ASC LIMIT ?'
+      ).all('active', overflow);
+      for (const row of oldestActive) {
+        this.deleteDecision((row as any).id);
+      }
+    }
   }
 
   // ────────────────────────────────────────────────────────────

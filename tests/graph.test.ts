@@ -250,7 +250,7 @@ describe('KnowledgeGraph', () => {
     });
 
     it('gets project overview', () => {
-      const overview = graph.getProjectOverview();
+      const { overview } = graph.getProjectOverview();
       assert.ok(overview.size >= 1, 'Should have at least one file');
       const appSymbols = overview.get('/src/app.ts');
       assert.ok(appSymbols, 'Should have /src/app.ts');

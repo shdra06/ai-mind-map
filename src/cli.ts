@@ -467,10 +467,13 @@ async function cmdStructure(args: ParsedArgs): Promise<void> {
   const graph = openGraph(config);
 
   try {
-    const overview = graph.getProjectOverview();
+    const { overview, totalNodes, isTruncated } = graph.getProjectOverview();
 
     heading('  Project Structure');
     info(`Project: ${config.projectRoot}`);
+    if (isTruncated) {
+      warn(`Showing first 10000 of ${totalNodes} symbols (project too large for full overview).`);
+    }
     divider();
 
     if (overview.size === 0) {
@@ -1012,8 +1015,8 @@ async function cmdUpdate(): Promise<void> {
   const [latMajor, latMinor, latPatch] = latestVersion.split('.').map(Number);
 
   const isBreaking = latMajor > curMajor;
-  const isFeature = latMinor > curMinor;
-  const isPatch = latPatch > curPatch;
+  const isFeature = !isBreaking && latMinor > curMinor;
+  const isPatch = !isBreaking && !isFeature && latPatch > curPatch;
 
   const updateType = isBreaking
     ? `${c.red}MAJOR (breaking changes)${c.reset}`
@@ -1256,8 +1259,8 @@ export async function main(argv: string[] = process.argv): Promise<void> {
 // ============================================================
 
 // Detect if this file is being run as the main entry point
-const isMainModule = process.argv[1] &&
-  (process.argv[1].endsWith('cli.js') || process.argv[1].endsWith('cli.ts'));
+const scriptBasename = path.basename(process.argv[1] || '');
+const isMainModule = scriptBasename === 'cli.js' || scriptBasename === 'cli.ts';
 
 if (isMainModule) {
   main().catch((err) => {

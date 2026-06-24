@@ -76,8 +76,8 @@ describe('Integration: parse → store → query', () => {
   });
 
   it('project overview includes all fixture files', () => {
-    const overview = graph.getProjectOverview();
-    assert.ok(overview.size >= 3, `Expected ≥3 files in overview, got ${overview.size}`);
+    const { overview } = graph.getProjectOverview();
+    assert.ok(overview.size >= 3, `Expected >=3 files in overview, got ${overview.size}`);
   });
 
   it('file signatures produce compact output', () => {

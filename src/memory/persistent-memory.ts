@@ -569,10 +569,23 @@ export class PersistentMemory {
     content: string,
     category: MemoryCategory,
   ): Record<string, unknown> | null {
-    // Only compare within same category for speed
-    const candidates = this.db
-      .prepare(`SELECT * FROM memories WHERE category = ?`)
-      .all(category) as Record<string, unknown>[];
+    // Pre-filter with FTS5 for performance
+    const words = content.split(/\s+/).filter(w => w.length > 3).slice(0, 5);
+    let candidates: Record<string, unknown>[];
+
+    if (words.length === 0) {
+      candidates = this.db.prepare('SELECT * FROM memories WHERE category = ? LIMIT 50').all(category) as Record<string, unknown>[];
+    } else {
+      const ftsQuery = words.map(w => `"${w.replace(/"/g, '')}"`).join(' OR ');
+      try {
+        candidates = this.db.prepare(
+          'SELECT m.* FROM memories m JOIN memories_fts f ON m.id = f.rowid WHERE f.content MATCH ? AND m.category = ? LIMIT 50'
+        ).all(ftsQuery, category) as Record<string, unknown>[];
+      } catch {
+        // FTS fallback
+        candidates = this.db.prepare('SELECT * FROM memories WHERE category = ? LIMIT 50').all(category) as Record<string, unknown>[];
+      }
+    }
 
     const inputWords = this.tokenize(content);
     const SIMILARITY_THRESHOLD = 0.8;

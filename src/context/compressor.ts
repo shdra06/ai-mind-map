@@ -313,8 +313,10 @@ function compressSourceModerate(text: string): string {
       lastWasSignature = true;
 
       // If the signature opens a body on the same line…
-      const opens = countChar(trimmedLine, '{');
-      const closes = countChar(trimmedLine, '}');
+      // Strip strings and comments before counting braces to avoid false counts
+      const strippedLine = stripStringsAndComments(trimmedLine);
+      const opens = countChar(strippedLine, '{');
+      const closes = countChar(strippedLine, '}');
       if (opens > closes) {
         insideBody = true;
         bodyStartDepth = braceDepth + opens - closes;
@@ -328,8 +330,10 @@ function compressSourceModerate(text: string): string {
     }
 
     // Track brace depth.
-    const opens = countChar(trimmedLine, '{');
-    const closes = countChar(trimmedLine, '}');
+    // Strip strings and comments before counting braces to avoid false counts
+    const strippedLine = stripStringsAndComments(trimmedLine);
+    const opens = countChar(strippedLine, '{');
+    const closes = countChar(strippedLine, '}');
     braceDepth += opens - closes;
 
     if (insideBody) {
@@ -387,8 +391,10 @@ function compressSourceAggressive(text: string): string {
 
     if (!insideBody && isSignatureLine(trimmedLine)) {
       // Emit signature with ellipsis body.
-      const opens = countChar(trimmedLine, '{');
-      const closes = countChar(trimmedLine, '}');
+      // Strip strings and comments before counting braces to avoid false counts
+      const strippedLine = stripStringsAndComments(trimmedLine);
+      const opens = countChar(strippedLine, '{');
+      const closes = countChar(strippedLine, '}');
 
       if (opens > closes) {
         insideBody = true;
@@ -402,8 +408,10 @@ function compressSourceAggressive(text: string): string {
       continue;
     }
 
-    const opens = countChar(trimmedLine, '{');
-    const closes = countChar(trimmedLine, '}');
+    // Strip strings and comments before counting braces to avoid false counts
+    const strippedLineAgg = stripStringsAndComments(trimmedLine);
+    const opens = countChar(strippedLineAgg, '{');
+    const closes = countChar(strippedLineAgg, '}');
     braceDepth += opens - closes;
 
     if (insideBody) {
@@ -902,6 +910,7 @@ function isDocComment(line: string): boolean {
 function isComment(line: string): boolean {
   return (
     line.startsWith('//') ||
+    // Intentional: # is used as a comment marker in many languages (Python, Ruby, Bash, etc.)
     line.startsWith('#') ||
     line.startsWith('/*') ||
     line.startsWith('*') ||
@@ -924,6 +933,14 @@ function isSignatureLine(line: string): boolean {
     /^(const|let|var)\s+\w+\s*=\s*(async\s+)?\(/.test(line) ||
     /^(const|let|var)\s+\w+\s*=\s*(async\s+)?function/.test(line)
   );
+}
+
+/** Strip string literals and comments from a line to avoid counting braces inside them. */
+function stripStringsAndComments(line: string): string {
+  let result = line.replace(/(['"`])(?:(?!\1|\\).|\\.)*.\1/g, '');
+  result = result.replace(/\/\/.*$/, '');
+  result = result.replace(/\/\*.*?\*\//g, '');
+  return result;
 }
 
 function countChar(str: string, char: string): number {

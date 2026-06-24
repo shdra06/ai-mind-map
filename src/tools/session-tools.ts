@@ -11,7 +11,7 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { relative } from 'node:path';
+import { relative, resolve } from 'node:path';
 import type { KnowledgeGraph } from '../knowledge-graph/graph.js';
 import type { ChangelogEngine } from '../knowledge-graph/changelog.js';
 import type { MindMapConfig } from '../types.js';
@@ -252,7 +252,7 @@ export function registerSessionTools(
         if (args.file) {
           const filePath = args.file.includes(config.projectRoot)
             ? args.file
-            : `${config.projectRoot}/${args.file}`.replace(/\//g, '\\');
+            : resolve(config.projectRoot, args.file);
           const changes = changelog.getFileChanges(filePath);
           return mcpText(ok({ file: args.file, changes }, estimator));
         }

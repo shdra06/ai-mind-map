@@ -33,7 +33,7 @@ function fixturePath(name: string): string {
 describe('detectLanguage', () => {
   it('detects TypeScript', () => {
     assert.strictEqual(detectLanguage('foo.ts'), 'typescript');
-    assert.strictEqual(detectLanguage('bar.tsx'), 'typescript');
+    assert.strictEqual(detectLanguage('bar.tsx'), 'tsx');
   });
 
   it('detects JavaScript', () => {
