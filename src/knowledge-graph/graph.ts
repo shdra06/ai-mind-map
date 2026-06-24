@@ -873,7 +873,7 @@ export class KnowledgeGraph {
    */
   getProjectOverview(): { overview: Map<string, GraphNode[]>; totalNodes: number; isTruncated: boolean } {
     const overview = new Map<string, GraphNode[]>();
-    const NODE_LIMIT = 10000;
+    const NODE_LIMIT = 50000;
 
     // Count total non-file nodes first so the caller knows if the result is partial
     const totalNodes = (this.db.prepare(

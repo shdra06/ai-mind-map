@@ -71,13 +71,13 @@ function fail(message: string): ToolResult {
 // ============================================================
 
 /** Maximum source files to include before truncating */
-const MAX_SOURCE_FILES = 500;
+const MAX_SOURCE_FILES = 2500;
 
 /** Maximum tree entries before truncating */
-const MAX_TREE_ENTRIES = 2000;
+const MAX_TREE_ENTRIES = 10000;
 
-/** Indexing timeout in ms (15 seconds max) */
-const INDEX_TIMEOUT_MS = 15_000;
+/** Indexing timeout in ms (60 seconds max) */
+const INDEX_TIMEOUT_MS = 60_000;
 
 /** Directories to always skip when scanning */
 const SKIP_DIRS = new Set([
@@ -187,7 +187,7 @@ function scanDirectory(
   rootPath: string,
   currentPath: string,
   maxFileSizeKB: number,
-  maxDepth: number = 15,
+  maxDepth: number = 25,
   depth: number = 0,
   state: ScanState = { fileCount: 0, treeCount: 0, truncated: false },
 ): { tree: TreeEntry[]; files: FileEntry[]; state: ScanState } {
@@ -507,7 +507,7 @@ export function registerExploreTools(
     },
     async (args) => {
       const startTime = Date.now();
-      const projectPath = args.projectPath.replace(/\\/g, '/').replace(/\/$/, '');
+      let projectPath = args.projectPath.replace(/\\/g, '/').replace(/\/$/, '');
 
       // Validate path
       if (!existsSync(projectPath)) {
@@ -521,6 +521,47 @@ export function registerExploreTools(
         }
       } catch {
         return mcpText(fail(`Cannot access path: ${projectPath}`));
+      }
+
+      // Smart source root detection: if the given path looks like a wrapper
+      // (no source files at top level), try to find the actual source root
+      const sourceMarkers = [
+        'package.json', 'pyproject.toml', 'setup.py', 'Cargo.toml',
+        'go.mod', 'pom.xml', 'build.gradle', 'CMakeLists.txt',
+        'src', 'lib', 'app',
+      ];
+      const hasSourceMarker = sourceMarkers.some(m => existsSync(join(projectPath, m)));
+
+      if (!hasSourceMarker) {
+        // No source markers at top level -- search up to 3 levels deep
+        const findSourceRoot = (dir: string, depth: number): string | null => {
+          if (depth > 3) return null;
+          try {
+            const entries = readdirSync(dir);
+            for (const entry of entries) {
+              if (SKIP_DIRS.has(entry) || entry.startsWith('.')) continue;
+              const full = join(dir, entry);
+              try {
+                if (!statSync(full).isDirectory()) continue;
+              } catch { continue; }
+              // Check if this subdir has source markers
+              if (sourceMarkers.some(m => existsSync(join(full, m)))) {
+                return full.replace(/\\/g, '/');
+              }
+              // Recurse deeper
+              const found = findSourceRoot(full, depth + 1);
+              if (found) return found;
+            }
+          } catch { /* skip */ }
+          return null;
+        };
+        const detectedRoot = findSourceRoot(projectPath, 0);
+        if (detectedRoot) {
+          process.stderr.write(
+            `[deep_explore] Auto-detected source root: ${detectedRoot} (given: ${projectPath})\n`
+          );
+          projectPath = detectedRoot;
+        }
       }
 
       // Ensure the project is indexed

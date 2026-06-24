@@ -41,8 +41,8 @@ const logger = new Logger({ prefix: 'Progressive' });
 // ── Tier Definitions ─────────────────────────────────────────
 
 /** Default token budget for each tier. */
-const TIER1_BUDGET = 500;
-const TIER2_BUDGET = 2000;
+const TIER1_BUDGET = 1250;
+const TIER2_BUDGET = 5000;
 
 /** Static tier metadata. */
 export const TIERS: ContextTier[] = [

@@ -29,8 +29,8 @@ import {
 import type { ParseResult } from './parser.js';
 import type { ChangelogEngine } from './changelog.js';
 
-/** Maximum file size to index (1MB). Files larger than this are skipped to prevent OOM. */
-const MAX_FILE_SIZE_BYTES = 1024 * 1024;
+/** Maximum file size to index (2MB). Files larger than this are skipped to prevent OOM. */
+const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
 
 /** Memory pressure threshold — pause indexing if heap usage exceeds this fraction. */
 const MEMORY_PRESSURE_THRESHOLD = 0.85;

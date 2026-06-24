@@ -143,11 +143,11 @@ CREATE TABLE IF NOT EXISTS digest_cache (
 // ============================================================
 
 /** Auto-prune: max entries to keep */
-const MAX_CHANGELOG_ENTRIES = 10000;
-/** Auto-prune: max age in ms (90 days) */
-const MAX_CHANGELOG_AGE_MS = 90 * 24 * 60 * 60 * 1000;
-/** Session auto-end after 4 hours of inactivity */
-const SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000;
+const MAX_CHANGELOG_ENTRIES = 50000;
+/** Auto-prune: max age in ms (180 days) */
+const MAX_CHANGELOG_AGE_MS = 180 * 24 * 60 * 60 * 1000;
+/** Session auto-end after 8 hours of inactivity */
+const SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000;
 
 export class ChangelogEngine {
   private db: Database.Database;
