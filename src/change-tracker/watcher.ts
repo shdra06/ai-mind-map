@@ -227,13 +227,31 @@ export class FileWatcher extends EventEmitter {
     // Always ignore .git directory itself
     this.ignoreFilter.add('.git');
 
+    // Hardcoded safety ignores -- these should NEVER be watched/indexed
+    // regardless of .gitignore presence
+    this.ignoreFilter.add([
+      'node_modules', '.git', '.svn', '.hg',
+      '__pycache__', 'site-packages', 'venv', '.venv',
+      'standalone-env', 'python_embeded', 'python_embedded',
+      '.tox', '.mypy_cache', '.pytest_cache',
+      'dist', 'build', '.next', '.nuxt', '.cache',
+      'coverage', '.nyc_output',
+      '.idea', '.vscode', '.vs',
+      'vendor', 'target', 'bin', 'obj',
+      '.gradle', '.dart_tool', '.pub-cache', 'Pods',
+      '.gemini', '.cursor', 'antigravity',
+      'models', 'checkpoints', 'weights',
+      'logs', 'tmp', 'temp',
+      '.launcher', 'electron',
+    ]);
+
     // Load .gitignore
     const gitignorePath = path.join(this.projectRoot, '.gitignore');
     try {
       const content = await readFile(gitignorePath, 'utf-8');
       this.ignoreFilter.add(content);
     } catch {
-      // No .gitignore — that's fine.
+      // No .gitignore -- that's fine.
     }
 
     // Add custom ignore patterns from config

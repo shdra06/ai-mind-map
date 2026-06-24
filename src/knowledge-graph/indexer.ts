@@ -244,9 +244,32 @@ export class Indexer {
         absolute: true,
         nodir: true,
         dot: false,
-        // Only skip common heavy directories at glob level for performance.
+        // Skip common heavy directories at glob level for performance.
         // Fine-grained ignore filtering is handled by ig.ignores() below.
-        ignore: ['**/node_modules/**', '**/.git/**'],
+        ignore: [
+          '**/node_modules/**', '**/.git/**', '**/.svn/**', '**/.hg/**',
+          // Python
+          '**/__pycache__/**', '**/site-packages/**', '**/venv/**',
+          '**/.venv/**', '**/env/**', '**/.env/**',
+          '**/standalone-env/**', '**/python_embeded/**', '**/python_embedded/**',
+          '**/.tox/**', '**/.mypy_cache/**', '**/.pytest_cache/**',
+          // Build output
+          '**/dist/**', '**/build/**', '**/out/**', '**/output/**',
+          '**/.next/**', '**/.nuxt/**', '**/.cache/**',
+          '**/coverage/**', '**/.nyc_output/**',
+          // IDE
+          '**/.idea/**', '**/.vscode/**', '**/.vs/**',
+          // Other runtimes
+          '**/vendor/**', '**/target/**', '**/bin/**', '**/obj/**',
+          '**/.gradle/**', '**/.dart_tool/**', '**/.pub-cache/**',
+          '**/Pods/**', '**/.gemini/**', '**/.cursor/**',
+          // Models / weights (AI projects)
+          '**/models/**', '**/checkpoints/**', '**/weights/**',
+          // Logs / temp
+          '**/logs/**', '**/tmp/**', '**/temp/**',
+          // Electron / desktop app runtimes
+          '**/.launcher/**', '**/electron/**',
+        ],
       });
       allFiles.push(...matches);
     }
