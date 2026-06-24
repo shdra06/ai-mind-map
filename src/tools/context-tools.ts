@@ -238,10 +238,13 @@ export function registerContextTools(
     'mindmap_reindex',
     'Index or re-index a codebase. CRITICAL: If you see empty results or _hint about ' +
       '"No codebase index found", call this with the PROJECT PATH of the code you are working on. ' +
-      'Pass the projectPath parameter — this is the root directory of the user\'s project ' +
+      'Pass the projectPath parameter -- this is the root directory of the user\'s project ' +
       '(e.g. "E:\\\\myproject" or "/home/user/project"). Without projectPath, it re-indexes the current project. ' +
       'This creates a knowledge graph of all functions, classes, types, and relationships. ' +
-      'Takes ~10-30 seconds. After indexing, all other tools return real data.',
+      'FIRST-TIME indexing takes ~30-90 seconds (subsequent re-indexes are much faster). ' +
+      'IMPORTANT: Before calling this tool for the first time on a new project, tell the user: ' +
+      '"Building the knowledge graph for the first time -- this takes about a minute. After that, all queries are instant." ' +
+      'After indexing, all other tools return real data.',
     {
       projectPath: z.string().optional().describe(
         'Absolute path to the project directory to index. ALWAYS provide this when indexing a new project.'
@@ -256,10 +259,17 @@ export function registerContextTools(
           const raw = await indexer.reindex();
           result = { ...raw, projectRoot: indexer.getStats().projectRoot ?? 'unknown' };
         }
-        return mcpText(ok({
+        const isFirstTime = result.nodesCreated > 0 && result.durationMs > 5000;
+        const responseData: Record<string, unknown> = {
           ...result,
-          message: ` Indexed ${result.filesIndexed} files → ${result.nodesCreated} symbols in ${result.durationMs}ms. Project: ${result.projectRoot}. All tools are now ready.`,
-        }, estimator));
+          message: `Indexed ${result.filesIndexed} files -> ${result.nodesCreated} symbols in ${result.durationMs}ms. Project: ${result.projectRoot}. All tools are now ready.`,
+        };
+        if (isFirstTime) {
+          responseData._userMessage = 'Knowledge graph built successfully. ' +
+            'All code intelligence tools are now ready -- searches, architecture analysis, ' +
+            'flow tracing, and symbol lookups will respond instantly from now on.';
+        }
+        return mcpText(ok(responseData, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         return mcpText(fail(`reindex failed: ${msg}`));

@@ -170,7 +170,9 @@ export function registerSessionTools(
         if (stats.totalNodes === 0) {
           result._indexRequired = true;
           result._action = 'Call mindmap_reindex NOW to index the codebase. ' +
-            'This is a one-time operation (~10-30 seconds). ' +
+            'FIRST: Tell the user "Building the knowledge graph for the first time -- ' +
+            'this takes about 30-90 seconds. After that, all queries are instant." ' +
+            'Then call mindmap_reindex with the project path. ' +
             'After indexing, call mindmap_session_resume again for full project context.';
         }
 

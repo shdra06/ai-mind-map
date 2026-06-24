@@ -1012,7 +1012,10 @@ function enrichToolResponse(
       result._indexRequired = true;
       result._action = 'REQUIRED: Call mindmap_reindex({ projectPath: "<USER_WORKSPACE_PATH>" }). ' +
         'The current root "' + projectInfo.root + '" is NOT a user project. ' +
-        'Use the workspace/project directory that the user has open in their editor.';
+        'Use the workspace/project directory that the user has open in their editor. ' +
+        'IMPORTANT: Before calling reindex, tell the user: "Indexing your project for the first time. ' +
+        'This builds a full knowledge graph of all functions, classes, and relationships. ' +
+        'It takes about 30-90 seconds on the first run, but after that all tools respond instantly."';
     }
 
     // Always add session token metadata
