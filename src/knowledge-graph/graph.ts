@@ -997,6 +997,45 @@ export class KnowledgeGraph {
     })();
   }
 
+  /**
+   * Clear only nodes and edges belonging to files under a specific project root.
+   * Preserves data from other projects in the graph.
+   */
+  clearProject(projectRoot: string): number {
+    // Normalize: ensure trailing separator for prefix matching
+    const prefix = projectRoot.replace(/\\/g, '/').replace(/\/$/, '') + '/';
+    const altPrefix = projectRoot.replace(/\//g, '\\').replace(/\\$/, '') + '\\';
+
+    const result = this.db.transaction(() => {
+      // Find all node IDs for this project
+      const nodeIds = this.db.prepare(
+        'SELECT id FROM nodes WHERE filePath LIKE ? OR filePath LIKE ?'
+      ).all(`${prefix}%`, `${altPrefix}%`) as Array<{ id: string }>;
+
+      if (nodeIds.length === 0) return 0;
+
+      // Delete edges referencing these nodes
+      const idList = nodeIds.map(n => n.id);
+      // Batch in chunks of 500 to stay within SQLite limits
+      for (let i = 0; i < idList.length; i += 500) {
+        const chunk = idList.slice(i, i + 500);
+        const placeholders = chunk.map(() => '?').join(',');
+        this.db.prepare(
+          `DELETE FROM edges WHERE sourceId IN (${placeholders}) OR targetId IN (${placeholders})`
+        ).run(...chunk, ...chunk);
+      }
+
+      // Delete nodes for this project
+      const del = this.db.prepare(
+        'DELETE FROM nodes WHERE filePath LIKE ? OR filePath LIKE ?'
+      ).run(`${prefix}%`, `${altPrefix}%`);
+
+      return del.changes;
+    })();
+
+    return result;
+  }
+
   // ============================================================
   // Learned Rules (Self-Evolving AI)
   // ============================================================

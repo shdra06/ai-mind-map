@@ -243,8 +243,8 @@ export class Indexer {
       return stats;
     }
 
-    // Clear existing graph data
-    this.graph.clear();
+    // Clear only nodes belonging to THIS project (preserve other projects)
+    this.graph.clearProject(this.config.projectRoot);
 
     // Phase 2: Parsing
     onProgress?.({
