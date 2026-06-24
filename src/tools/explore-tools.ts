@@ -70,6 +70,15 @@ function fail(message: string): ToolResult {
 // Directory Tree Builder
 // ============================================================
 
+/** Maximum source files to include before truncating */
+const MAX_SOURCE_FILES = 500;
+
+/** Maximum tree entries before truncating */
+const MAX_TREE_ENTRIES = 2000;
+
+/** Indexing timeout in ms (15 seconds max) */
+const INDEX_TIMEOUT_MS = 15_000;
+
 /** Directories to always skip when scanning */
 const SKIP_DIRS = new Set([
   'node_modules', '.git', '.svn', '.hg', '__pycache__', '.next', '.nuxt',
@@ -84,7 +93,23 @@ const SKIP_DIRS = new Set([
   'logs', 'tmp', 'temp', '.tmp',
   // Bundled third-party applications
   'LibreSprite', 'blobs',
+  // Python runtime / package directories
+  'site-packages', 'lib', 'Lib', 'Scripts', 'Include',
+  'standalone-env', 'python_embeded', 'python_embedded',
+  // Electron / desktop app runtime
+  'node_modules', 'electron', '.launcher',
+  // Cache directories
+  'ComfyUI-Cache', 'ComfyUI-Shared',
 ]);
+
+/** Directory name patterns that indicate runtime/install dirs (not source) */
+const RUNTIME_DIR_PATTERNS = [
+  /^python[0-9._-]*/i,
+  /^site-packages$/i,
+  /^standalone[-_]?env$/i,
+  /^[._]?cache$/i,
+  /Installs?$/i,
+];
 
 /** Binary/large file extensions to skip contents for */
 const BINARY_EXTENSIONS = new Set([
@@ -147,8 +172,16 @@ interface FileEntry {
   }[];
 }
 
+/** Shared state for file counting across recursive calls */
+interface ScanState {
+  fileCount: number;
+  treeCount: number;
+  truncated: boolean;
+}
+
 /**
  * Recursively build the directory tree and collect source files.
+ * Respects MAX_SOURCE_FILES and MAX_TREE_ENTRIES caps.
  */
 function scanDirectory(
   rootPath: string,
@@ -156,17 +189,18 @@ function scanDirectory(
   maxFileSizeKB: number,
   maxDepth: number = 15,
   depth: number = 0,
-): { tree: TreeEntry[]; files: FileEntry[] } {
+  state: ScanState = { fileCount: 0, treeCount: 0, truncated: false },
+): { tree: TreeEntry[]; files: FileEntry[]; state: ScanState } {
   const tree: TreeEntry[] = [];
   const files: FileEntry[] = [];
 
-  if (depth > maxDepth) return { tree, files };
+  if (depth > maxDepth || state.truncated) return { tree, files, state };
 
   let entries: string[];
   try {
     entries = readdirSync(currentPath);
   } catch {
-    return { tree, files };
+    return { tree, files, state };
   }
 
   // Sort: directories first, then files, alphabetically
@@ -195,6 +229,14 @@ function scanDirectory(
 
     if (st.isDirectory()) {
       if (SKIP_DIRS.has(entry) || entry.startsWith('.')) continue;
+      // Skip directories matching runtime patterns
+      if (RUNTIME_DIR_PATTERNS.some(p => p.test(entry))) continue;
+
+      // Check if we've hit the tree cap
+      if (state.treeCount >= MAX_TREE_ENTRIES) {
+        state.truncated = true;
+        break;
+      }
 
       const treeEntry: TreeEntry = {
         path: relPath,
@@ -203,9 +245,10 @@ function scanDirectory(
         sizeBytes: 0,
       };
 
-      const sub = scanDirectory(rootPath, fullPath, maxFileSizeKB, maxDepth, depth + 1);
+      const sub = scanDirectory(rootPath, fullPath, maxFileSizeKB, maxDepth, depth + 1, state);
       treeEntry.children = sub.tree;
       tree.push(treeEntry);
+      state.treeCount++;
       files.push(...sub.files);
     } else {
       const ext = extname(entry).toLowerCase();
@@ -224,6 +267,12 @@ function scanDirectory(
 
       // Include content for source files, configs, and readmes
       if (shouldReadContent && (isSource || isConfig || isReadme)) {
+        // Check file cap
+        if (state.fileCount >= MAX_SOURCE_FILES) {
+          state.truncated = true;
+          break;
+        }
+
         let content: string | null = null;
         try {
           content = readFileSync(fullPath, 'utf-8');
@@ -238,6 +287,7 @@ function scanDirectory(
           content,
           symbols: [], // Will be populated from graph
         });
+        state.fileCount++;
       } else if (isSource && isBinary) {
         // Binary source files (unlikely but handle)
         files.push({
@@ -247,11 +297,12 @@ function scanDirectory(
           content: null,
           symbols: [],
         });
+        state.fileCount++;
       }
     }
   }
 
-  return { tree, files };
+  return { tree, files, state };
 }
 
 /**
@@ -479,23 +530,31 @@ export function registerExploreTools(
         config.projectRoot = projectPath;
       }
 
-      // Check if indexed, auto-index if needed
+      // Check if indexed, auto-index if needed (with timeout)
       const stats = graph.getStats();
       if (stats.totalNodes === 0 || needsReindex) {
         try {
-          await indexer.fullIndex();
+          // Race indexing against a timeout to prevent hanging on huge projects
+          await Promise.race([
+            indexer.fullIndex(),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Indexing timed out')), INDEX_TIMEOUT_MS)
+            ),
+          ]);
         } catch (e) {
           // Non-fatal — we can still explore without graph data
           process.stderr.write(`[deep_explore] Indexing warning: ${e}\n`);
         }
       }
 
-      // 1. Scan directory tree and collect files
-      const { tree, files } = scanDirectory(
+      // 1. Scan directory tree and collect files (with caps)
+      const scanResult = scanDirectory(
         projectPath,
         projectPath,
         args.maxFileSizeKB ?? 200,
       );
+      const { tree, files } = scanResult;
+      const wasTruncated = scanResult.state.truncated;
 
       // Strip contents if not requested
       if (!args.includeContents) {
@@ -654,6 +713,9 @@ export function registerExploreTools(
           totalSourceBytes,
           indexDurationMs: durationMs,
           languageBreakdown: graphStats.languageBreakdown,
+          truncated: wasTruncated,
+          maxSourceFiles: MAX_SOURCE_FILES,
+          maxTreeEntries: MAX_TREE_ENTRIES,
         },
       };
 
