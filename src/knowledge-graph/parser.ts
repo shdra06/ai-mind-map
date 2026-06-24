@@ -138,9 +138,9 @@ export interface ParseResult {
 // ============================================================
 
 /** Generate a unique deterministic ID for a node */
-export function generateNodeId(filePath: string, name: string, type: string): string {
+export function generateNodeId(filePath: string, name: string, type: string, startLine: number = 0): string {
   const hash = createHash('sha256')
-    .update(`${filePath}::${name}::${type}`)
+    .update(`${filePath}::${name}::${type}::${startLine}`)
     .digest('hex');
   return hash.substring(0, 16);
 }
@@ -505,7 +505,7 @@ function extractFromTreeSitter(
     const sliceText = sourceLines.slice(startLine - 1, endLine).join('\n');
 
     const gNode: GraphNode = {
-      id: generateNodeId(filePath, parentId ? `${parentId}::${name}` : name, nType),
+      id: generateNodeId(filePath, parentId ? `${parentId}::${name}` : name, nType, startLine),
       type: nType,
       name,
       qualifiedName: parentId ? `${parentId}.${name}` : name,
@@ -1136,14 +1136,14 @@ function parseWithRegex(
       const name = match[nameGroup];
       if (!name) continue;
 
-      const key = `${name}::${type}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
       // Calculate line number from match index
       const startLine = source.substring(0, match.index).split('\n').length;
       const matchText = match[0];
       const endLine = startLine + matchText.split('\n').length - 1;
+
+      const key = `${name}::${type}::${startLine}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
 
       // Detect modifiers from signature
       const sig = matchText.trim();
@@ -1168,7 +1168,7 @@ function parseWithRegex(
       const cleanSig = sig.replace(/\{[\s\S]*$/, '').replace(/:\s*$/, '').trim();
 
       const gNode: GraphNode = {
-        id: generateNodeId(filePath, name, type),
+        id: generateNodeId(filePath, name, type, startLine),
         type,
         name,
         qualifiedName: name,

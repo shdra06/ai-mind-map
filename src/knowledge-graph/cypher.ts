@@ -263,6 +263,24 @@ const WRITE_KEYWORDS = new Set<string>([
   'CREATE', 'MERGE', 'SET', 'DELETE', 'REMOVE', 'DETACH',
 ]);
 
+/** Single-character token map — module-level constant to avoid re-allocation */
+const SINGLE_CHAR_MAP: Record<string, TokenType> = {
+  '(': TokenType.LPAREN,
+  ')': TokenType.RPAREN,
+  '[': TokenType.LBRACKET,
+  ']': TokenType.RBRACKET,
+  '{': TokenType.LBRACE,
+  '}': TokenType.RBRACE,
+  ':': TokenType.COLON,
+  '.': TokenType.DOT,
+  ',': TokenType.COMMA,
+  '-': TokenType.DASH,
+  '>': TokenType.GT,
+  '<': TokenType.LT,
+  '=': TokenType.EQ,
+  '*': TokenType.STAR,
+};
+
 /**
  * Tokenize a Cypher query string into a list of tokens.
  */
@@ -374,25 +392,8 @@ function tokenize(input: string): Token[] {
     }
 
     // Single-character tokens
-    const singleCharMap: Record<string, TokenType> = {
-      '(': TokenType.LPAREN,
-      ')': TokenType.RPAREN,
-      '[': TokenType.LBRACKET,
-      ']': TokenType.RBRACKET,
-      '{': TokenType.LBRACE,
-      '}': TokenType.RBRACE,
-      ':': TokenType.COLON,
-      '.': TokenType.DOT,
-      ',': TokenType.COMMA,
-      '-': TokenType.DASH,
-      '>': TokenType.GT,
-      '<': TokenType.LT,
-      '=': TokenType.EQ,
-      '*': TokenType.STAR,
-    };
-
-    if (singleCharMap[input[pos]]) {
-      tokens.push({ type: singleCharMap[input[pos]], value: input[pos], position: startPos });
+    if (SINGLE_CHAR_MAP[input[pos]]) {
+      tokens.push({ type: SINGLE_CHAR_MAP[input[pos]], value: input[pos], position: startPos });
       pos++;
       continue;
     }
@@ -1165,15 +1166,21 @@ export class CypherEngine {
       case '<=':
         params.push(this.toLiteralSqlValue(expr.right as LiteralValue));
         return `${leftCol} ${expr.op} ?`;
-      case 'CONTAINS':
-        params.push(`%${expr.right as string}%`);
-        return `${leftCol} LIKE ?`;
-      case 'STARTS WITH':
-        params.push(`${expr.right as string}%`);
-        return `${leftCol} LIKE ?`;
-      case 'ENDS WITH':
-        params.push(`%${expr.right as string}`);
-        return `${leftCol} LIKE ?`;
+      case 'CONTAINS': {
+        const escaped = (expr.right as string).replace(/[%_\\]/g, '\\$&');
+        params.push(`%${escaped}%`);
+        return `${leftCol} LIKE ? ESCAPE '\\'`;
+      }
+      case 'STARTS WITH': {
+        const escaped = (expr.right as string).replace(/[%_\\]/g, '\\$&');
+        params.push(`${escaped}%`);
+        return `${leftCol} LIKE ? ESCAPE '\\'`;
+      }
+      case 'ENDS WITH': {
+        const escaped = (expr.right as string).replace(/[%_\\]/g, '\\$&');
+        params.push(`%${escaped}`);
+        return `${leftCol} LIKE ? ESCAPE '\\'`;
+      }
       case 'IN': {
         const list = expr.right as LiteralValue[];
         const placeholders = list.map(() => '?').join(', ');

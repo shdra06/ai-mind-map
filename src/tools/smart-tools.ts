@@ -382,12 +382,12 @@ export function registerSmartTools(
 
         for (const cf of changedFiles) {
           // Look up symbols in this file from our index
-          const fileNodes = graph.getFileStructure(cf.file);
+          let fileNodes = graph.getFileStructure(cf.file);
           if (fileNodes.length === 0) {
             // Try with absolute path
             const absPath = resolve(config.projectRoot, cf.file);
-            const nodes2 = graph.getFileStructure(absPath);
-            if (nodes2.length === 0) continue;
+            fileNodes = graph.getFileStructure(absPath);
+            if (fileNodes.length === 0) continue;
           }
 
           const symbols = fileNodes.filter(n => n.type !== 'file');

@@ -11,7 +11,8 @@
  *   ai-mind-map [--project-root <path>] [--db-path <path>] [--log-level debug|info|warn|error]
  */
 
-import { existsSync, mkdirSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, statSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -90,6 +91,10 @@ import { ChangelogEngine } from './knowledge-graph/changelog.js';
 import { registerSessionTools } from './tools/session-tools.js';
 import { registerDigestTools } from './tools/digest-tools.js';
 
+
+// Read version from package.json dynamically
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
 
 // ============================================================
 // Logger â€” writes to stderr so MCP stdio is uncontaminated
@@ -546,7 +551,7 @@ function createMemoryAdapter(
             endedAt: full.endedAt,
             tasksCompleted: full.tasksCompleted,
             filesModified: full.filesModified,
-            decisionseMade: full.decisionseMade,
+            decisionsMade: full.decisionsMade,
             memoriesCreated: full.memoriesCreated,
             tokensSaved: full.tokensSaved,
             summary: full.summary,
@@ -559,7 +564,7 @@ function createMemoryAdapter(
           endedAt: s.endedAt ?? Date.now(),
           tasksCompleted: [],
           filesModified: [],
-          decisionseMade: [],
+          decisionsMade: [],
           memoriesCreated: 0,
           tokensSaved: 0,
           summary: s.summary,
@@ -867,8 +872,10 @@ const BLOCKED_DIRECTORY_PATTERNS = [
 
 /** Check if a path is a known IDE/tool directory that should never be indexed */
 function isBlockedDirectory(dirPath: string): boolean {
-  const lower = dirPath.toLowerCase().replace(/\\/g, '/');
-  return BLOCKED_DIRECTORY_PATTERNS.some(pattern => lower.includes(pattern));
+  const segments = dirPath.toLowerCase().replace(/\\/g, '/').split('/');
+  return BLOCKED_DIRECTORY_PATTERNS.some(pattern =>
+    segments.some(seg => seg === pattern)
+  );
 }
 
 /**
@@ -884,6 +891,7 @@ function enrichToolResponse(
   estimator: { estimate(text: string): number },
   graphNodeCount: () => number,
   getProjectInfo: () => { root: string; indexedFiles: number; totalNodes: number },
+  inputTokens: number = 0,
 ): { content: Array<{ type: string; text: string }> } {
   if (!response?.content?.[0]?.text) return response;
 
@@ -894,8 +902,8 @@ function enrichToolResponse(
     const outputTokens = estimator.estimate(response.content[0].text);
     const tokensSaved = result.tokensSaved ?? 0;
 
-    // Record in tracker
-    tracker.record(0, outputTokens, tokensSaved);
+    // Record in tracker (inputTokens passed from caller)
+    tracker.record(inputTokens, outputTokens, tokensSaved);
 
     // Always add project metadata
     const projectInfo = getProjectInfo();
@@ -1025,7 +1033,7 @@ async function main(): Promise<void> {
       for (const event of events) {
         try {
           if (event.changeType === 'deleted') {
-            indexer.removeFile(event.filePath);
+            await indexer.removeFile(event.filePath);
           } else {
             await indexer.indexFile(event.filePath);
           }
@@ -1096,7 +1104,7 @@ async function main(): Promise<void> {
   const server = new McpServer(
     {
       name: 'ai-mind-map',
-      version: '1.7.1',
+      version: pkg.version,
     },
     {
       instructions: [
@@ -1199,7 +1207,6 @@ async function main(): Promise<void> {
         // Estimate input tokens from args
         const inputStr = JSON.stringify(handlerArgs);
         const inputTokens = tokenEstimator.estimate(inputStr);
-        tokenTracker.totalInputTokens += inputTokens;
 
         // Call original handler
         const response = await originalHandler(...handlerArgs);
@@ -1214,6 +1221,7 @@ async function main(): Promise<void> {
             const s = graph.getStats();
             return { root: config.projectRoot, indexedFiles: s.totalFiles, totalNodes: s.totalNodes };
           },
+          inputTokens,
         );
       };
     }
@@ -1476,7 +1484,7 @@ async function main(): Promise<void> {
       '.git', 'package.json', 'build.gradle', 'build.gradle.kts',
       'Cargo.toml', 'go.mod', 'pom.xml', 'CMakeLists.txt',
       'Makefile', '.project', 'setup.py', 'pyproject.toml',
-      'pubspec.yaml', 'Gemfile', '*.sln', '*.csproj',
+      'pubspec.yaml', 'Gemfile',
     ];
     const isRealProject = projectMarkers.some(marker =>
       existsSync(path.join(config.projectRoot, marker))

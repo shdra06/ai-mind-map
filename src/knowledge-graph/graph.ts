@@ -419,11 +419,15 @@ export class KnowledgeGraph {
 
       deletedCount = nodeIds.length;
 
-      // Delete edges referencing these nodes
-      const placeholders = nodeIds.map(() => '?').join(',');
-      this.db.prepare(
-        `DELETE FROM edges WHERE sourceId IN (${placeholders}) OR targetId IN (${placeholders})`,
-      ).run(...nodeIds.map(n => n.id), ...nodeIds.map(n => n.id));
+      // Delete edges referencing these nodes — batch in chunks of 500 to stay within SQLite limits
+      const idList = nodeIds.map(n => n.id);
+      for (let i = 0; i < idList.length; i += 500) {
+        const chunk = idList.slice(i, i + 500);
+        const placeholders = chunk.map(() => '?').join(',');
+        this.db.prepare(
+          `DELETE FROM edges WHERE sourceId IN (${placeholders}) OR targetId IN (${placeholders})`,
+        ).run(...chunk, ...chunk);
+      }
 
       // Delete the nodes
       this.db.prepare(`DELETE FROM nodes WHERE filePath = ?`).run(filePath);
@@ -592,17 +596,34 @@ export class KnowledgeGraph {
       if (current.depth >= maxDepth || visited.has(current.id)) continue;
       visited.add(current.id);
 
-      const parentEdges = this.db.prepare(`
+      // inherits/implements: sourceId=child, targetId=parent → follow targetId
+      const inheritEdges = this.db.prepare(`
         SELECT e.targetId FROM edges e
-        WHERE e.sourceId = ? AND e.type IN ('inherits', 'implements', 'contains')
+        WHERE e.sourceId = ? AND e.type IN ('inherits', 'implements')
       `).all(current.id) as { targetId: string }[];
 
-      for (const { targetId } of parentEdges) {
+      for (const { targetId } of inheritEdges) {
         if (!visited.has(targetId)) {
           const node = this.getNode(targetId);
           if (node) {
             result.push(node);
             queue.push({ id: targetId, depth: current.depth + 1 });
+          }
+        }
+      }
+
+      // contains: sourceId=parent, targetId=child → find parent via targetId=current
+      const containsEdges = this.db.prepare(`
+        SELECT e.sourceId FROM edges e
+        WHERE e.targetId = ? AND e.type = 'contains'
+      `).all(current.id) as { sourceId: string }[];
+
+      for (const { sourceId } of containsEdges) {
+        if (!visited.has(sourceId)) {
+          const node = this.getNode(sourceId);
+          if (node) {
+            result.push(node);
+            queue.push({ id: sourceId, depth: current.depth + 1 });
           }
         }
       }
@@ -628,12 +649,29 @@ export class KnowledgeGraph {
       if (current.depth >= maxDepth || visited.has(current.id)) continue;
       visited.add(current.id);
 
-      const childEdges = this.db.prepare(`
+      // contains: sourceId=parent, targetId=child → follow targetId
+      const containsEdges = this.db.prepare(`
+        SELECT e.targetId FROM edges e
+        WHERE e.sourceId = ? AND e.type = 'contains'
+      `).all(current.id) as { targetId: string }[];
+
+      for (const { targetId } of containsEdges) {
+        if (!visited.has(targetId)) {
+          const node = this.getNode(targetId);
+          if (node) {
+            result.push(node);
+            queue.push({ id: targetId, depth: current.depth + 1 });
+          }
+        }
+      }
+
+      // inherits/implements: sourceId=child, targetId=parent → find children via targetId=current
+      const inheritEdges = this.db.prepare(`
         SELECT e.sourceId FROM edges e
-        WHERE e.targetId = ? AND e.type IN ('inherits', 'implements', 'contains')
+        WHERE e.targetId = ? AND e.type IN ('inherits', 'implements')
       `).all(current.id) as { sourceId: string }[];
 
-      for (const { sourceId } of childEdges) {
+      for (const { sourceId } of inheritEdges) {
         if (!visited.has(sourceId)) {
           const node = this.getNode(sourceId);
           if (node) {

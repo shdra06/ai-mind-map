@@ -82,14 +82,14 @@ export class Indexer {
   private _lockRelease: (() => void) | null = null;
 
   private async acquireIndexLock(): Promise<() => void> {
-    // Wait for any existing lock to release
-    await this._indexLock;
-    let release: () => void;
+    const previous = this._indexLock;
+    let release!: () => void;
     this._indexLock = new Promise<void>(resolve => { release = resolve; });
-    this._lockRelease = release!;
+    this._lockRelease = release;
+    await previous;
     return () => {
       this._lockRelease = null;
-      release!();
+      release();
     };
   }
 
@@ -382,6 +382,15 @@ export class Indexer {
 
         // Store in graph
         this.graph.replaceFileData(result.filePath, result.nodes, result.edges);
+
+        // Update file_index for mtime-first change detection
+        try {
+          const fileStat = await stat(result.filePath);
+          const fileHash = result.nodes.find(n => n.type === 'file')?.hash ?? '';
+          this.graph.upsertFileIndex(result.filePath, fileStat.mtimeMs, fileStat.size, fileHash);
+        } catch {
+          // File may have been deleted between parse and store
+        }
 
         if (i % 50 === 0) {
           onProgress?.({
@@ -716,9 +725,14 @@ export class Indexer {
    * @param filePath - Absolute path to the deleted file
    * @returns Number of nodes removed
    */
-  removeFile(filePath: string): number {
-    this.graph.removeFileIndex(filePath);
-    return this.graph.deleteFileNodes(filePath);
+  async removeFile(filePath: string): Promise<number> {
+    const release = await this.acquireIndexLock();
+    try {
+      this.graph.removeFileIndex(filePath);
+      return this.graph.deleteFileNodes(filePath);
+    } finally {
+      release();
+    }
   }
 
   /**

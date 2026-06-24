@@ -253,7 +253,7 @@ export class PersistentMemory {
    */
   createMemory(input: CreateMemoryInput): Memory {
     // Input validation
-    if (input.content && input.content.length > 50000) {
+    if (input.content?.length > 50000) {
       input.content = input.content.substring(0, 50000) + '... [truncated]';
     }
     if (input.tags && input.tags.length > 50) {
@@ -428,14 +428,7 @@ export class PersistentMemory {
       memories = this.applyTokenBudget(memories, query.tokenBudget);
     }
 
-    // ── Boost accessed memories ──────────────────────────────
-    const bumpTxn = this.db.transaction((ids: number[]) => {
-      const bumpNow = Date.now();
-      for (const id of ids) {
-        this.stmtBumpAccess.run(bumpNow, id);
-      }
-    });
-    bumpTxn(memories.map(m => m.id));
+
 
     return memories;
   }
@@ -674,10 +667,11 @@ export class PersistentMemory {
    * Fallback search when FTS query fails (e.g. special characters).
    */
   private fallbackLikeSearch(text: string): Record<string, unknown>[] {
-    const pattern = `%${text}%`;
+    const escaped = text.replace(/[%_]/g, '\\$&');
+    const pattern = `%${escaped}%`;
     return this.db
       .prepare(
-        `SELECT *, 0 AS rank FROM memories WHERE content LIKE ? ORDER BY importance DESC LIMIT 50`,
+        `SELECT *, 0 AS rank FROM memories WHERE content LIKE ? ESCAPE '\\' ORDER BY importance DESC LIMIT 50`,
       )
       .all(pattern) as Record<string, unknown>[];
   }

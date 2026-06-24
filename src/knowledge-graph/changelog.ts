@@ -636,24 +636,27 @@ export class ChangelogEngine {
   pruneChangelog(): number {
     const cutoff = Date.now() - MAX_CHANGELOG_AGE_MS;
 
-    // Delete entries older than 30 days
-    const byAge = this.db.prepare('DELETE FROM changelog WHERE timestamp < ?').run(cutoff);
+    // Get count before pruning
+    const countBefore = (this.db.prepare('SELECT COUNT(*) as c FROM changelog').get() as any).c;
 
-    // Keep only the last MAX_CHANGELOG_ENTRIES
-    const count = (this.db.prepare('SELECT COUNT(*) as c FROM changelog').get() as any).c;
-    let byCount = 0;
-    if (count > MAX_CHANGELOG_ENTRIES) {
+    // Keep only the last MAX_CHANGELOG_ENTRIES (count-based prune first)
+    if (countBefore > MAX_CHANGELOG_ENTRIES) {
       const keepFrom = this.db.prepare(
         'SELECT timestamp FROM changelog ORDER BY timestamp DESC LIMIT 1 OFFSET ?'
       ).get(MAX_CHANGELOG_ENTRIES) as any;
 
       if (keepFrom) {
-        const result = this.db.prepare('DELETE FROM changelog WHERE timestamp < ?').run(keepFrom.timestamp);
-        byCount = result.changes;
+        this.db.prepare('DELETE FROM changelog WHERE timestamp < ?').run(keepFrom.timestamp);
       }
     }
 
-    return byAge.changes + byCount;
+    // Delete entries older than MAX_CHANGELOG_AGE_MS
+    this.db.prepare('DELETE FROM changelog WHERE timestamp < ?').run(cutoff);
+
+    // Get count after pruning
+    const countAfter = (this.db.prepare('SELECT COUNT(*) as c FROM changelog').get() as any).c;
+
+    return countBefore - countAfter;
   }
 
   /**

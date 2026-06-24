@@ -160,7 +160,7 @@ export interface SessionSummary {
   endedAt: number;
   tasksCompleted: string[];
   filesModified: string[];
-  decisionseMade: string[];
+  decisionsMade: string[];
   memoriesCreated: number;
   tokensSaved: number;
   summary: string;

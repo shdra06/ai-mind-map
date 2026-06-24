@@ -202,6 +202,7 @@ export function tokenize(text: string): string[] {
   const withSpaces = text
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')     // camelCase → camel Case
     .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')   // HTMLParser → HTML Parser
+    .replace(/(\d+)/g, ' $1 ')                    // handler404 → handler 404
     .replace(/[_\-.\/\\:@#$%^&*(){}[\]<>,;=+!?'"~`|]/g, ' ');  // symbols → spaces
 
   // Split on whitespace, lowercase, filter short tokens
@@ -264,6 +265,19 @@ function computeTF(tokens: string[]): SparseVector {
 }
 
 /**
+ * Compute raw term frequency counts (no normalization).
+ * BM25 needs raw integer counts, not normalized TF.
+ */
+function computeRawTF(tokens: string[]): SparseVector {
+  if (tokens.length === 0) return {};
+  const tf: SparseVector = {};
+  for (const token of tokens) {
+    tf[token] = (tf[token] || 0) + 1;
+  }
+  return tf;
+}
+
+/**
  * Compute the L2 magnitude of a sparse vector.
  */
 function magnitude(vec: SparseVector): number {
@@ -307,6 +321,7 @@ CREATE TABLE IF NOT EXISTS tfidf_vectors (
   node_id TEXT PRIMARY KEY,
   terms TEXT NOT NULL,
   magnitude REAL NOT NULL,
+  doc_length INTEGER NOT NULL DEFAULT 0,
   updated_at INTEGER NOT NULL
 );
 
@@ -363,13 +378,19 @@ export class SemanticSearchEngine {
   /** Initialize semantic search tables */
   private initSchema(): void {
     this.db.exec(SEMANTIC_SCHEMA);
+    // Migration: add doc_length column if missing (existing DBs)
+    try {
+      this.db.exec('ALTER TABLE tfidf_vectors ADD COLUMN doc_length INTEGER NOT NULL DEFAULT 0');
+    } catch {
+      // Column already exists — expected
+    }
   }
 
   /** Prepare reusable SQL statements */
   private prepareStatements(): void {
     this.stmtUpsertVector = this.db.prepare(`
-      INSERT OR REPLACE INTO tfidf_vectors (node_id, terms, magnitude, updated_at)
-      VALUES (?, ?, ?, ?)
+      INSERT OR REPLACE INTO tfidf_vectors (node_id, terms, magnitude, doc_length, updated_at)
+      VALUES (?, ?, ?, ?, ?)
     `);
 
     this.stmtDeleteVector = this.db.prepare(`
@@ -382,11 +403,11 @@ export class SemanticSearchEngine {
     `);
 
     this.stmtGetVector = this.db.prepare(`
-      SELECT terms, magnitude FROM tfidf_vectors WHERE node_id = ?
+      SELECT terms, magnitude, doc_length FROM tfidf_vectors WHERE node_id = ?
     `);
 
     this.stmtGetAllVectors = this.db.prepare(`
-      SELECT node_id, terms, magnitude FROM tfidf_vectors
+      SELECT node_id, terms, magnitude, doc_length FROM tfidf_vectors
     `);
 
     this.stmtGetCorpusStats = this.db.prepare(`
@@ -475,14 +496,15 @@ export class SemanticSearchEngine {
       return;
     }
 
-    const tf = computeTF(tokens);
+    const tf = computeRawTF(tokens);
     const mag = magnitude(tf);
 
-    // Store TF vector as JSON (IDF will be applied at search time)
+    // Store raw TF vector as JSON (IDF will be applied at search time)
     this.stmtUpsertVector.run(
       nodeId,
       JSON.stringify(tf),
       mag,
+      tokens.length,
       Date.now(),
     );
 
@@ -650,15 +672,13 @@ export class SemanticSearchEngine {
       node_id: string;
       terms: string;
       magnitude: number;
+      doc_length: number;
     }>;
 
-    // Pre-compute avg doc length
+    // Pre-compute avg doc length from stored doc_length
     let totalDocLength = 0;
     for (const row of allVectors) {
-      try {
-        const tf: SparseVector = JSON.parse(row.terms);
-        totalDocLength += Object.keys(tf).length;
-      } catch { /* skip */ }
+      totalDocLength += row.doc_length || 0;
     }
     avgDocLength = allVectors.length > 0 ? totalDocLength / allVectors.length : 1;
 
@@ -667,7 +687,7 @@ export class SemanticSearchEngine {
     for (const row of allVectors) {
       try {
         const docTF: SparseVector = JSON.parse(row.terms);
-        const docLength = Object.keys(docTF).length;
+        const docLength = row.doc_length || Object.keys(docTF).length;
 
         const { score, matchedTerms } = this.computeBM25Score(
           searchTerms, docTF, docLength, avgDocLength

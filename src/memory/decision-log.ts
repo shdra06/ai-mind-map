@@ -278,11 +278,20 @@ export class DecisionLog {
   /**
    * Reverse a decision (mark it as no longer valid).
    *
+   * Only allowed when the current status is 'active'.
+   *
    * @returns The updated decision, or `null` if not found.
    */
   reverseDecision(id: number): Decision | null {
     const row = this.stmtGetById.get(id) as Record<string, unknown> | undefined;
     if (!row) return null;
+
+    const current = this.rowToDecision(row);
+    if (current.status !== 'active') {
+      throw new Error(
+        `Cannot reverse decision #${id}: status is '${current.status}', expected 'active'.`,
+      );
+    }
 
     this.stmtUpdateStatus.run('reversed', id);
     const updated = this.stmtGetById.get(id) as Record<string, unknown>;
@@ -291,14 +300,36 @@ export class DecisionLog {
 
   /**
    * Re-activate a previously superseded or reversed decision.
+   *
+   * Only allowed when the current status is 'reversed' or 'superseded'.
+   * Also clears the `superseded_by` field.
    */
   reactivateDecision(id: number): Decision | null {
     const row = this.stmtGetById.get(id) as Record<string, unknown> | undefined;
     if (!row) return null;
 
+    const current = this.rowToDecision(row);
+    if (current.status !== 'reversed' && current.status !== 'superseded') {
+      throw new Error(
+        `Cannot reactivate decision #${id}: status is '${current.status}', expected 'reversed' or 'superseded'.`,
+      );
+    }
+
     this.stmtUpdateStatus.run('active', id);
+    // Clear superseded_by when reactivating
+    this.db.prepare('UPDATE decisions SET superseded_by = NULL WHERE id = ?').run(id);
     const updated = this.stmtGetById.get(id) as Record<string, unknown>;
     return this.rowToDecision(updated);
+  }
+
+  /**
+   * Update the status of a decision directly.
+   *
+   * Intended for use by shared-sync and other internal callers that need
+   * to set status without lifecycle guards (e.g. importing team decisions).
+   */
+  updateStatus(id: number, status: 'active' | 'superseded' | 'reversed'): void {
+    this.stmtUpdateStatus.run(status, id);
   }
 
   // ────────────────────────────────────────────────────────────

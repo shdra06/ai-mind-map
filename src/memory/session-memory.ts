@@ -328,10 +328,10 @@ export class SessionMemory {
    */
   recordTokenUsage(usage: Partial<TokenUsage>): void {
     this.assertActiveSession();
-    if (usage.inputTokens) this.tokenUsage.inputTokens += usage.inputTokens;
-    if (usage.outputTokens) this.tokenUsage.outputTokens += usage.outputTokens;
-    if (usage.contextTokens) this.tokenUsage.contextTokens += usage.contextTokens;
-    if (usage.savedTokens) this.tokenUsage.savedTokens += usage.savedTokens;
+    if (typeof usage.inputTokens === 'number') this.tokenUsage.inputTokens += usage.inputTokens;
+    if (typeof usage.outputTokens === 'number') this.tokenUsage.outputTokens += usage.outputTokens;
+    if (typeof usage.contextTokens === 'number') this.tokenUsage.contextTokens += usage.contextTokens;
+    if (typeof usage.savedTokens === 'number') this.tokenUsage.savedTokens += usage.savedTokens;
   }
 
   /** Read token usage counters for the active session. */
@@ -367,7 +367,7 @@ export class SessionMemory {
       endedAt: (row.endedAt as number) ?? Date.now(),
       tasksCompleted: facts.filter(f => f.kind === 'task_completed').map(f => f.content),
       filesModified: [...new Set(facts.filter(f => f.kind === 'file_worked_on').map(f => f.content))],
-      decisionseMade: facts.filter(f => f.kind === 'decision_made').map(f => f.content),
+      decisionsMade: facts.filter(f => f.kind === 'decision_made').map(f => f.content),
       memoriesCreated: 0, // Populated by caller if needed
       tokensSaved: row.savedTokens as number,
       summary: row.summary as string,
@@ -440,7 +440,7 @@ export class SessionMemory {
       endedAt: Date.now(),
       tasksCompleted: tasks,
       filesModified: files,
-      decisionseMade: decisions,
+      decisionsMade: decisions,
       memoriesCreated: 0,
       tokensSaved: this.tokenUsage.savedTokens,
       summary: parts.join(' '),

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import type { MindMapConfig, Memory, Decision, MemoryCategory } from '../types.js';
@@ -67,6 +67,18 @@ function normalizeString(str: string): string {
 }
 
 /**
+ * Deterministic JSON serialisation with sorted keys.
+ * Ensures identical data always produces the same string regardless of
+ * property insertion order — critical for stable checksum computation.
+ */
+function canonicalStringify(obj: unknown): string {
+  if (obj === null || typeof obj !== 'object') return JSON.stringify(obj);
+  if (Array.isArray(obj)) return '[' + obj.map(canonicalStringify).join(',') + ']';
+  const sorted = Object.keys(obj as Record<string, unknown>).sort();
+  return '{' + sorted.map(k => JSON.stringify(k) + ':' + canonicalStringify((obj as Record<string, unknown>)[k])).join(',') + '}';
+}
+
+/**
  * Synchronise local SQLite database with team-shared JSON file.
  * Performs a bidirectional merge.
  */
@@ -86,6 +98,13 @@ export async function syncSharedContext(
   };
 
   const sharedFilePath = path.resolve(config.projectRoot, config.sharedContextFile);
+
+  // Path traversal check
+  const resolved = path.resolve(config.projectRoot, config.sharedContextFile);
+  if (!resolved.startsWith(path.resolve(config.projectRoot))) {
+    throw new Error('Shared context file path must be within the project root');
+  }
+
   let sharedContext: SharedContext = { version: '1.0', memories: [], decisions: [], rules: [] };
 
   // 1. Read existing shared context file with integrity checking
@@ -98,7 +117,7 @@ export async function syncSharedContext(
       if (parsed._checksum) {
         const { _checksum, ...dataWithout } = parsed;
         const expectedHash = createHash('sha256')
-          .update(JSON.stringify(dataWithout))
+          .update(canonicalStringify(dataWithout))
           .digest('hex')
           .substring(0, 16);
         if (expectedHash !== _checksum) {
@@ -116,8 +135,8 @@ export async function syncSharedContext(
   }
 
   // 2. Fetch existing local data from SQLite
-  const localMemories = memoryStore.queryMemories({ limit: 100000 });
-  const localDecisions = decisionLog.queryDecisions({ limit: 100000 });
+  const localMemories = memoryStore.queryMemories({ limit: 10000 });
+  const localDecisions = decisionLog.queryDecisions({ limit: 10000 });
   const localRules = graph.getLearnedRules();
 
   // Create lookups to easily identify duplicates/updates
@@ -177,15 +196,13 @@ export async function syncSharedContext(
         
         // If the shared status is different from active, update it
         if (d.status !== 'active') {
-          const dbInstance = (decisionLog as any).db;
-          dbInstance.prepare('UPDATE decisions SET status = ? WHERE id = ?').run(d.status, decision.id);
+          decisionLog.updateStatus(decision.id, d.status);
         }
         stats.decisionsImported++;
       } else {
         // Update local status/info if it differs
         if (localDec.status !== d.status) {
-          const dbInstance = (decisionLog as any).db;
-          dbInstance.prepare('UPDATE decisions SET status = ? WHERE id = ?').run(d.status, localDec.id);
+          decisionLog.updateStatus(localDec.id, d.status);
           stats.decisionsImported++;
         }
       }
@@ -211,8 +228,8 @@ export async function syncSharedContext(
 
   // 4. Bidirectional Merge: Export from SQLite to Shared Context File
   // Fetch fresh local data after imports
-  const freshLocalMemories = memoryStore.queryMemories({ limit: 100000 });
-  const freshLocalDecisions = decisionLog.queryDecisions({ limit: 100000 });
+  const freshLocalMemories = memoryStore.queryMemories({ limit: 10000 });
+  const freshLocalDecisions = decisionLog.queryDecisions({ limit: 10000 });
   const freshLocalRules = graph.getLearnedRules();
 
   const exportedMemories: SharedMemory[] = [];
@@ -304,7 +321,7 @@ export async function syncSharedContext(
 
   // Generate integrity checksum (over the data without checksum field)
   const dataHash = createHash('sha256')
-    .update(JSON.stringify(finalContext))
+    .update(canonicalStringify(finalContext))
     .digest('hex')
     .substring(0, 16);
   finalContext._checksum = dataHash;
@@ -314,7 +331,15 @@ export async function syncSharedContext(
     const content = JSON.stringify(finalContext, null, 2);
     const tmpPath = sharedFilePath + '.tmp.' + process.pid;
     writeFileSync(tmpPath, content, 'utf-8');
-    renameSync(tmpPath, sharedFilePath);
+    try {
+      renameSync(tmpPath, sharedFilePath);
+    } catch {
+      // Windows fallback: delete target then rename
+      try {
+        unlinkSync(sharedFilePath);
+      } catch { /* may not exist */ }
+      renameSync(tmpPath, sharedFilePath);
+    }
   } catch (err) {
     throw new Error(`Failed to write shared context file ${config.sharedContextFile}: ${err}`);
   }
