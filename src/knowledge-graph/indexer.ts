@@ -77,6 +77,14 @@ export class Indexer {
   private ig: ReturnType<typeof ignore>;
   private changelog: ChangelogEngine | null = null;
 
+  /**
+   * Per-project-root ignore patterns.
+   * When multiple projects are indexed, each keeps its own .gitignore rules.
+   */
+  private projectIgnores = new Map<string, ReturnType<typeof ignore>>();
+  /** Track all project roots we've indexed */
+  private knownProjectRoots: string[] = [];
+
   constructor(graph: KnowledgeGraph, config: MindMapConfig) {
     this.graph = graph;
     this.config = config;
@@ -84,6 +92,9 @@ export class Indexer {
 
     // Load .gitignore patterns
     this.loadIgnorePatterns();
+    // Store as the first known project
+    this.projectIgnores.set(this.config.projectRoot, this.ig);
+    this.knownProjectRoots.push(this.config.projectRoot);
   }
 
   /** Attach a changelog engine for node-level change tracking */
@@ -95,12 +106,53 @@ export class Indexer {
    * Re-target the indexer to a different project directory.
    * Reloads .gitignore patterns and updates config.projectRoot.
    * The graph is NOT cleared — nodes from multiple projects can coexist.
+   * Previous project's ignore patterns are preserved for file watcher events.
    */
   setProjectRoot(newRoot: string): void {
     this.config.projectRoot = newRoot;
     // Reset and reload ignore patterns for the new root
     this.ig = ignore();
     this.loadIgnorePatterns();
+    // Store the new project's ignore patterns
+    this.projectIgnores.set(newRoot, this.ig);
+    if (!this.knownProjectRoots.includes(newRoot)) {
+      this.knownProjectRoots.push(newRoot);
+    }
+  }
+
+  /** Get the list of all indexed project roots */
+  getKnownProjectRoots(): string[] {
+    return [...this.knownProjectRoots];
+  }
+
+  /**
+   * Find the project root that a file belongs to.
+   * Matches by longest prefix (most specific root wins).
+   */
+  private findProjectRootForFile(filePath: string): string | null {
+    const normalized = filePath.replace(/\\/g, '/');
+    let bestMatch: string | null = null;
+    let bestLength = 0;
+    for (const root of this.knownProjectRoots) {
+      const normalizedRoot = root.replace(/\\/g, '/');
+      if (normalized.startsWith(normalizedRoot) && normalizedRoot.length > bestLength) {
+        bestMatch = root;
+        bestLength = normalizedRoot.length;
+      }
+    }
+    return bestMatch;
+  }
+
+  /**
+   * Get the correct ignore instance for a file path.
+   * Falls back to the current project's ignore if no match found.
+   */
+  private getIgnoreForFile(filePath: string): ReturnType<typeof ignore> {
+    const projectRoot = this.findProjectRootForFile(filePath);
+    if (projectRoot) {
+      return this.projectIgnores.get(projectRoot) ?? this.ig;
+    }
+    return this.ig;
   }
 
   /** Load ignore patterns from .gitignore and config */
@@ -562,9 +614,13 @@ export class Indexer {
    * @returns Parse result, or null if file was skipped
    */
   async indexFile(filePath: string): Promise<ParseResult | null> {
-    // Check if file should be ignored
-    const relPath = relative(this.config.projectRoot, filePath).replace(/\\/g, '/');
-    if (this.ig.ignores(relPath)) return null;
+    // Determine which project this file belongs to (multi-project support)
+    const fileProjectRoot = this.findProjectRootForFile(filePath) ?? this.config.projectRoot;
+    const fileIgnore = this.getIgnoreForFile(filePath);
+
+    // Check if file should be ignored using the correct project's rules
+    const relPath = relative(fileProjectRoot, filePath).replace(/\\/g, '/');
+    if (fileIgnore.ignores(relPath)) return null;
     if (!isSupportedFile(filePath)) return null;
 
     // Skip files that are too large (prevent OOM)
