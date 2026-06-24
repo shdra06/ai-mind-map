@@ -144,6 +144,7 @@ function log(level: LogLevel, message: string, ...extra: unknown[]): void {
 function createGraphAdapter(
   graph: KnowledgeGraph,
   pagerank: PageRankEngine,
+  config: MindMapConfig,
 ): IKnowledgeGraph {
   return {
     search: (query: string, type?: NodeType, limit?: number): GraphNode[] => {
@@ -269,10 +270,59 @@ function createGraphAdapter(
     findReferences: (symbolName: string) => {
       const nodes = graph.getNodesByName(symbolName);
       if (nodes.length === 0) {
-        return { symbol: symbolName, references: [] };
+        // No node found — try text-based fallback
+        const textRefs: { filePath: string; line: number; context: string }[] = [];
+        const indexedFiles = graph.getIndexedFiles();
+        for (const file of indexedFiles) {
+          if (textRefs.length >= 20) break;
+          try {
+            const absPath = path.resolve(config.projectRoot, file);
+            const content = readFileSync(absPath, 'utf-8');
+            const lines = content.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+              if (textRefs.length >= 20) break;
+              if (lines[i].includes(symbolName)) {
+                textRefs.push({
+                  filePath: file,
+                  line: i + 1,
+                  context: lines[i].trim(),
+                });
+              }
+            }
+          } catch {
+            continue;
+          }
+        }
+        return { symbol: symbolName, references: textRefs, fallback: 'text' as const };
       }
       // Find all callers of the first matching node as "references"
       const callers = graph.findCallers(nodes[0].id);
+      if (callers.length === 0) {
+        // Graph edges empty — try text-based fallback
+        const textRefs: { filePath: string; line: number; context: string }[] = [];
+        const indexedFiles = graph.getIndexedFiles();
+        for (const file of indexedFiles) {
+          if (textRefs.length >= 20) break;
+          try {
+            const absPath = path.resolve(config.projectRoot, file);
+            const content = readFileSync(absPath, 'utf-8');
+            const lines = content.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+              if (textRefs.length >= 20) break;
+              if (lines[i].includes(symbolName)) {
+                textRefs.push({
+                  filePath: file,
+                  line: i + 1,
+                  context: lines[i].trim(),
+                });
+              }
+            }
+          } catch {
+            continue;
+          }
+        }
+        return { symbol: symbolName, references: textRefs, fallback: 'text' as const };
+      }
       return {
         symbol: symbolName,
         references: callers.map((n: GraphNode) => ({
@@ -284,7 +334,39 @@ function createGraphAdapter(
     },
 
     getFileMap: (filePath: string) => {
-      const nodes = graph.getFileStructure(filePath);
+      // Try the raw path first
+      let nodes = graph.getFileStructure(filePath);
+
+      // If no results and path looks relative, resolve against projectRoot
+      if ((!nodes || nodes.length === 0) && !path.isAbsolute(filePath)) {
+        const resolved = path.resolve(config.projectRoot, filePath);
+        nodes = graph.getFileStructure(resolved);
+
+        // Try with normalized separators
+        if (!nodes || nodes.length === 0) {
+          const withForward = resolved.replace(/\\/g, '/');
+          nodes = graph.getFileStructure(withForward);
+        }
+        if (!nodes || nodes.length === 0) {
+          const withBack = resolved.replace(/\//g, '\\');
+          nodes = graph.getFileStructure(withBack);
+        }
+      }
+
+      // Try case-insensitive match against indexed files
+      if (!nodes || nodes.length === 0) {
+        const indexedFiles = graph.getIndexedFiles();
+        const lowerPath = filePath.toLowerCase().replace(/\\/g, '/');
+        const match = indexedFiles.find(f =>
+          f.toLowerCase().replace(/\\/g, '/') === lowerPath ||
+          f.toLowerCase().replace(/\\/g, '/').endsWith('/' + lowerPath) ||
+          f.toLowerCase().replace(/\\/g, '/') === lowerPath.replace(/^\.\//, '')
+        );
+        if (match) {
+          nodes = graph.getFileStructure(match);
+        }
+      }
+
       if (!nodes || nodes.length === 0) return null;
       return {
         filePath,
@@ -1097,7 +1179,7 @@ async function main(): Promise<void> {
   log('info', 'âœ… Context Engine initialized');
 
   // â”€â”€ 5. Build adapters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const graphAdapter = createGraphAdapter(graph, pagerank);
+  const graphAdapter = createGraphAdapter(graph, pagerank, config);
   const changeAdapter = createChangeAdapter(diffEngine, changeLog, graph);
   const memoryAdapter = createMemoryAdapter(persistentMemory, decisionLog, sessionMemory);
   const sessionAdapter = createSessionAdapter(sessionMemory);

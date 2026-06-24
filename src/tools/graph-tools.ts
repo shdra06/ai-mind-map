@@ -193,7 +193,8 @@ export function registerGraphTools(
     'mindmap_trace_dependencies',
     'Trace the dependency chain of a symbol — who calls it, what it calls, or both.',
     {
-      symbolName: z.string().describe('Qualified or simple symbol name'),
+      symbolName: z.string().optional().describe('Qualified or simple symbol name (alias: symbol)'),
+      symbol: z.string().optional().describe('Qualified or simple symbol name (preferred alias for symbolName)'),
       direction: z
         .enum(['callers', 'callees', 'both'])
         .default('both')
@@ -206,9 +207,13 @@ export function registerGraphTools(
         .default(3)
         .describe('Max depth of traversal'),
     },
-    async ({ symbolName, direction, depth }) => {
+    async ({ symbolName, symbol, direction, depth }) => {
       try {
-        const result = graph.traceDependencies(symbolName, direction, depth);
+        const name = symbol ?? symbolName;
+        if (!name) {
+          return mcpText(fail('Either symbol or symbolName must be provided'));
+        }
+        const result = graph.traceDependencies(name, direction, depth);
         return mcpText(ok(result, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -222,17 +227,22 @@ export function registerGraphTools(
     'mindmap_get_signature',
     'Get the full signature of a function or class (parameters, return type, doc comment) — without the body.',
     {
-      symbolName: z.string().describe('Name of the symbol to look up'),
+      symbolName: z.string().optional().describe('Name of the symbol to look up (alias: symbol)'),
+      symbol: z.string().optional().describe('Name of the symbol to look up (preferred alias for symbolName)'),
       filePath: z
         .string()
         .optional()
         .describe('Optional file path to disambiguate'),
     },
-    async ({ symbolName, filePath }) => {
+    async ({ symbolName, symbol, filePath }) => {
       try {
-        const result = graph.getSignature(symbolName, filePath);
+        const name = symbol ?? symbolName;
+        if (!name) {
+          return mcpText(fail('Either symbol or symbolName must be provided'));
+        }
+        const result = graph.getSignature(name, filePath);
         if (!result) {
-          return mcpText(fail(`Symbol not found: ${symbolName}`));
+          return mcpText(fail(`Symbol not found: ${name}`));
         }
         return mcpText(ok(result, estimator));
       } catch (err: unknown) {
@@ -247,11 +257,16 @@ export function registerGraphTools(
     'mindmap_find_references',
     'Find every location where a symbol is referenced across the codebase.',
     {
-      symbolName: z.string().describe('Name of the symbol to find references for'),
+      symbolName: z.string().optional().describe('Name of the symbol to find references for (alias: symbol)'),
+      symbol: z.string().optional().describe('Name of the symbol to find references for (preferred alias for symbolName)'),
     },
-    async ({ symbolName }) => {
+    async ({ symbolName, symbol }) => {
       try {
-        const result = graph.findReferences(symbolName);
+        const name = symbol ?? symbolName;
+        if (!name) {
+          return mcpText(fail('Either symbol or symbolName must be provided'));
+        }
+        const result = graph.findReferences(name);
         return mcpText(ok(result, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);

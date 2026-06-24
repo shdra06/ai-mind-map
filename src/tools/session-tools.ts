@@ -285,19 +285,66 @@ export function registerSessionTools(
     },
     async (args) => {
       try {
-        const hotspots = changelog.getHotspots(args.limit || 15);
+        const limit = args.limit || 15;
+        const hotspots = changelog.getHotspots(limit);
 
-        const result = hotspots.map(h => ({
-          file: relative(config.projectRoot, h.filePath).replace(/\\/g, '/'),
-          totalChanges: h.changeCount,
-          lastChanged: new Date(h.lastChangedAt).toISOString(),
-          hotSymbols: Object.entries(h.symbolChanges)
-            .sort(([, a], [, b]) => (b as number) - (a as number))
-            .slice(0, 5)
-            .map(([name, count]) => ({ name, changes: count })),
-        }));
+        if (hotspots.length > 0) {
+          const result = hotspots.map(h => ({
+            file: relative(config.projectRoot, h.filePath).replace(/\\/g, '/'),
+            totalChanges: h.changeCount,
+            lastChanged: new Date(h.lastChangedAt).toISOString(),
+            hotSymbols: Object.entries(h.symbolChanges)
+              .sort(([, a], [, b]) => (b as number) - (a as number))
+              .slice(0, 5)
+              .map(([name, count]) => ({ name, changes: count })),
+          }));
 
-        return mcpText(ok({ hotspots: result, tip: 'Files with high change frequency are more likely to contain bugs.' }, estimator));
+          return mcpText(ok({ hotspots: result, tip: 'Files with high change frequency are more likely to contain bugs.' }, estimator));
+        }
+
+        // Fallback: use graph degree centrality when no changelog data
+        const allNodes = graph.getAllNodes().filter(n => n.type !== 'file');
+        const nodeDegrees: { node: typeof allNodes[0]; degree: number }[] = [];
+
+        for (const node of allNodes) {
+          const inEdges = graph.getInEdges(node.id);
+          const outEdges = graph.getOutEdges(node.id);
+          nodeDegrees.push({ node, degree: inEdges.length + outEdges.length });
+        }
+
+        nodeDegrees.sort((a, b) => b.degree - a.degree);
+        const topNodes = nodeDegrees.slice(0, limit);
+
+        // Group by file
+        const fileMap = new Map<string, { degree: number; symbols: { name: string; type: string; degree: number }[] }>();
+        for (const { node, degree } of topNodes) {
+          const relPath = relative(config.projectRoot, node.filePath).replace(/\\/g, '/') || node.filePath;
+          if (!fileMap.has(relPath)) {
+            fileMap.set(relPath, { degree: 0, symbols: [] });
+          }
+          const entry = fileMap.get(relPath)!;
+          entry.degree += degree;
+          entry.symbols.push({ name: node.name, type: node.type, degree });
+        }
+
+        const fallbackResult = Array.from(fileMap.entries())
+          .sort(([, a], [, b]) => b.degree - a.degree)
+          .slice(0, limit)
+          .map(([file, info]) => ({
+            file,
+            totalChanges: 0,
+            connectivity: info.degree,
+            hotSymbols: info.symbols
+              .sort((a, b) => b.degree - a.degree)
+              .slice(0, 5)
+              .map(s => ({ name: s.name, type: s.type, connections: s.degree })),
+          }));
+
+        return mcpText(ok({
+          hotspots: fallbackResult,
+          source: 'graph-degree-centrality',
+          tip: 'No change history available. Showing most connected symbols by graph degree centrality instead.',
+        }, estimator));
       } catch (err: unknown) {
         return mcpText(fail(`Failed to get hotspots: ${err instanceof Error ? err.message : String(err)}`));
       }

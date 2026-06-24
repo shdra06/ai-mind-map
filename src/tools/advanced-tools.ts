@@ -333,11 +333,16 @@ export function registerAdvancedTools(
   server.tool(
     'mindmap_search_code',
     'Grep-like text search within indexed project files only (respects .gitignore and index scope). ' +
-      'Returns matches with file path, line number, line content, and surrounding context lines.',
+      'Returns matches with file path, line number, line content, and surrounding context lines. ' +
+      'Supports optional regex mode for advanced pattern matching.',
     {
       pattern: z
         .string()
-        .describe('Text pattern to search for (literal string, not regex)'),
+        .describe('Text pattern to search for (literal string by default, or regex when regex=true)'),
+      regex: z
+        .boolean()
+        .default(false)
+        .describe('If true, treat pattern as a regular expression (uses gi flags). Default: false (literal match)'),
       filePattern: z
         .string()
         .optional()
@@ -350,7 +355,7 @@ export function registerAdvancedTools(
         .default(20)
         .describe('Maximum number of matches to return (default 20)'),
     },
-    async ({ pattern, filePattern, maxResults }) => {
+    async ({ pattern, regex, filePattern, maxResults }) => {
       try {
         const indexedFiles = graph.getIndexedFiles();
         if (indexedFiles.length === 0) {
@@ -383,6 +388,10 @@ export function registerAdvancedTools(
         }[] = [];
 
         const lowerPattern = pattern.toLowerCase();
+        const regexPattern = regex ? (() => { try { return new RegExp(pattern, 'gi'); } catch { return null; } })() : null;
+        if (regex && !regexPattern) {
+          return mcpText(fail(`Invalid regex pattern: ${pattern}`));
+        }
         let totalFilesSearched = 0;
 
         for (const file of filesToSearch) {
@@ -402,7 +411,9 @@ export function registerAdvancedTools(
           for (let i = 0; i < lines.length; i++) {
             if (matches.length >= maxResults) break;
 
-            if (lines[i].toLowerCase().includes(lowerPattern)) {
+            const isMatch = regexPattern ? regexPattern.test(lines[i]) : lines[i].toLowerCase().includes(lowerPattern);
+            if (regexPattern) regexPattern.lastIndex = 0; // Reset stateful regex
+            if (isMatch) {
               const contextBefore = lines.slice(Math.max(0, i - 2), i);
               const contextAfter = lines.slice(i + 1, Math.min(lines.length, i + 3));
 
