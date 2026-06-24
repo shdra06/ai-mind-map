@@ -78,6 +78,12 @@ const SKIP_DIRS = new Set([
   '.idea', '.vscode', '.vs', 'vendor', 'target', 'bin', 'obj',
   '.gradle', '.dart_tool', '.pub-cache', 'Pods',
   '.gemini', '.cursor', 'antigravity',
+  // Output / generated / model directories
+  'output', 'out', 'outputs', '.output',
+  'models', 'model', 'checkpoints', 'weights',
+  'logs', 'tmp', 'temp', '.tmp',
+  // Bundled third-party applications
+  'LibreSprite', 'blobs',
 ]);
 
 /** Binary/large file extensions to skip contents for */
@@ -91,7 +97,7 @@ const BINARY_EXTENSIONS = new Set([
   '.pyc', '.pyo', '.class', '.o', '.obj',
   '.sqlite', '.db', '.sqlite3',
   '.safetensors', '.onnx', '.pt', '.pth', '.h5',
-  '.lock',
+  '.lock', '.ase', '.aseprite', '.gpl', '.pcx',
 ]);
 
 /** Config/metadata files to always include content for */
@@ -557,12 +563,22 @@ export function registerExploreTools(
           const analyzer = new ArchitectureAnalyzer(graph);
           const report = analyzer.analyze(projectPath);
 
+          const normalizedRoot = projectPath.replace(/\\/g, '/');
+
           architecture = {
-            layers: report.layers.map(l => ({
-              name: l.name,
-              fileCount: l.fileCount,
-              files: l.filePaths.slice(0, 50), // Cap at 50 files per layer
-            })),
+            layers: report.layers.map(l => {
+              // Filter to only files within this project
+              const projectFiles = l.filePaths.filter(f =>
+                f.replace(/\\/g, '/').startsWith(normalizedRoot)
+              );
+              return {
+                name: l.name,
+                fileCount: projectFiles.length,
+                files: projectFiles.slice(0, 50).map(f =>
+                  relative(projectPath, f).replace(/\\/g, '/')
+                ),
+              };
+            }).filter(l => l.fileCount > 0), // Remove empty layers
             patterns: [],
             languageBreakdown: {},
             complexity: {
