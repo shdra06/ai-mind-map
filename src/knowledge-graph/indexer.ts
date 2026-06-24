@@ -133,11 +133,23 @@ export class Indexer {
   /**
    * Re-target the indexer to a different project directory.
    * Reloads .gitignore patterns and updates config.projectRoot.
-   * The graph is NOT cleared — nodes from multiple projects can coexist.
+   * CLEARS the entire graph to prevent cross-project data pollution.
    * Previous project's ignore patterns are preserved for file watcher events.
    */
   setProjectRoot(newRoot: string): void {
+    const oldRoot = this.config.projectRoot;
     this.config.projectRoot = newRoot;
+
+    // Clear the entire graph when switching projects to prevent
+    // cross-project pollution (e.g., Comfy-Desktop nodes appearing
+    // in FlyShelf search results)
+    if (oldRoot !== newRoot) {
+      this.graph.clear();
+      process.stderr.write(
+        `[indexer] Project switched: ${oldRoot} -> ${newRoot}. Graph cleared.\n`
+      );
+    }
+
     // Reset and reload ignore patterns for the new root
     this.ig = ignore();
     this.loadIgnorePatterns();

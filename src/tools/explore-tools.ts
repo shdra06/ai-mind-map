@@ -568,7 +568,9 @@ export function registerExploreTools(
       const currentRoot = config.projectRoot;
       const needsReindex = currentRoot !== projectPath;
       if (needsReindex) {
-        config.projectRoot = projectPath;
+        // Use indexer.setProjectRoot which clears the graph to prevent
+        // cross-project pollution (e.g., Comfy-Desktop nodes in FlyShelf results)
+        indexer.setProjectRoot(projectPath);
       }
 
       // Check if indexed, auto-index if needed (with timeout)

@@ -657,4 +657,105 @@ export function registerSmartTools(
       }
     },
   );
+
+  // ── mindmap_search_code ──────────────────────────────────────
+  server.tool(
+    'mindmap_search_code',
+    'Fast text search across ALL source files in the indexed project. ' +
+      'Unlike smart_search (which searches symbol names), this searches actual file contents. ' +
+      'Use for finding: string literals, variable names, error messages, comments, imports, ' +
+      'regex patterns, or any text that appears in source code. ' +
+      'Returns matching lines with file paths, line numbers, and surrounding context.',
+    {
+      query: z.string().describe('Text or regex pattern to search for'),
+      caseSensitive: z.boolean().optional().default(false).describe('Case-sensitive search (default: false)'),
+      maxResults: z.number().optional().default(50).describe('Max results to return (default: 50)'),
+      filePattern: z.string().optional().describe('Glob pattern to filter files (e.g. "*.ts" or "*.py")'),
+    },
+    async ({ query, caseSensitive, maxResults, filePattern }) => {
+      try {
+        const projectRoot = config.projectRoot;
+        if (!projectRoot) {
+          return mcpText(fail('No project indexed. Call mindmap_reindex first.'));
+        }
+
+        // Get all indexed file paths from the graph
+        const graphStats = graph.getStats();
+        if (graphStats.totalFiles === 0) {
+          return mcpText(fail('No files indexed. Call mindmap_reindex first.'));
+        }
+
+        // Get unique file paths from graph nodes
+        const fileNodes = graph.getNodesByType('file');
+        let filePaths: string[] = fileNodes.map((n: GraphNode) => n.filePath);
+
+        // Apply file pattern filter if provided
+        if (filePattern) {
+          const ext = filePattern.replace('*', '');
+          filePaths = filePaths.filter((fp: string) => fp.endsWith(ext));
+        }
+
+        interface SearchMatch {
+          file: string;
+          line: number;
+          content: string;
+          context?: string[];
+        }
+
+        const results: SearchMatch[] = [];
+        const flags = caseSensitive ? 'g' : 'gi';
+        let regex: RegExp;
+        try {
+          regex = new RegExp(query, flags);
+        } catch {
+          // Fall back to literal search if regex is invalid
+          regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+        }
+
+        for (const filePath of filePaths) {
+          if (results.length >= maxResults) break;
+
+          try {
+            const content = readFileSync(filePath, 'utf-8');
+            const lines = content.split('\n');
+
+            for (let i = 0; i < lines.length; i++) {
+              if (results.length >= maxResults) break;
+              if (regex.test(lines[i]!)) {
+                const relPath = relative(projectRoot, filePath).replace(/\\/g, '/');
+                const contextLines: string[] = [];
+                // Add 1 line of context before and after
+                if (i > 0) contextLines.push(lines[i - 1]!.trimEnd());
+                contextLines.push(lines[i]!.trimEnd());
+                if (i < lines.length - 1) contextLines.push(lines[i + 1]!.trimEnd());
+
+                results.push({
+                  file: relPath,
+                  line: i + 1,
+                  content: lines[i]!.trim(),
+                  context: contextLines.length > 1 ? contextLines : undefined,
+                });
+                regex.lastIndex = 0; // Reset regex state
+              }
+              regex.lastIndex = 0;
+            }
+          } catch {
+            // Skip unreadable files
+          }
+        }
+
+        const response = {
+          query,
+          totalMatches: results.length,
+          truncated: results.length >= maxResults,
+          results,
+        };
+
+        return mcpText(ok(response, estimator));
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return mcpText(fail(`search_code failed: ${msg}`));
+      }
+    },
+  );
 }

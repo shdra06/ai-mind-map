@@ -695,12 +695,12 @@ function createContextAdapter(
  * Creates an adapter that satisfies IIndexer.
  *
  * Key API mappings:
- * - indexer.fullIndex(onProgress?) â€” returns Promise<IndexStats>
+ * - indexer.fullIndex(onProgress?) — returns Promise<IndexStats>
  *   IndexStats has: filesScanned, filesParsed, filesSkipped, filesDeleted,
  *                   nodesCreated, edgesCreated, parseErrors, durationMs, languages
- * - graph.getStats() â€” returns { totalNodes, totalEdges, totalFiles, nodesByType, edgesByType, languageBreakdown }
- * - persistentMemory.getStats() â€” returns MemoryStats
- * - changeLog.getStats(topN?) â€” returns ChangeLogStats
+ * - graph.getStats() — returns { totalNodes, totalEdges, totalFiles, nodesByType, edgesByType, languageBreakdown }
+ * - persistentMemory.getStats() — returns MemoryStats
+ * - changeLog.getStats(topN?) — returns ChangeLogStats
  */
 function createIndexerAdapter(
   indexer: Indexer,
@@ -710,6 +710,7 @@ function createIndexerAdapter(
   changeLog: ChangeLog,
   config: MindMapConfig,
   watcher?: { addRoot(root: string): void } | null,
+  onProjectSwitch?: () => void,
 ): IIndexer {
   return {
     reindex: async () => {
@@ -1103,8 +1104,11 @@ async function main(): Promise<void> {
   const contextAdapter = createContextAdapter(
     graph, persistentMemory, decisionLog, changeLog, config,
   );
+  // Mutable ref for semantic engine (created later, wired via callback)
+  let _semanticEngineRef: { clear(): void } | null = null;
   const indexerAdapter = createIndexerAdapter(
     indexer, graph, persistentMemory, decisionLog, changeLog, config, watcher,
+    () => { _semanticEngineRef?.clear(); },
   );
 
   // Token estimator using the exported estimateTokens function
@@ -1252,6 +1256,7 @@ async function main(): Promise<void> {
 
   // Initialize semantic search engine
   const semanticEngine = new SemanticSearchEngine(graph.getDb());
+  _semanticEngineRef = semanticEngine; // Wire to onProjectSwitch callback
   log('debug', 'Initialized semantic search engine');
 
   registerSmartTools(server, graph, config, tokenEstimator, semanticEngine);
