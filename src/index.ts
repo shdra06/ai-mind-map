@@ -1096,7 +1096,7 @@ async function main(): Promise<void> {
   const server = new McpServer(
     {
       name: 'ai-mind-map',
-      version: '1.7.0',
+      version: '1.7.1',
     },
     {
       instructions: [

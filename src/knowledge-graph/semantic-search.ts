@@ -7,9 +7,9 @@
  *
  * Architecture:
  *   1. Tokenizer: CamelCase/snake_case-aware word splitting
- *   2. Synonym Dictionary: 35 programming concept synonym groups
+ *   2. Synonym Dictionary: 50 programming concept synonym groups
  *   3. TF-IDF Vectorizer: Term frequency × Inverse document frequency
- *   4. Cosine Similarity: Ranked semantic search results
+ *   4. BM25 Scoring: Okapi BM25 ranked semantic search results
  *
  * All data stored in SQLite (same DB as the knowledge graph).
  * Zero additional dependencies required.
@@ -24,7 +24,7 @@ import type Database from 'better-sqlite3';
 /** A single semantic search result */
 export interface SemanticSearchResult {
   nodeId: string;
-  score: number;              // Cosine similarity (0–1)
+  score: number;              // BM25 relevance score
   matchedTerms: string[];     // Query terms that contributed to the match
   expandedSynonyms: string[]; // Synonyms that were activated
 }
@@ -41,8 +41,12 @@ export interface SemanticIndexStats {
 /** Sparse TF-IDF vector: { term: weight } */
 type SparseVector = Record<string, number>;
 
+// BM25 parameters
+const BM25_K1 = 1.2;  // Term frequency saturation
+const BM25_B = 0.75;  // Document length normalization
+
 // ============================================================
-// Programming Synonym Dictionary (35 Groups)
+// Programming Synonym Dictionary (50 Groups)
 // ============================================================
 
 /**
@@ -121,6 +125,36 @@ const SYNONYM_GROUPS: string[][] = [
   ['split', 'divide', 'separate', 'partition', 'chunk', 'slice', 'segment', 'decompose'],
   // 35. Retry/Backoff
   ['retry', 'backoff', 'reconnect', 'recover', 'failover', 'fallback', 'resilience'],
+  // 36. Render/Display
+  ['render', 'display', 'show', 'draw', 'paint', 'present', 'visualize'],
+  // 37. Hide/Collapse
+  ['hide', 'collapse', 'minimize', 'fold', 'conceal', 'toggle'],
+  // 38. Queue/Stack
+  ['queue', 'stack', 'dequeue', 'enqueue', 'fifo', 'lifo', 'buffer'],
+  // 39. Schedule/Timer
+  ['schedule', 'timer', 'cron', 'interval', 'timeout', 'delay', 'debounce', 'throttle'],
+  // 40. Migrate/Upgrade
+  ['migrate', 'upgrade', 'transition', 'convert', 'transform', 'evolve'],
+  // 41. Lock/Mutex
+  ['lock', 'mutex', 'semaphore', 'synchronize', 'guard', 'critical'],
+  // 42. Clone/Copy
+  ['clone', 'copy', 'duplicate', 'replicate', 'fork', 'snapshot'],
+  // 43. Compress/Zip
+  ['compress', 'zip', 'gzip', 'deflate', 'minify', 'compact', 'shrink'],
+  // 44. Expand/Decompress
+  ['expand', 'decompress', 'unzip', 'inflate', 'extract'],
+  // 45. Subscribe/Unsubscribe
+  ['subscribe', 'unsubscribe', 'follow', 'unfollow', 'opt'],
+  // 46. Paginate/Scroll
+  ['paginate', 'pagination', 'scroll', 'infinite', 'cursor', 'offset', 'page'],
+  // 47. Upload/Download
+  ['upload', 'download', 'transfer', 'stream', 'pipe'],
+  // 48. Webhook/Callback
+  ['webhook', 'callback', 'hook', 'listener', 'event', 'signal'],
+  // 49. Token/JWT/Session
+  ['token', 'jwt', 'session', 'cookie', 'bearer', 'oauth', 'refresh'],
+  // 50. API/REST/GraphQL
+  ['api', 'rest', 'graphql', 'grpc', 'soap', 'rpc', 'endpoint'],
 ];
 
 /**
@@ -574,7 +608,7 @@ export class SemanticSearchEngine {
   // ── Search ──────────────────────────────────────────────────
 
   /**
-   * Perform semantic search using TF-IDF cosine similarity.
+   * Perform semantic search using BM25 (Okapi BM25) scoring.
    *
    * @param query - Natural language query (e.g., "save user preferences")
    * @param limit - Maximum results to return
@@ -610,34 +644,36 @@ export class SemanticSearchEngine {
       searchTerms = queryTokens;
     }
 
-    // Build query TF-IDF vector
-    const queryTF = computeTF(searchTerms);
-    const queryTFIDF = this.applyIDF(queryTF);
-    const queryMag = magnitude(queryTFIDF);
-
-    if (queryMag === 0) return [];
-
-    // Scan all document vectors and compute cosine similarity
+    // Calculate average document length for BM25
+    let avgDocLength = 0;
     const allVectors = this.stmtGetAllVectors.all() as Array<{
       node_id: string;
       terms: string;
       magnitude: number;
     }>;
 
+    // Pre-compute avg doc length
+    let totalDocLength = 0;
+    for (const row of allVectors) {
+      try {
+        const tf: SparseVector = JSON.parse(row.terms);
+        totalDocLength += Object.keys(tf).length;
+      } catch { /* skip */ }
+    }
+    avgDocLength = allVectors.length > 0 ? totalDocLength / allVectors.length : 1;
+
     const results: SemanticSearchResult[] = [];
 
     for (const row of allVectors) {
       try {
         const docTF: SparseVector = JSON.parse(row.terms);
-        const docTFIDF = this.applyIDF(docTF);
-        const docMag = magnitude(docTFIDF);
+        const docLength = Object.keys(docTF).length;
 
-        const score = cosineSimilarity(queryTFIDF, docTFIDF, docMag);
+        const { score, matchedTerms } = this.computeBM25Score(
+          searchTerms, docTF, docLength, avgDocLength
+        );
 
         if (score >= threshold) {
-          // Find which query terms actually matched
-          const matchedTerms = searchTerms.filter(t => t in docTF);
-
           results.push({
             nodeId: row.node_id,
             score,
@@ -653,6 +689,31 @@ export class SemanticSearchEngine {
     // Sort by score descending and limit
     results.sort((a, b) => b.score - a.score);
     return results.slice(0, limit);
+  }
+
+  /**
+   * Compute BM25 score between a query and a document.
+   */
+  private computeBM25Score(
+    queryTerms: string[],
+    docTF: SparseVector,
+    docLength: number,
+    avgDocLength: number,
+  ): { score: number; matchedTerms: string[] } {
+    let score = 0;
+    const matchedTerms: string[] = [];
+
+    for (const term of queryTerms) {
+      const tf = docTF[term] ?? 0;
+      if (tf === 0) continue;
+
+      matchedTerms.push(term);
+      const idf = this.getIDF(term);
+      const tfNorm = (tf * (BM25_K1 + 1)) / (tf + BM25_K1 * (1 - BM25_B + BM25_B * docLength / avgDocLength));
+      score += idf * tfNorm;
+    }
+
+    return { score, matchedTerms };
   }
 
   /**
