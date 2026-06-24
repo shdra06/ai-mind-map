@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * AI Mind Map — MCP Server Entry Point
+ * AI Mind Map â€” MCP Server Entry Point
  *
  * Creates the MCP server with stdio transport, registers all tools,
  * initialises ALL real subsystems (knowledge graph, change tracker,
@@ -37,19 +37,19 @@ import type {
   SessionSummary,
 } from './types.js';
 
-// ── Knowledge Graph ───────────────────────────────────────────
+// â”€â”€ Knowledge Graph â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import { KnowledgeGraph } from './knowledge-graph/graph.js';
 // Note: parser.ts exports functions (parseFile, parseFiles, etc.), not a class
 import { Indexer } from './knowledge-graph/indexer.js';
 import { PageRankEngine } from './knowledge-graph/pagerank.js';
 
-// ── Change Tracker ────────────────────────────────────────────
+// â”€â”€ Change Tracker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import { FileWatcher } from './change-tracker/watcher.js';
 import type { WatcherEvent } from './change-tracker/watcher.js';
 import { DiffEngine } from './change-tracker/diff-engine.js';
 import { ChangeLog } from './change-tracker/change-log.js';
 
-// ── Memory ────────────────────────────────────────────────────
+// â”€â”€ Memory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import { SessionMemory } from './memory/session-memory.js';
 import { PersistentMemory } from './memory/persistent-memory.js';
 import type { CreateMemoryInput } from './memory/persistent-memory.js';
@@ -57,7 +57,7 @@ import { DecisionLog } from './memory/decision-log.js';
 import type { CreateDecisionInput } from './memory/decision-log.js';
 import { syncSharedContext } from './memory/shared-sync.js';
 
-// ── Context Engine ────────────────────────────────────────────
+// â”€â”€ Context Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // compressor.ts exports functions: compress, detectContentType
 import { compress as compressContent } from './context/compressor.js';
 // progressive-disclosure.ts exports function: buildContextPackage
@@ -65,11 +65,11 @@ import { buildContextPackage } from './context/progressive-disclosure.js';
 import type { ProjectInfo, Tier2Data, Tier3Data } from './context/progressive-disclosure.js';
 import { TokenBudgetManager } from './context/token-budget.js';
 
-// ── Utils ─────────────────────────────────────────────────────
+// â”€â”€ Utils â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import { Logger } from './utils/logger.js';
 import { estimateTokens } from './utils/token-counter.js';
 
-// ── Tools ─────────────────────────────────────────────────────
+// â”€â”€ Tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import { registerGraphTools } from './tools/graph-tools.js';
 import type { IKnowledgeGraph, ITokenEstimator } from './tools/graph-tools.js';
 import { registerChangeTools } from './tools/change-tools.js';
@@ -92,7 +92,7 @@ import { registerDigestTools } from './tools/digest-tools.js';
 
 
 // ============================================================
-// Logger — writes to stderr so MCP stdio is uncontaminated
+// Logger â€” writes to stderr so MCP stdio is uncontaminated
 // ============================================================
 
 const LOG_LEVELS: Record<LogLevel, number> = {
@@ -121,7 +121,7 @@ function log(level: LogLevel, message: string, ...extra: unknown[]): void {
 }
 
 // ============================================================
-// Adapters — Bridge real implementations to tool interfaces
+// Adapters â€” Bridge real implementations to tool interfaces
 // ============================================================
 
 /**
@@ -129,11 +129,11 @@ function log(level: LogLevel, message: string, ...extra: unknown[]): void {
  * KnowledgeGraph and PageRankEngine classes.
  *
  * Key API mappings:
- * - graph.search(query, limit) — FTS5 search, no type filter param
- * - graph.getProjectOverview() — returns Map<string, GraphNode[]>, no args
- * - graph.findCallers(nodeId) / graph.findCallees(nodeId) — single nodeId arg
- * - graph.getNodesByName(name) — returns GraphNode[]
- * - graph.getFileStructure(filePath) — returns GraphNode[]
+ * - graph.search(query, limit) â€” FTS5 search, no type filter param
+ * - graph.getProjectOverview() â€” returns Map<string, GraphNode[]>, no args
+ * - graph.findCallers(nodeId) / graph.findCallees(nodeId) â€” single nodeId arg
+ * - graph.getNodesByName(name) â€” returns GraphNode[]
+ * - graph.getFileStructure(filePath) â€” returns GraphNode[]
  */
 function createGraphAdapter(
   graph: KnowledgeGraph,
@@ -303,10 +303,10 @@ function createGraphAdapter(
  * DiffEngine and ChangeLog classes.
  *
  * Key API mappings:
- * - changeLog.getLatestSession() — returns ChangeSession | null
- * - changeLog.queryChanges(options) — options has `since` (timestamp), not `afterTimestamp`
- * - changeLog.generateSessionSummary(sessionId) — returns string
- * - changeLog.recordChange(change) — records a FileChange
+ * - changeLog.getLatestSession() â€” returns ChangeSession | null
+ * - changeLog.queryChanges(options) â€” options has `since` (timestamp), not `afterTimestamp`
+ * - changeLog.generateSessionSummary(sessionId) â€” returns string
+ * - changeLog.recordChange(change) â€” records a FileChange
  */
 function createChangeAdapter(
   diffEngine: DiffEngine,
@@ -447,13 +447,13 @@ function createChangeAdapter(
  * DecisionLog, and SessionMemory.
  *
  * Key API mappings:
- * - persistentMemory.queryMemories(query) — query uses MemoryQuery shape
- * - persistentMemory.createMemory(input) — input is CreateMemoryInput
- * - persistentMemory.getStats() — returns MemoryStats
- * - decisionLog.queryDecisions(query) — query uses DecisionQuery
- * - decisionLog.createDecision(input) — returns { decision, conflicts }
- * - decisionLog.getActiveDecisions() — returns Decision[]
- * - sessionMemory.listRecentSessions(limit) — returns SessionListItem[]
+ * - persistentMemory.queryMemories(query) â€” query uses MemoryQuery shape
+ * - persistentMemory.createMemory(input) â€” input is CreateMemoryInput
+ * - persistentMemory.getStats() â€” returns MemoryStats
+ * - decisionLog.queryDecisions(query) â€” query uses DecisionQuery
+ * - decisionLog.createDecision(input) â€” returns { decision, conflicts }
+ * - decisionLog.getActiveDecisions() â€” returns Decision[]
+ * - sessionMemory.listRecentSessions(limit) â€” returns SessionListItem[]
  */
 function createMemoryAdapter(
   persistentMemory: PersistentMemory,
@@ -504,7 +504,7 @@ function createMemoryAdapter(
       if (!params.status || params.status === 'active') {
         return decisionLog.getActiveDecisions();
       }
-      // 'all' — query with no filters
+      // 'all' â€” query with no filters
       return decisionLog.queryDecisions({});
     },
 
@@ -586,8 +586,8 @@ function createSessionAdapter(sessionMemory: SessionMemory): ISessionProvider {
  * Creates an adapter that satisfies IContextEngine.
  *
  * Key API mappings:
- * - compress(text, level, contentType) — module-level function from compressor.ts
- * - buildContextPackage(...) — module-level function from progressive-disclosure.ts
+ * - compress(text, level, contentType) â€” module-level function from compressor.ts
+ * - buildContextPackage(...) â€” module-level function from progressive-disclosure.ts
  */
 function createContextAdapter(
   graph: KnowledgeGraph,
@@ -648,7 +648,7 @@ function createContextAdapter(
         const pkg = buildContextPackage(
           projectInfo,
           tier2Data,
-          {}, // Tier 3 data — empty for initial load
+          {}, // Tier 3 data â€” empty for initial load
           config.tokenBudgets,
           params.taskDescription,
         );
@@ -689,12 +689,12 @@ function createContextAdapter(
  * Creates an adapter that satisfies IIndexer.
  *
  * Key API mappings:
- * - indexer.fullIndex(onProgress?) — returns Promise<IndexStats>
+ * - indexer.fullIndex(onProgress?) â€” returns Promise<IndexStats>
  *   IndexStats has: filesScanned, filesParsed, filesSkipped, filesDeleted,
  *                   nodesCreated, edgesCreated, parseErrors, durationMs, languages
- * - graph.getStats() — returns { totalNodes, totalEdges, totalFiles, nodesByType, edgesByType, languageBreakdown }
- * - persistentMemory.getStats() — returns MemoryStats
- * - changeLog.getStats(topN?) — returns ChangeLogStats
+ * - graph.getStats() â€” returns { totalNodes, totalEdges, totalFiles, nodesByType, edgesByType, languageBreakdown }
+ * - persistentMemory.getStats() â€” returns MemoryStats
+ * - changeLog.getStats(topN?) â€” returns ChangeLogStats
  */
 function createIndexerAdapter(
   indexer: Indexer,
@@ -738,15 +738,15 @@ function createIndexerAdapter(
       try {
         // Re-target the indexer to the new project
         indexer.setProjectRoot(resolvedPath);
-        log('info', `📁 Re-targeted to project: ${resolvedPath}`);
+        log('info', `ðŸ“ Re-targeted to project: ${resolvedPath}`);
 
         // Also watch the new project directory for changes
         if (watcher) {
           watcher.addRoot(resolvedPath);
-          log('info', `👁️ File watcher now also watching: ${resolvedPath}`);
+          log('info', `ðŸ‘ï¸ File watcher now also watching: ${resolvedPath}`);
         }
 
-        // Run full index on the new project (don't clear — multi-project)
+        // Run full index on the new project (don't clear â€” multi-project)
         const result = await indexer.fullIndex();
         return {
           filesScanned: result.filesScanned,
@@ -856,6 +856,22 @@ class SessionTokenTracker {
 }
 
 /**
+ * Directories that should NEVER be indexed â€” IDE install dirs, tool dirs, etc.
+ */
+const BLOCKED_DIRECTORY_PATTERNS = [
+  'antigravity', '.gemini', '.cursor', '.vscode-server',
+  'program files', 'programdata', 'appdata',
+  'node_modules', '.npm', '.yarn',
+  'system32', 'windows',
+];
+
+/** Check if a path is a known IDE/tool directory that should never be indexed */
+function isBlockedDirectory(dirPath: string): boolean {
+  const lower = dirPath.toLowerCase().replace(/\\/g, '/');
+  return BLOCKED_DIRECTORY_PATTERNS.some(pattern => lower.includes(pattern));
+}
+
+/**
  * Intercept an MCP tool response to inject session token metadata.
  *
  * Parses the JSON text content, adds `_sessionTokens` and optionally
@@ -881,28 +897,23 @@ function enrichToolResponse(
     // Record in tracker
     tracker.record(0, outputTokens, tokensSaved);
 
+    // Always add project metadata
+    const projectInfo = getProjectInfo();
+    result._project = projectInfo;
+
+    // ALWAYS tell the agent to provide project path if no real project is indexed
+    const nodeCount = graphNodeCount();
+    const rootIsBlocked = isBlockedDirectory(projectInfo.root);
+
+    if (nodeCount === 0 || rootIsBlocked) {
+      result._indexRequired = true;
+      result._action = 'REQUIRED: Call mindmap_reindex({ projectPath: "<USER_WORKSPACE_PATH>" }). ' +
+        'The current root "' + projectInfo.root + '" is NOT a user project. ' +
+        'Use the workspace/project directory that the user has open in their editor.';
+    }
+
     // Always add session token metadata
     result._sessionTokens = tracker.getSummary();
-
-    // Always add project metadata
-    result._project = getProjectInfo();
-
-    // If result is empty/failed AND graph has no nodes, add auto-index hint
-    const nodeCount = graphNodeCount();
-    if (nodeCount === 0) {
-      const isEmpty = result.success === true && (
-        result.data === null ||
-        (Array.isArray(result.data) && result.data.length === 0) ||
-        (typeof result.data === 'object' && result.data !== null && Object.keys(result.data).length === 0)
-      );
-      const isFail = result.success === false;
-
-      if (isEmpty || isFail) {
-        result._hint = '⚠️ No codebase index found. Call mindmap_reindex with the projectPath parameter ' +
-          'set to the root directory of the user\'s project (e.g. "E:\\\\myproject"). ' +
-          'This is a one-time operation that takes ~10-30 seconds.';
-      }
-    }
 
     response.content[0].text = JSON.stringify(result);
   } catch {
@@ -917,7 +928,7 @@ function enrichToolResponse(
 // ============================================================
 
 async function main(): Promise<void> {
-  // ── 1. Parse CLI & load config ──────────────────────────────
+  // â”€â”€ 1. Parse CLI & load config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let cliArgs;
   try {
     cliArgs = parseCliArgs();
@@ -928,7 +939,7 @@ async function main(): Promise<void> {
   }
 
   setLogLevel(cliArgs.logLevel);
-  log('info', '🧠 AI Mind Map MCP Server starting…');
+  log('info', 'ðŸ§  AI Mind Map MCP Server startingâ€¦');
 
   let config: MindMapConfig;
   try {
@@ -942,7 +953,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // ── 2. Initialise database directory ────────────────────────
+  // â”€â”€ 2. Initialise database directory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   try {
     ensureDbDirectory(config.dbPath);
   } catch (err: unknown) {
@@ -951,11 +962,11 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // ── 3. Initialise SQLite database ──────────────────────────
+  // â”€â”€ 3. Initialise SQLite database â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // KnowledgeGraph manages its own db connection, but ChangeLog,
   // SessionMemory, PersistentMemory, and DecisionLog each need
   // a shared Database instance for their tables.
-  log('info', 'Initialising database…');
+  log('info', 'Initialising databaseâ€¦');
   let sharedDb: Database.Database;
   try {
     sharedDb = new Database(config.dbPath);
@@ -969,20 +980,20 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // ── 4. Initialise real subsystems ──────────────────────────
-  log('info', 'Initialising subsystems…');
+  // â”€â”€ 4. Initialise real subsystems â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  log('info', 'Initialising subsystemsâ€¦');
 
-  // Knowledge Graph — constructor takes dbPath string
+  // Knowledge Graph â€” constructor takes dbPath string
   const graph = new KnowledgeGraph(config.dbPath);
-  // Indexer — constructor is Indexer(graph, config)
+  // Indexer â€” constructor is Indexer(graph, config)
   const indexer = new Indexer(graph, config);
-  // PageRankEngine — constructor is PageRankEngine(graph, config?)
+  // PageRankEngine â€” constructor is PageRankEngine(graph, config?)
   const pagerank = new PageRankEngine(graph);
 
-  // Changelog Engine — node-level change tracking (v1.4.0)
+  // Changelog Engine â€” node-level change tracking (v1.4.0)
   const changelogEngine = new ChangelogEngine(graph.getDb());
   indexer.setChangelog(changelogEngine);
-  log('info', '✅ Knowledge Graph initialized (with changelog engine)');
+  log('info', 'âœ… Knowledge Graph initialized (with changelog engine)');
 
   // Change Tracker
   // ChangeLog constructor takes ChangeLogConfig: { dbPath, retentionDays?, defaultSearchLimit? }
@@ -990,7 +1001,7 @@ async function main(): Promise<void> {
   const diffEngine = new DiffEngine(config.projectRoot);
   let watcher: FileWatcher | null = null;
 
-  // SessionMemory — must be created before watcher so it's available in the handler
+  // SessionMemory â€” must be created before watcher so it's available in the handler
   // SessionMemory constructor takes Database.Database instance
   const sessionMemory = new SessionMemory(sharedDb);
   const sessionId = sessionMemory.startSession();
@@ -1034,7 +1045,7 @@ async function main(): Promise<void> {
       pagerank.invalidateCache();
     });
   }
-  log('info', `✅ Change Tracker initialized (watcher: ${config.watchEnabled ? 'enabled' : 'disabled'})`);
+  log('info', `âœ… Change Tracker initialized (watcher: ${config.watchEnabled ? 'enabled' : 'disabled'})`);
 
   // Memory
   // PersistentMemory constructor: (db, config?) where config is Pick<MindMapConfig['memory'], 'decayRate' | 'maxMemories' | 'importanceThreshold'>
@@ -1047,7 +1058,7 @@ async function main(): Promise<void> {
   const decisionLog = new DecisionLog(sharedDb, {
     maxDecisions: config.memory.maxDecisions,
   });
-  log('info', `✅ Memory initialized (session: ${sessionMemory.getCurrentSessionId()})`);
+  log('info', `âœ… Memory initialized (session: ${sessionMemory.getCurrentSessionId()})`);
 
   // Apply memory decay on startup
   try {
@@ -1058,10 +1069,10 @@ async function main(): Promise<void> {
   }
 
 
-  // Context Engine — no class instances needed; uses module-level functions
-  log('info', '✅ Context Engine initialized');
+  // Context Engine â€” no class instances needed; uses module-level functions
+  log('info', 'âœ… Context Engine initialized');
 
-  // ── 5. Build adapters ──────────────────────────────────────
+  // â”€â”€ 5. Build adapters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const graphAdapter = createGraphAdapter(graph, pagerank);
   const changeAdapter = createChangeAdapter(diffEngine, changeLog, graph);
   const memoryAdapter = createMemoryAdapter(persistentMemory, decisionLog, sessionMemory);
@@ -1078,25 +1089,38 @@ async function main(): Promise<void> {
     estimate: (text: string) => estimateTokens(text),
   };
 
-  // ── 6. Create MCP server ──────────────────────────────────
+  // â”€â”€ 6. Create MCP server â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const server = new McpServer(
     {
       name: 'ai-mind-map',
-      version: '1.6.1',
+      version: '1.6.2',
     },
     {
       instructions: [
         '# AI Mind Map — Code Memory Engine',
         '',
-        'You have access to AI Mind Map, a persistent code memory system that saves you from re-reading files and losing context between sessions.',
+        '## ⚠️ CRITICAL: FIRST STEP IN EVERY CONVERSATION',
+        'Before calling ANY other tool, you MUST ensure a project is indexed:',
+        '1. Check if `_indexRequired: true` appears in any response — if so, the index is empty or pointing at an IDE directory.',
+        '2. Call `mindmap_reindex({ projectPath: "<WORKSPACE>" })` where <WORKSPACE> is the user project directory from their open editor.',
+        '3. NEVER use paths containing: .gemini, antigravity, .cursor, .vscode, AppData, Program Files — these are IDE directories, NOT projects.',
+        '4. Example: `mindmap_reindex({ projectPath: "E:\\myproject" })`',
         '',
-        '## 🚀 FIRST CALL (every new conversation):',
-        'Call `mindmap_session_resume` FIRST. It returns:',
+        '## After Indexing - Resume Session:',
+        'Call `mindmap_session_resume`. It returns:',
         '- What the previous AI worked on',
         '- What code changed since then (function-level diffs)',
         '- Project structure + tech stack',
         '- Hot files (most frequently changed)',
-        'This ONE call replaces reading 10+ files.',
+        '',
+        '## Project Indexing:',
+        'Every response includes `_project.root` and `_project.totalNodes`.',
+        'If `_indexRequired: true` appears, you MUST call `mindmap_reindex` with the correct project path.',
+        'NEVER index directories containing: antigravity, .gemini, .cursor, .vscode, AppData, Program Files.',
+        'The graph supports multiple projects — call `mindmap_reindex` with different paths to switch.',
+        '',
+        '## Token Tracking:',
+        'Every response includes `_sessionTokens` with cumulative usage.',
         '',
         '## 📋 Tool Selection Guide:',
         '',
@@ -1112,51 +1136,50 @@ async function main(): Promise<void> {
         '- `mindmap_trace_dependencies` → Who calls X? What does X call?',
         '',
         '### When you need to READ code:',
-        '- `mindmap_explain` → Get EVERYTHING about a symbol: signature, callers, callees, doc',
-        '- `mindmap_get_code_snippet` → Read actual source code for a function/class',
-        '- `mindmap_get_file_map` → All symbols in a file with signatures + line ranges',
+        '- `mindmap_get_code_snippet` â†’ Read actual source code for a function/class',
+        '- `mindmap_get_file_map` â†’ All symbols in a file with signatures + line ranges',
         '',
         '### When you need to know WHAT CHANGED:',
-        '- `mindmap_changelog` → Symbol-level diffs (added/modified/deleted functions)',
-        '- `mindmap_git_changes` → Git-aware changes with symbol mapping',
-        '- `mindmap_verify` → Check if your cached knowledge is still valid',
-        '- `mindmap_hotspots` → Most frequently changed files + symbols',
+        '- `mindmap_changelog` â†’ Symbol-level diffs (added/modified/deleted functions)',
+        '- `mindmap_git_changes` â†’ Git-aware changes with symbol mapping',
+        '- `mindmap_verify` â†’ Check if your cached knowledge is still valid',
+        '- `mindmap_hotspots` â†’ Most frequently changed files + symbols',
         '',
         '### When you need to REMEMBER:',
-        '- `mindmap_remember` → Save a fact/convention for future sessions',
-        '- `mindmap_recall` → Retrieve relevant memories for current task',
-        '- `mindmap_decide` → Record architectural decisions with rationale',
+        '- `mindmap_remember` â†’ Save a fact/convention for future sessions',
+        '- `mindmap_recall` â†’ Retrieve relevant memories for current task',
+        '- `mindmap_decide` â†’ Record architectural decisions with rationale',
         '',
         '### When you finish work:',
-        '- `mindmap_session_end` → Save summary so next AI can resume instantly',
+        '- `mindmap_session_end` â†’ Save summary so next AI can resume instantly',
         '',
         '### After editing code:',
-        '- `mindmap_verify_changes` → Verify your edits at the symbol level WITHOUT re-reading files',
+        '- `mindmap_verify_changes` â†’ Verify your edits at the symbol level WITHOUT re-reading files',
         '',
-        '## ⚡ Token-Saving Rules:',
-        '1. ALWAYS call `mindmap_session_resume` first — never start blind',
-        '2. Use `mindmap_file_digest` BEFORE reading a full file — you may not need the full file',
-        '3. Use `mindmap_verify_changes` after editing to verify changes — do NOT re-read whole files',
+        '## âš¡ Token-Saving Rules:',
+        '1. ALWAYS call `mindmap_session_resume` first â€” never start blind',
+        '2. Use `mindmap_file_digest` BEFORE reading a full file â€” you may not need the full file',
+        '3. Use `mindmap_verify_changes` after editing to verify changes â€” do NOT re-read whole files',
         '4. Use `mindmap_changelog` instead of re-reading files to see what changed',
-        '5. Call `mindmap_session_end` when done — save context for next session',
+        '5. Call `mindmap_session_end` when done â€” save context for next session',
         '',
-        '## 🔄 Project Indexing:',
+        '## ðŸ”„ Project Indexing:',
         'Every response includes `_project.root` showing which directory is currently indexed.',
         'If `_project.totalNodes` is 0, you MUST call `mindmap_reindex` with `projectPath` set to',
         'the user\'s project directory (e.g. their workspace root). This creates the knowledge graph.',
         'Example: `mindmap_reindex({ projectPath: "/home/user/my-project" })`',
-        'You can also reindex to switch between projects — the graph supports multiple projects.',
+        'You can also reindex to switch between projects â€” the graph supports multiple projects.',
         '',
-        '## 📊 Token Tracking:',
+        '## ðŸ“Š Token Tracking:',
         'Every response includes `_sessionTokens` with cumulative usage.',
       ].join('\n'),
     },
   );
 
-  // ── 7. Register all tools ─────────────────────────────────
-  log('info', 'Registering MCP tools…');
+  // â”€â”€ 7. Register all tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  log('info', 'Registering MCP toolsâ€¦');
 
-  // ── 7.0 Token tracking middleware ──────────────────────────
+  // â”€â”€ 7.0 Token tracking middleware â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Wrap every tool handler to inject session token metadata
   const tokenTracker = new SessionTokenTracker();
   const originalToolFn = server.tool.bind(server) as Function;
@@ -1239,7 +1262,7 @@ async function main(): Promise<void> {
   registerDigestTools(server, graph, changelogEngine, config, tokenEstimator);
   log('debug', 'Registered digest tools (3)');
 
-  // ── mindmap_sync_shared_context ─────────────────────────────
+  // â”€â”€ mindmap_sync_shared_context â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   server.tool(
     'mindmap_sync_shared_context',
     'Synchronise local memories, decisions, and learned rules with the team-shared `.mindmap-shared.json` file. ' +
@@ -1279,22 +1302,22 @@ async function main(): Promise<void> {
   log('debug', 'Registered shared context sync tool');
 
 
-  log('info', '🔧 All MCP tools registered:');
+  log('info', 'ðŸ”§ All MCP tools registered:');
   log('info', '  Graph:    mindmap_search, mindmap_get_structure, mindmap_trace_dependencies, mindmap_get_signature, mindmap_find_references, mindmap_get_file_map');
   log('info', '  Changes:  mindmap_what_changed, mindmap_session_diff, mindmap_impact_analysis');
   log('info', '  Memory:   mindmap_recall, mindmap_remember, mindmap_get_decisions, mindmap_decide, mindmap_session_summary, mindmap_sync_shared_context');
   log('info', '  Context:  mindmap_get_context, mindmap_compress, mindmap_reindex, mindmap_status');
   log('info', '  Debug:    mindmap_debug_changes, mindmap_file_before, mindmap_file_history');
   log('info', '  Flow:     mindmap_trace_flow, mindmap_interaction_map, mindmap_classify_file, mindmap_layer_overview');
-  log('info', '  Snapshot: mindmap_project_map, mindmap_change_delta, mindmap_session_kickoff ⭐');
+  log('info', '  Snapshot: mindmap_project_map, mindmap_change_delta, mindmap_session_kickoff â­');
   log('info', '  Advanced: mindmap_query_graph, mindmap_dead_code, mindmap_architecture, mindmap_get_code_snippet, mindmap_search_code, mindmap_list_projects, mindmap_health');
-  log('info', '  Smart:    mindmap_explain ⭐, mindmap_git_changes ⭐, mindmap_smart_search ⭐');
-  log('info', '  Evolving: mindmap_teach ⭐, mindmap_get_learned, mindmap_forget');
-  log('info', '  Semantic: mindmap_semantic_search ⭐, mindmap_semantic_stats, mindmap_synonyms');
-  log('info', '  Session:  mindmap_session_start 🆕, mindmap_session_resume 🔥🆕, mindmap_session_end, mindmap_changelog 🆕, mindmap_hotspots, mindmap_verify_changes 🆕');
-  log('info', '  Digest:   mindmap_digest ⭐, mindmap_file_digest ⭐, mindmap_verify');
+  log('info', '  Smart:    mindmap_explain â­, mindmap_git_changes â­, mindmap_smart_search â­');
+  log('info', '  Evolving: mindmap_teach â­, mindmap_get_learned, mindmap_forget');
+  log('info', '  Semantic: mindmap_semantic_search â­, mindmap_semantic_stats, mindmap_synonyms');
+  log('info', '  Session:  mindmap_session_start ðŸ†•, mindmap_session_resume ðŸ”¥ðŸ†•, mindmap_session_end, mindmap_changelog ðŸ†•, mindmap_hotspots, mindmap_verify_changes ðŸ†•');
+  log('info', '  Digest:   mindmap_digest â­, mindmap_file_digest â­, mindmap_verify');
 
-  // ── 7.3 Register MCP Prompts ──────────────────────────────
+  // â”€â”€ 7.3 Register MCP Prompts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // These are interactive workflow templates that AI agents can request
 
   server.prompt(
@@ -1363,33 +1386,33 @@ async function main(): Promise<void> {
 
   server.prompt(
     'tool_guide',
-    'Complete guide to all AI Mind Map tools — when to use each one, organized by task.',
+    'Complete guide to all AI Mind Map tools â€” when to use each one, organized by task.',
     async () => ({
       messages: [{
         role: 'user' as const,
         content: {
           type: 'text' as const,
           text: [
-            '# AI Mind Map — Complete Tool Guide',
+            '# AI Mind Map â€” Complete Tool Guide',
             '',
-            '## 🚀 Session Lifecycle (use these to avoid re-reading code)',
+            '## ðŸš€ Session Lifecycle (use these to avoid re-reading code)',
             '| Tool | When to Use |',
             '|------|------------|',
-            '| `mindmap_session_resume` | **FIRST call every conversation** — returns project context + changes |',
+            '| `mindmap_session_resume` | **FIRST call every conversation** â€” returns project context + changes |',
             '| `mindmap_session_kickoff` | Full preamble: project map + change delta + memories in ONE call |',
             '| `mindmap_session_start` | Start tracking a new task (records agent name + task) |',
             '| `mindmap_session_end` | Save summary for next AI session |',
             '',
-            '## 🔍 Finding Code (instead of grep/reading files)',
+            '## ðŸ” Finding Code (instead of grep/reading files)',
             '| Tool | When to Use |',
             '|------|------------|',
-            '| `mindmap_smart_search` | Search by function/class name — returns full context |',
+            '| `mindmap_smart_search` | Search by function/class name â€” returns full context |',
             '| `mindmap_semantic_search` | Search by concept ("error handling", "auth") |',
             '| `mindmap_search_code` | Grep-like text search in code bodies |',
             '| `mindmap_find_references` | Find all usages of a symbol |',
             '| `mindmap_trace_dependencies` | Who calls X? What does X call? |',
             '',
-            '## 📖 Reading Code (without reading full files)',
+            '## ðŸ“– Reading Code (without reading full files)',
             '| Tool | When to Use |',
             '|------|------------|',
             '| `mindmap_explain` | Get EVERYTHING about a symbol in one call |',
@@ -1398,14 +1421,14 @@ async function main(): Promise<void> {
             '| `mindmap_get_file_map` | All symbols in a file with signatures |',
             '| `mindmap_get_signature` | Just the signature (cheapest read) |',
             '',
-            '## 📊 Understanding the Project',
+            '## ðŸ“Š Understanding the Project',
             '| Tool | When to Use |',
             '|------|------------|',
             '| `mindmap_digest` | Full project summary in <2000 tokens |',
             '| `mindmap_architecture` | Architecture layers + patterns |',
             '| `mindmap_project_map` | Complete project map |',
             '',
-            '## 🔄 Change Tracking',
+            '## ðŸ”„ Change Tracking',
             '| Tool | When to Use |',
             '|------|------------|',
             '| `mindmap_changelog` | Symbol-level diffs since a time |',
@@ -1413,7 +1436,7 @@ async function main(): Promise<void> {
             '| `mindmap_verify` | Check if cached code is still valid |',
             '| `mindmap_hotspots` | Most frequently changed files |',
             '',
-            '## 🧠 Memory & Decisions',
+            '## ðŸ§  Memory & Decisions',
             '| Tool | When to Use |',
             '|------|------------|',
             '| `mindmap_remember` | Save important facts for future |',
@@ -1428,22 +1451,22 @@ async function main(): Promise<void> {
 
   log('debug', 'Registered 2 MCP prompts (start_session, tool_guide)');
 
-  // ── 7.5 Auto-sync shared context on startup ────────────────
+  // â”€â”€ 7.5 Auto-sync shared context on startup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (config.autoSyncSharedContext) {
-    log('info', '🔄 Auto-syncing shared context…');
+    log('info', 'ðŸ”„ Auto-syncing shared contextâ€¦');
     try {
       const syncStats = await syncSharedContext(config, graph, persistentMemory, decisionLog);
-      log('info', `✅ Shared context sync complete: ` +
+      log('info', `âœ… Shared context sync complete: ` +
         `Imported: ${syncStats.memoriesImported} memories, ${syncStats.decisionsImported} decisions, ${syncStats.rulesImported} rules. ` +
         `Exported: ${syncStats.memoriesExported} memories, ${syncStats.decisionsExported} decisions, ${syncStats.rulesExported} rules.`);
     } catch (err) {
-      log('warn', `⚠️ Auto-sync of shared context failed: ${err instanceof Error ? err.message : String(err)}`);
+      log('warn', `âš ï¸ Auto-sync of shared context failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
-  // ── 8. Smart auto-index (only if projectRoot looks like a real project) ──
+  // â”€â”€ 8. Smart auto-index (only if projectRoot looks like a real project) â”€â”€
   if (config.memoryOnly) {
-    log('info', '🧠 Running in memoryOnly mode. Bypassing codebase parsing and indexing.');
+    log('info', 'ðŸ§  Running in memoryOnly mode. Bypassing codebase parsing and indexing.');
   } else {
     // Check if projectRoot is a real project (not an IDE install directory)
     const projectMarkers = [
@@ -1456,29 +1479,29 @@ async function main(): Promise<void> {
       existsSync(path.join(config.projectRoot, marker))
     );
 
-    if (!isRealProject) {
-      log('info', `⚠️ Project root "${config.projectRoot}" does not look like a code project (no .git, package.json, etc.).`);
+    if (!isRealProject || isBlockedDirectory(config.projectRoot)) {
+      log('info', `âš ï¸ Project root "${config.projectRoot}" does not look like a code project (no .git, package.json, etc.).`);
       log('info', '   Skipping auto-index. The AI agent will be prompted to call mindmap_reindex with the correct project path.');
     } else {
       const stats = graph.getStats();
       if (stats.totalNodes === 0) {
-        log('info', `📋 Real project detected at: ${config.projectRoot}. Running initial indexing…`);
+        log('info', `ðŸ“‹ Real project detected at: ${config.projectRoot}. Running initial indexingâ€¦`);
         try {
           const result = await indexer.fullIndex();
-          log('info', `✅ Initial index complete: ${result.filesParsed} files, ${result.nodesCreated} nodes, ${result.edgesCreated} edges`);
+          log('info', `âœ… Initial index complete: ${result.filesParsed} files, ${result.nodesCreated} nodes, ${result.edgesCreated} edges`);
           if (result.parseErrors > 0) {
-            log('warn', `⚠️ ${result.parseErrors} parse errors (non-fatal)`);
+            log('warn', `âš ï¸ ${result.parseErrors} parse errors (non-fatal)`);
           }
         } catch (err) {
-          log('warn', `⚠️ Initial indexing failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+          log('warn', `âš ï¸ Initial indexing failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
         }
       } else {
-        log('info', `📋 Existing index found: ${stats.totalNodes} nodes. Running incremental update…`);
+        log('info', `ðŸ“‹ Existing index found: ${stats.totalNodes} nodes. Running incremental updateâ€¦`);
         try {
           const result = await indexer.incrementalIndex();
-          log('info', `✅ Incremental update: ${result.filesParsed} files reindexed`);
+          log('info', `âœ… Incremental update: ${result.filesParsed} files reindexed`);
         } catch (err) {
-          log('warn', `⚠️ Incremental update failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+          log('warn', `âš ï¸ Incremental update failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
         }
       }
     }
@@ -1499,31 +1522,31 @@ async function main(): Promise<void> {
           }))
         );
         semanticEngine.rebuildIDF();
-        log('info', `🧠 Semantic index built: ${nonFileNodes.length} symbols indexed`);
+        log('info', `ðŸ§  Semantic index built: ${nonFileNodes.length} symbols indexed`);
       }
     } catch (err) {
-      log('warn', `⚠️ Semantic index build failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+      log('warn', `âš ï¸ Semantic index build failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
-  // ── 9. Start file watcher ──────────────────────────────────
+  // â”€â”€ 9. Start file watcher â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (watcher && !config.memoryOnly) {
     try {
       await watcher.start();
-      log('info', '👁️ File watcher started');
+      log('info', 'ðŸ‘ï¸ File watcher started');
     } catch (err) {
-      log('warn', `⚠️ File watcher failed to start: ${err instanceof Error ? err.message : String(err)}`);
+      log('warn', `âš ï¸ File watcher failed to start: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
-  // ── 10. Graceful shutdown ──────────────────────────────────
+  // â”€â”€ 10. Graceful shutdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let shuttingDown = false;
 
   async function shutdown(signal: string): Promise<void> {
     if (shuttingDown) return;
     shuttingDown = true;
 
-    log('info', `Received ${signal}, shutting down gracefully…`);
+    log('info', `Received ${signal}, shutting down gracefullyâ€¦`);
 
     try {
       // Stop file watcher
@@ -1572,7 +1595,7 @@ async function main(): Promise<void> {
         // Ignore close errors
       }
 
-      log('info', '✅ Cleanup complete. Goodbye!');
+      log('info', 'âœ… Cleanup complete. Goodbye!');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       log('error', `Error during shutdown: ${msg}`);
@@ -1595,13 +1618,13 @@ async function main(): Promise<void> {
     log('error', `Unhandled rejection: ${msg}`);
   });
 
-  // ── 11. Connect transport and start serving ────────────────
-  log('info', 'Connecting stdio transport…');
+  // â”€â”€ 11. Connect transport and start serving â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  log('info', 'Connecting stdio transportâ€¦');
 
   try {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    log('info', '🧠 AI Mind Map MCP Server is LIVE. Waiting for requests…');
+    log('info', 'ðŸ§  AI Mind Map MCP Server is LIVE. Waiting for requestsâ€¦');
     log('info', `   Project: ${config.projectRoot}`);
     log('info', `   Database: ${config.dbPath}`);
     log('info', `   Session: ${sessionMemory.getCurrentSessionId()}`);
@@ -1612,7 +1635,7 @@ async function main(): Promise<void> {
   }
 }
 
-// ── Kick off ────────────────────────────────────────────────
+// â”€â”€ Kick off â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 main().catch((err: unknown) => {
   const msg = err instanceof Error ? err.message : String(err);
   process.stderr.write(`Fatal: ${msg}\n`);
