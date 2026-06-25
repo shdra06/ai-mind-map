@@ -10,8 +10,12 @@
  */
 
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { extname, basename } from 'node:path';
+import { cpus } from 'node:os';
+import { extname, basename, join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { Worker } from 'node:worker_threads';
 import type {
   GraphNode,
   GraphEdge,
@@ -1336,14 +1340,138 @@ export async function parseFile(filePath: string, source?: string): Promise<Pars
 }
 
 /**
- * Parse multiple files concurrently in batches.
+ * Parse multiple files in parallel using worker_threads.
+ *
+ * Uses Node.js Worker threads for true CPU-level parallelism of tree-sitter
+ * parsing. Each worker gets its own V8 isolate with independent Parser
+ * instances and grammar caches.
+ *
+ * Falls back to single-threaded batch processing if:
+ * - File count is <= 4 (worker overhead not worthwhile)
+ * - The compiled worker script is missing
+ * - All workers fail at runtime
  *
  * @param files - Array of file paths to parse
- * @param concurrency - Max concurrent parses (default 8)
+ * @param concurrency - Max concurrent parses for single-threaded fallback (default 8)
  * @param onProgress - Optional progress callback (current, total)
- * @returns Array of ParseResults
+ * @returns Array of ParseResults in the same order as the input files
  */
 export async function parseFiles(
+  files: string[],
+  concurrency: number = 8,
+  onProgress?: (current: number, total: number) => void,
+): Promise<ParseResult[]> {
+  const total = files.length;
+
+  if (total === 0) return [];
+
+  // For small file counts, skip worker overhead
+  if (total <= 4) {
+    return parseFilesSingleThreaded(files, concurrency, onProgress);
+  }
+
+  // Resolve the compiled worker script path
+  const workerPath = resolveWorkerPath();
+  if (!workerPath) {
+    // Worker script not found — fall back to single-threaded
+    return parseFilesSingleThreaded(files, concurrency, onProgress);
+  }
+
+  // Determine worker count: min(cpu cores, 4, ceil(files / 2))
+  const numCpus = cpus().length;
+  const workerCount = Math.min(numCpus, 4, Math.ceil(total / 2));
+
+  // Distribute files round-robin across workers
+  const chunks: string[][] = Array.from({ length: workerCount }, () => []);
+  for (let i = 0; i < total; i++) {
+    chunks[i % workerCount].push(files[i]);
+  }
+
+  // Launch workers and collect results
+  let completed = 0;
+  const workerPromises = chunks.map((chunk) => {
+    return new Promise<ParseResult[]>((resolve, reject) => {
+      const worker = new Worker(workerPath);
+
+      worker.on('message', (results: ParseResult[]) => {
+        completed += results.length;
+        onProgress?.(Math.min(completed, total), total);
+        worker.terminate();
+        resolve(results);
+      });
+
+      worker.on('error', (err) => {
+        worker.terminate();
+        console.error(
+          `[ai-mind-map] Worker failed, falling back to main thread: ${err.message}`,
+        );
+        // Graceful degradation: parse this chunk on the main thread
+        parseFilesSingleThreaded(chunk, concurrency).then(
+          (results) => {
+            completed += results.length;
+            onProgress?.(Math.min(completed, total), total);
+            resolve(results);
+          },
+          reject,
+        );
+      });
+
+      worker.on('exit', (code) => {
+        if (code !== 0 && code !== 1) {
+          console.error(`[ai-mind-map] Worker exited with code ${code}`);
+        }
+      });
+
+      // Send the file chunk to the worker
+      worker.postMessage({ files: chunk });
+    });
+  });
+
+  try {
+    const allResults = await Promise.all(workerPromises);
+
+    // Re-assemble results in original file order
+    const resultMap = new Map<string, ParseResult>();
+    for (const workerResults of allResults) {
+      for (const result of workerResults) {
+        resultMap.set(result.filePath, result);
+      }
+    }
+    return files.map((f) => resultMap.get(f)!).filter(Boolean);
+  } catch (err) {
+    // Complete fallback: parse everything on the main thread
+    console.error(
+      `[ai-mind-map] All workers failed, using single-threaded fallback: ${err}`,
+    );
+    return parseFilesSingleThreaded(files, concurrency, onProgress);
+  }
+}
+
+/**
+ * Resolve the path to the compiled parse-worker.js script.
+ * Returns null if the worker script cannot be found.
+ */
+function resolveWorkerPath(): string | null {
+  try {
+    const thisDir = dirname(fileURLToPath(import.meta.url));
+    const workerJs = join(thisDir, 'parse-worker.js');
+    if (existsSync(workerJs)) return workerJs;
+
+    // Also check dist/ relative paths (in case of alternative layouts)
+    const distWorker = join(thisDir, '..', 'knowledge-graph', 'parse-worker.js');
+    if (existsSync(distWorker)) return distWorker;
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Single-threaded batch fallback for parseFiles.
+ * Used when worker count is too low to justify threads, or as a fallback.
+ */
+async function parseFilesSingleThreaded(
   files: string[],
   concurrency: number = 8,
   onProgress?: (current: number, total: number) => void,
@@ -1354,13 +1482,10 @@ export async function parseFiles(
   for (let i = 0; i < total; i += concurrency) {
     const batch = files.slice(i, i + concurrency);
     const batchResults = await Promise.all(
-      batch.map(f => parseFile(f)),
+      batch.map((f) => parseFile(f)),
     );
     results.push(...batchResults);
-
-    if (onProgress) {
-      onProgress(Math.min(i + concurrency, total), total);
-    }
+    onProgress?.(Math.min(i + concurrency, total), total);
   }
 
   return results;
