@@ -1498,6 +1498,7 @@ async function main(): Promise<void> {
         '',
       ];
 
+
       if (lastSession) {
         lines.push(
           '## Previous Session',
@@ -1551,50 +1552,14 @@ async function main(): Promise<void> {
         content: {
           type: 'text' as const,
           text: [
-            '# AI Mind Map â€” Complete Tool Guide',
+            '# AI Mind Map — Complete Tool Guide',
             '',
-            '## ðŸš€ Session Lifecycle (use these to avoid re-reading code)',
+            '## 🚀 Session Lifecycle (use these to avoid re-reading code)',
             '| Tool | When to Use |',
             '|------|------------|',
-            '| `mindmap_session_resume` | **FIRST call every conversation** â€” returns project context + changes |',
+            '| `mindmap_session_resume` | **FIRST call every conversation** — returns project context + changes |',
             '| `mindmap_session_kickoff` | Full preamble: project map + change delta + memories in ONE call |',
-            '| `mindmap_session_start` | Start tracking a new task (records agent name + task) |',
-            '| `mindmap_session_end` | Save summary for next AI session |',
-            '',
-            '## ðŸ” Finding Code (instead of grep/reading files)',
-            '| Tool | When to Use |',
-            '|------|------------|',
-            '| `mindmap_smart_search` | Search by function/class name â€” returns full context |',
-            '| `mindmap_semantic_search` | Search by concept ("error handling", "auth") |',
-            '| `mindmap_search_code` | Grep-like text search in code bodies |',
-            '| `mindmap_find_references` | Find all usages of a symbol |',
-            '| `mindmap_trace_dependencies` | Who calls X? What does X call? |',
-            '',
-            '## ðŸ“– Reading Code (without reading full files)',
-            '| Tool | When to Use |',
-            '|------|------------|',
-            '| `mindmap_explain` | Get EVERYTHING about a symbol in one call |',
-            '| `mindmap_get_code_snippet` | Read actual source for a function |',
-            '| `mindmap_file_digest` | Understand a file without reading it |',
-            '| `mindmap_get_file_map` | All symbols in a file with signatures |',
-            '| `mindmap_get_signature` | Just the signature (cheapest read) |',
-            '',
-            '## ðŸ“Š Understanding the Project',
-            '| Tool | When to Use |',
-            '|------|------------|',
-            '| `mindmap_digest` | Full project summary in <2000 tokens |',
-            '| `mindmap_architecture` | Architecture layers + patterns |',
-            '| `mindmap_project_map` | Complete project map |',
-            '',
-            '## ðŸ”„ Change Tracking',
-            '| Tool | When to Use |',
-            '|------|------------|',
-            '| `mindmap_changelog` | Symbol-level diffs since a time |',
-            '| `mindmap_git_changes` | Git-aware change detection |',
-            '| `mindmap_verify` | Check if cached code is still valid |',
-            '| `mindmap_hotspots` | Most frequently changed files |',
-            '',
-            '## ðŸ§  Memory & Decisions',
+            '## 🧠 Memory & Decisions',
             '| Tool | When to Use |',
             '|------|------------|',
             '| `mindmap_remember` | Save important facts for future |',
@@ -1622,69 +1587,41 @@ async function main(): Promise<void> {
     }
   }
 
-  // â”€â”€ 8. Smart auto-index (only if projectRoot looks like a real project) â”€â”€
+  // -- 8. Deferred indexing (don't block server startup) --
+  // Previous versions ran fullIndex() here, blocking the MCP server for minutes.
+  // Now we skip startup indexing. The AI agent calls mindmap_reindex explicitly.
   if (config.memoryOnly) {
-    log('info', 'ðŸ§  Running in memoryOnly mode. Bypassing codebase parsing and indexing.');
+    log('info', 'Running in memoryOnly mode.');
   } else {
-    // Check if projectRoot is a real project (not an IDE install directory)
-    const projectMarkers = [
-      '.git', 'package.json', 'build.gradle', 'build.gradle.kts',
-      'Cargo.toml', 'go.mod', 'pom.xml', 'CMakeLists.txt',
-      'Makefile', '.project', 'setup.py', 'pyproject.toml',
-      'pubspec.yaml', 'Gemfile',
-    ];
-    const isRealProject = projectMarkers.some(marker =>
-      existsSync(path.join(config.projectRoot, marker))
-    );
-
-    if (!isRealProject || isBlockedDirectory(config.projectRoot)) {
-      log('info', `âš ï¸ Project root "${config.projectRoot}" does not look like a code project (no .git, package.json, etc.).`);
-      log('info', '   Skipping auto-index. The AI agent will be prompted to call mindmap_reindex with the correct project path.');
+    const stats = graph.getStats();
+    if (stats.totalNodes > 0) {
+      log('info', `Existing index: ${stats.totalNodes} nodes, ${stats.totalFiles} files.`);
     } else {
-      const stats = graph.getStats();
-      if (stats.totalNodes === 0) {
-        log('info', `ðŸ“‹ Real project detected at: ${config.projectRoot}. Running initial indexingâ€¦`);
-        try {
-          const result = await indexer.fullIndex();
-          log('info', `âœ… Initial index complete: ${result.filesParsed} files, ${result.nodesCreated} nodes, ${result.edgesCreated} edges`);
-          if (result.parseErrors > 0) {
-            log('warn', `âš ï¸ ${result.parseErrors} parse errors (non-fatal)`);
-          }
-        } catch (err) {
-          log('warn', `âš ï¸ Initial indexing failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
-        }
-      } else {
-        log('info', `ðŸ“‹ Existing index found: ${stats.totalNodes} nodes. Running incremental updateâ€¦`);
-        try {
-          const result = await indexer.incrementalIndex();
-          log('info', `âœ… Incremental update: ${result.filesParsed} files reindexed`);
-        } catch (err) {
-          log('warn', `âš ï¸ Incremental update failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
-        }
-      }
+      log('info', 'No index found. Call mindmap_reindex to build the knowledge graph.');
     }
+  }
 
-    // Build semantic search TF-IDF index from existing graph nodes (if any)
-    try {
-      const allNodes = graph.getAllNodes();
-      const nonFileNodes = allNodes.filter(n => n.type !== 'file');
-      if (nonFileNodes.length > 0) {
-        semanticEngine.indexNodes(
-          nonFileNodes.map(n => ({
-            id: n.id,
-            name: n.name,
-            qualifiedName: n.qualifiedName,
-            signature: n.signature,
-            docComment: n.docComment,
-            filePath: n.filePath,
-          }))
-        );
-        semanticEngine.rebuildIDF();
-        log('info', `ðŸ§  Semantic index built: ${nonFileNodes.length} symbols indexed`);
-      }
-    } catch (err) {
-      log('warn', `âš ï¸ Semantic index build failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+
+  // Build semantic search TF-IDF index from existing graph nodes (if any)
+  try {
+    const allNodes = graph.getAllNodes();
+    const nonFileNodes = allNodes.filter(n => n.type !== 'file');
+    if (nonFileNodes.length > 0) {
+      semanticEngine.indexNodes(
+        nonFileNodes.map(n => ({
+          id: n.id,
+          name: n.name,
+          qualifiedName: n.qualifiedName,
+          signature: n.signature,
+          docComment: n.docComment,
+          filePath: n.filePath,
+        }))
+      );
+      semanticEngine.rebuildIDF();
+      log('info', `Semantic index built: ${nonFileNodes.length} symbols indexed`);
     }
+  } catch (err) {
+    log('warn', `Semantic index build failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // â”€â”€ 9. Start file watcher â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
