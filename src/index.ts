@@ -1723,6 +1723,50 @@ async function main(): Promise<void> {
     log('info', `   Project: ${config.projectRoot}`);
     log('info', `   Database: ${config.dbPath}`);
     log('info', `   Session: ${sessionMemory.getCurrentSessionId()}`);
+
+    // -- Zombie Prevention: exit when parent disconnects --
+    // On Windows, SIGTERM doesn't work. When the MCP proxy restarts,
+    // it closes stdin but the old process stays alive as a zombie.
+    // These handlers ensure we exit when the parent is gone.
+
+    // 1. Exit when stdin closes (parent process closed the pipe)
+    process.stdin.on('end', () => {
+      log('info', 'stdin closed (parent disconnected). Shutting down...');
+      void shutdown('stdin-end');
+    });
+    process.stdin.on('close', () => {
+      log('info', 'stdin pipe closed. Exiting...');
+      process.exit(0);
+    });
+
+    // 2. Periodic parent process check (every 30s)
+    const parentPid = process.ppid;
+    if (parentPid) {
+      const parentCheck = setInterval(() => {
+        try {
+          // process.kill(pid, 0) checks if process exists without killing it
+          process.kill(parentPid, 0);
+        } catch {
+          log('info', `Parent process (PID ${parentPid}) died. Exiting...`);
+          clearInterval(parentCheck);
+          process.exit(0);
+        }
+      }, 30_000);
+      parentCheck.unref(); // Don't keep process alive just for this timer
+    }
+
+    // 3. Inactivity timeout: exit after 10 minutes of no MCP messages
+    let lastActivity = Date.now();
+    const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+    process.stdin.on('data', () => { lastActivity = Date.now(); });
+    const inactivityCheck = setInterval(() => {
+      if (Date.now() - lastActivity > INACTIVITY_TIMEOUT_MS) {
+        log('info', 'No MCP messages for 10 minutes. Exiting to free resources...');
+        clearInterval(inactivityCheck);
+        process.exit(0);
+      }
+    }, 60_000);
+    inactivityCheck.unref();
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     log('error', `Failed to start MCP server: ${msg}`);
