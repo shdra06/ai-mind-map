@@ -562,6 +562,27 @@ export class Indexer {
     });
     this.graph.batchReplaceFileData(batchItems, true); // skipDelete: clearProject already cleared
 
+    // Index file contents for FTS5 search
+    try {
+      const contentItems: Array<{ filePath: string; content: string }> = [];
+      for (const item of batchItems) {
+        try {
+          const content = readFileSync(item.filePath, 'utf-8');
+          // Cap content at 500KB per file to avoid DB bloat
+          contentItems.push({ 
+            filePath: item.filePath, 
+            content: content.length > 512000 ? content.substring(0, 512000) : content 
+          });
+        } catch { /* skip unreadable files */ }
+      }
+      if (contentItems.length > 0) {
+        this.graph.batchIndexContents(contentItems);
+      }
+    } catch (err) {
+      // Non-fatal: content FTS is an optimization, not critical
+      console.error(`[ai-mind-map] Content FTS indexing failed: ${err}`);
+    }
+
     } finally {
       // Exit bulk mode: rebuild indexes/FTS triggers regardless of success/failure
       this.graph.exitBulkMode();

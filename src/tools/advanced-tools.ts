@@ -362,6 +362,27 @@ export function registerAdvancedTools(
           return mcpText(ok({ matches: [], totalFiles: 0, message: 'No files indexed yet' }, estimator));
         }
 
+        // Try FTS5 pre-indexed search first (instant)
+        if (!regex) {
+          try {
+            const ftsResults = graph.searchContent(pattern, maxResults);
+            if (ftsResults.length > 0) {
+              // Filter by file pattern if provided
+              let filtered = ftsResults;
+              if (filePattern) {
+                filtered = ftsResults.filter(r => matchesGlob(r.filePath, filePattern));
+              }
+              if (filtered.length > 0) {
+                const results = filtered.map(r => ({
+                  file: r.filePath,
+                  matches: [{ snippet: r.snippet, rank: r.rank }],
+                }));
+                return mcpText(ok({ source: 'fts5_index', pattern, totalMatches: results.length, results }, estimator));
+              }
+            }
+          } catch { /* Fall through to disk-based search */ }
+        }
+
         // Filter by file glob pattern if provided
         let filesToSearch = indexedFiles;
         if (filePattern) {

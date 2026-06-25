@@ -124,9 +124,16 @@ CREATE TABLE IF NOT EXISTS file_index (
   content_hash TEXT NOT NULL,
   indexed_at INTEGER NOT NULL
 );
+
+-- FTS5 table for full-text code search across file contents
+CREATE VIRTUAL TABLE IF NOT EXISTS content_fts USING fts5(
+  file_path,
+  content,
+  tokenize='unicode61'
+);
 `;
 
-const SCHEMA_VERSION = '4';
+const SCHEMA_VERSION = '5';
 
 // ============================================================
 // KnowledgeGraph Class
@@ -193,6 +200,7 @@ export class KnowledgeGraph {
     if (currentVersion && currentVersion !== SCHEMA_VERSION) {
       // Migration: preserve changelog/session tables across schema upgrades
       // Only drop core graph tables — changelog survives
+      this.db.exec('DROP TABLE IF EXISTS content_fts');
       this.db.exec('DROP TABLE IF EXISTS nodes_fts');
       this.db.exec('DROP TABLE IF EXISTS edges');
       this.db.exec('DROP TABLE IF EXISTS nodes');
@@ -1431,6 +1439,8 @@ export class KnowledgeGraph {
     this.db.pragma('mmap_size = 268435456');
     this.dropFtsTriggers();
     this.dropIndexes();
+    // Clear content FTS before rebuild (it will be repopulated during indexing)
+    this.db.exec('DELETE FROM content_fts');
   }
 
   /** Exit bulk insert mode - restores safety and rebuilds indexes/FTS */
@@ -1461,6 +1471,68 @@ export class KnowledgeGraph {
       return { healthy: true, stats: { nodes, edges, files } };
     } catch (err: any) {
       return { healthy: false, error: err?.message ?? String(err) };
+    }
+  }
+
+  // ============================================================
+  // Content FTS (Full-Text Code Search)
+  // ============================================================
+
+  /** Clear all content FTS entries */
+  clearContentFts(): void {
+    this.db.exec('DELETE FROM content_fts');
+  }
+
+  /** Index file content for FTS5 search */
+  indexFileContent(filePath: string, content: string): void {
+    // Delete existing entry first
+    this.db.prepare('DELETE FROM content_fts WHERE file_path = ?').run(filePath);
+    this.db.prepare('INSERT INTO content_fts (file_path, content) VALUES (?, ?)').run(filePath, content);
+  }
+
+  /** Batch index file contents */
+  batchIndexContents(items: Array<{ filePath: string; content: string }>): void {
+    const del = this.db.prepare('DELETE FROM content_fts WHERE file_path = ?');
+    const ins = this.db.prepare('INSERT INTO content_fts (file_path, content) VALUES (?, ?)');
+    const txn = this.db.transaction((batch: Array<{ filePath: string; content: string }>) => {
+      for (const item of batch) {
+        del.run(item.filePath);
+        ins.run(item.filePath, item.content);
+      }
+    });
+    txn(items);
+  }
+
+  /** Search file contents using FTS5 */
+  searchContent(query: string, limit: number = 50): Array<{ filePath: string; snippet: string; rank: number }> {
+    // Use FTS5 highlight and rank functions
+    try {
+      return this.db.prepare(`
+        SELECT 
+          file_path as filePath,
+          snippet(content_fts, 1, '>>>', '<<<', '...', 40) as snippet,
+          rank
+        FROM content_fts
+        WHERE content MATCH ?
+        ORDER BY rank
+        LIMIT ?
+      `).all(query, limit) as any[];
+    } catch {
+      // If FTS5 query syntax is invalid, try as a phrase
+      try {
+        return this.db.prepare(`
+          SELECT 
+            file_path as filePath,
+            snippet(content_fts, 1, '>>>', '<<<', '...', 40) as snippet,
+            rank
+          FROM content_fts
+          WHERE content MATCH '"' || ? || '"'
+          ORDER BY rank
+          LIMIT ?
+        `).all(query, limit) as any[];
+      } catch {
+        return [];
+      }
     }
   }
 

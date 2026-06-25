@@ -6,9 +6,12 @@
  * knowledge-graph-powered tools with fast, no-dependency operations.
  *
  * Tools:
- *   - mindmap_list_dir       — Directory listing (no indexing)
- *   - mindmap_read_lines     — Read specific line ranges with optional graph context
+ *   - mindmap_list_dir        — Directory listing (no indexing)
+ *   - mindmap_read_lines      — Read specific line ranges with optional graph context
  *   - mindmap_project_summary — One-call project overview before indexing
+ *   - mindmap_batch_read      — Read multiple file regions in a single call
+ *   - mindmap_grep            — Text search across project files (like ripgrep)
+ *   - mindmap_find_file       — Find files by name pattern
  */
 
 import { z } from 'zod';
@@ -17,6 +20,9 @@ import {
   readdirSync,
   statSync,
   existsSync,
+  openSync,
+  readSync,
+  closeSync,
   Dirent,
 } from 'node:fs';
 import { resolve, relative, extname, basename, join, sep, isAbsolute } from 'node:path';
@@ -790,6 +796,562 @@ export function registerFilesystemTools(
         const msg = err instanceof Error ? err.message : String(err);
         return mcpText(fail(`Failed to generate project summary: ${msg}`));
       }
+    },
+  );
+
+  // ── mindmap_grep ──────────────────────────────────────────────
+
+  /** Detect binary files by checking for null bytes in the first 512 bytes */
+  function isBinaryFile(filePath: string): boolean {
+    try {
+      const buf = Buffer.alloc(512);
+      const fd = openSync(filePath, 'r');
+      const bytesRead = readSync(fd, buf, 0, 512, 0);
+      closeSync(fd);
+      for (let i = 0; i < bytesRead; i++) {
+        if (buf[i] === 0) return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Max file size (1 MB) for grep scanning */
+  const MAX_GREP_FILE_SIZE = 1_048_576;
+
+  interface GrepMatch {
+    file: string;
+    line: string;
+    lineNumber: number;
+    matchCount: number;
+    before?: string[];
+    after?: string[];
+  }
+
+  function walkForGrep(
+    dir: string,
+    fileGlob: RegExp | null,
+    results: string[],
+  ): void {
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue;
+      const fullPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (SKIP_DIRS.has(entry.name)) continue;
+        walkForGrep(fullPath, fileGlob, results);
+      } else if (entry.isFile()) {
+        if (fileGlob) {
+          const ext = extname(entry.name).toLowerCase();
+          const nameToTest = ext || entry.name;
+          if (!fileGlob.test(entry.name) && !fileGlob.test(nameToTest)) continue;
+        }
+        results.push(fullPath);
+      }
+    }
+  }
+
+  server.tool(
+    'mindmap_grep',
+    'Powerful text search across project files. Searches file contents for a pattern (literal or regex) with optional context lines, file filtering, and word-boundary matching. Like ripgrep but through MCP. Returns matching lines with file paths and line numbers.',
+    {
+      pattern: z.string().describe('Search pattern (literal text or regex)'),
+      regex: z.boolean().default(false).describe('Treat pattern as regex'),
+      fileGlob: z.string().optional().describe("Filter by file extension pattern, e.g. '*.cs', '*.ts'"),
+      caseSensitive: z.boolean().default(false).describe('Case-sensitive matching'),
+      contextLines: z.number().int().min(0).max(5).default(0).describe('Lines of context before/after each match (max 5)'),
+      maxResults: z.number().int().min(1).default(100).describe('Maximum results to return'),
+      path: z.string().optional().describe('Search within a specific subdirectory (absolute or relative to projectRoot)'),
+      invertMatch: z.boolean().default(false).describe('Return lines that do NOT match'),
+      wholeWord: z.boolean().default(false).describe('Match whole words only'),
+    },
+    async ({ pattern, regex: isRegex, fileGlob, caseSensitive, contextLines, maxResults, path: subPath, invertMatch, wholeWord }) => {
+      try {
+        // Determine search root
+        let searchRoot = config.projectRoot;
+        if (subPath) {
+          const resolved = resolvePath(subPath, config.projectRoot, true);
+          if (!resolved) {
+            return mcpText(fail(`Path "${subPath}" resolves outside the project root`));
+          }
+          if (!existsSync(resolved)) {
+            return mcpText(fail(`Path not found: ${resolved}`));
+          }
+          searchRoot = resolved;
+        }
+
+        // Build file glob regex
+        let globRegex: RegExp | null = null;
+        if (fileGlob) {
+          const escaped = fileGlob.replace(/[.+^${}()|[\]]/g, '\\$&');
+          const globPattern = escaped.replace(/\*/g, '.*').replace(/\?/g, '.');
+          globRegex = new RegExp(`^${globPattern}$`, 'i');
+        }
+
+        // Build search regex
+        let searchPattern: string;
+        if (isRegex) {
+          searchPattern = pattern;
+        } else {
+          searchPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+        if (wholeWord) {
+          searchPattern = `\\b${searchPattern}\\b`;
+        }
+        const flags = caseSensitive ? 'g' : 'gi';
+        let searchRegex: RegExp;
+        try {
+          searchRegex = new RegExp(searchPattern, flags);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          return mcpText(fail(`Invalid regex pattern: ${msg}`));
+        }
+
+        // Collect files to search
+        const filePaths: string[] = [];
+        walkForGrep(searchRoot, globRegex, filePaths);
+        filePaths.sort();
+
+        // Search files
+        const results: GrepMatch[] = [];
+        let totalMatches = 0;
+        const filesWithMatches = new Set<string>();
+        let truncated = false;
+
+        for (const filePath of filePaths) {
+          if (results.length >= maxResults) {
+            truncated = true;
+            break;
+          }
+
+          // Skip large files
+          try {
+            const stat = statSync(filePath);
+            if (stat.size > MAX_GREP_FILE_SIZE) continue;
+          } catch {
+            continue;
+          }
+
+          // Skip binary files
+          if (isBinaryFile(filePath)) continue;
+
+          let content: string;
+          try {
+            content = readFileSync(filePath, 'utf-8');
+          } catch {
+            continue;
+          }
+
+          const lines = content.split('\n');
+          const relativePath = relative(config.projectRoot, filePath).replace(/\\/g, '/');
+
+          for (let i = 0; i < lines.length; i++) {
+            if (results.length >= maxResults) {
+              truncated = true;
+              break;
+            }
+
+            const line = lines[i];
+            searchRegex.lastIndex = 0;
+            const matches = line.match(searchRegex);
+            const hasMatch = matches !== null && matches.length > 0;
+
+            if (invertMatch ? !hasMatch : hasMatch) {
+              const matchCount = invertMatch ? 0 : (matches?.length ?? 0);
+              totalMatches += matchCount || 1;
+              filesWithMatches.add(relativePath);
+
+              const entry: GrepMatch = {
+                file: relativePath,
+                line: line,
+                lineNumber: i + 1,
+                matchCount,
+              };
+
+              if (contextLines > 0) {
+                const beforeStart = Math.max(0, i - contextLines);
+                const afterEnd = Math.min(lines.length - 1, i + contextLines);
+                entry.before = lines.slice(beforeStart, i);
+                entry.after = lines.slice(i + 1, afterEnd + 1);
+              }
+
+              results.push(entry);
+            }
+          }
+        }
+
+        return mcpText(ok({
+          pattern,
+          totalMatches,
+          totalFiles: filePaths.length,
+          filesWithMatches: filesWithMatches.size,
+          truncated,
+          results,
+        }, estimator));
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return mcpText(fail(`Grep failed: ${msg}`));
+      }
+    },
+  );
+
+  // ── mindmap_find_file ─────────────────────────────────────────
+
+  /** Convert a glob pattern (with * and ?) to a RegExp */
+  function globToRegex(glob: string): RegExp {
+    const escaped = glob.replace(/[.+^${}()|[\]]/g, '\\$&');
+    const pattern = escaped.replace(/\*/g, '.*').replace(/\?/g, '.');
+    return new RegExp(`^${pattern}$`, 'i');
+  }
+
+  interface FindFileResult {
+    path: string;
+    relativePath: string;
+    name: string;
+    type: 'file' | 'dir';
+    sizeBytes?: number;
+    modifiedAt?: string;
+    score: number;
+  }
+
+  function walkForFind(
+    dir: string,
+    filterType: 'file' | 'dir' | 'all',
+    maxDepth: number,
+    results: { path: string; name: string; type: 'file' | 'dir' }[],
+    depth: number = 0,
+  ): void {
+    if (depth > maxDepth) return;
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue;
+      const fullPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (SKIP_DIRS.has(entry.name)) continue;
+        if (filterType === 'dir' || filterType === 'all') {
+          results.push({ path: fullPath, name: entry.name, type: 'dir' });
+        }
+        walkForFind(fullPath, filterType, maxDepth, results, depth + 1);
+      } else if (entry.isFile()) {
+        if (filterType === 'file' || filterType === 'all') {
+          results.push({ path: fullPath, name: entry.name, type: 'file' });
+        }
+      }
+    }
+  }
+
+  function scoreMatch(name: string, rawPattern: string): number {
+    const nameLower = name.toLowerCase();
+    const patternLower = rawPattern.toLowerCase();
+    // Strip glob chars for literal comparisons
+    const literalPattern = rawPattern.replace(/[*?]/g, '').toLowerCase();
+    if (nameLower === literalPattern) return 100;
+    if (nameLower.startsWith(literalPattern)) return 80;
+    if (nameLower.includes(literalPattern)) return 60;
+    return 40;
+  }
+
+  server.tool(
+    'mindmap_find_file',
+    'Find files by name pattern across the project. Supports wildcards (* and ?) and regex. Searches indexed files first for instant results, falls back to filesystem walk. Returns paths sorted by relevance.',
+    {
+      pattern: z.string().describe('Filename pattern to search for (supports wildcards: * and ?)'),
+      regex: z.boolean().default(false).describe('Treat pattern as regex instead of glob'),
+      type: z.enum(['file', 'dir', 'all']).default('file').describe("Filter by type: 'file', 'dir', or 'all'"),
+      maxDepth: z.number().int().min(1).default(20).describe('Maximum directory depth to search'),
+      maxResults: z.number().int().min(1).default(50).describe('Maximum results'),
+      path: z.string().optional().describe('Search within a specific subdirectory'),
+      includeSize: z.boolean().default(true).describe('Include file size in results'),
+      includeModified: z.boolean().default(false).describe('Include last modified timestamp'),
+      sortBy: z.enum(['relevance', 'name', 'size', 'modified']).default('relevance').describe("Sort by 'relevance', 'name', 'size', or 'modified'"),
+    },
+    async ({ pattern, regex: isRegex, type: filterType, maxDepth, maxResults, path: subPath, includeSize, includeModified, sortBy }) => {
+      try {
+        // Determine search root
+        let searchRoot = config.projectRoot;
+        if (subPath) {
+          const resolved = resolvePath(subPath, config.projectRoot, true);
+          if (!resolved) {
+            return mcpText(fail(`Path "${subPath}" resolves outside the project root`));
+          }
+          if (!existsSync(resolved)) {
+            return mcpText(fail(`Path not found: ${resolved}`));
+          }
+          searchRoot = resolved;
+        }
+
+        // Build match regex
+        let matchRegex: RegExp;
+        try {
+          if (isRegex) {
+            matchRegex = new RegExp(pattern, 'i');
+          } else {
+            matchRegex = globToRegex(pattern);
+          }
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          return mcpText(fail(`Invalid pattern: ${msg}`));
+        }
+
+        // Try indexed files first (only if searching from project root and filterType includes files)
+        let candidates: { path: string; name: string; type: 'file' | 'dir' }[] = [];
+        let usedIndex = false;
+
+        if (!subPath && (filterType === 'file' || filterType === 'all')) {
+          try {
+            const indexedFiles = graph.getIndexedFiles();
+            if (indexedFiles && indexedFiles.length > 0) {
+              usedIndex = true;
+              for (const filePath of indexedFiles) {
+                candidates.push({
+                  path: filePath,
+                  name: basename(filePath),
+                  type: 'file',
+                });
+              }
+            }
+          } catch {
+            // Graph not ready, fall through to filesystem walk
+          }
+        }
+
+        // Fallback to filesystem walk if no indexed files or path specified
+        if (!usedIndex) {
+          walkForFind(searchRoot, filterType, maxDepth, candidates);
+        }
+
+        // Filter by pattern
+        const matched: FindFileResult[] = [];
+        for (const candidate of candidates) {
+          if (matchRegex.test(candidate.name)) {
+            const relativePath = relative(config.projectRoot, candidate.path).replace(/\\/g, '/');
+            const entry: FindFileResult = {
+              path: candidate.path,
+              relativePath,
+              name: candidate.name,
+              type: candidate.type,
+              score: scoreMatch(candidate.name, pattern),
+            };
+
+            if (includeSize || includeModified || sortBy === 'size' || sortBy === 'modified') {
+              try {
+                const st = statSync(candidate.path);
+                if (includeSize) entry.sizeBytes = st.size;
+                if (includeModified) entry.modifiedAt = st.mtime.toISOString();
+                // Store for sorting even if not included in output
+                if (sortBy === 'size' && !includeSize) entry.sizeBytes = st.size;
+                if (sortBy === 'modified' && !includeModified) entry.modifiedAt = st.mtime.toISOString();
+              } catch {
+                // Can't stat — skip size/modified
+              }
+            }
+
+            matched.push(entry);
+          }
+        }
+
+        // Sort results
+        matched.sort((a, b) => {
+          switch (sortBy) {
+            case 'name':
+              return a.name.localeCompare(b.name);
+            case 'size':
+              return (b.sizeBytes ?? 0) - (a.sizeBytes ?? 0);
+            case 'modified':
+              return (b.modifiedAt ?? '').localeCompare(a.modifiedAt ?? '');
+            case 'relevance':
+            default: {
+              if (a.score !== b.score) return b.score - a.score;
+              return a.name.localeCompare(b.name);
+            }
+          }
+        });
+
+        const truncated = matched.length > maxResults;
+        const results = matched.slice(0, maxResults);
+
+        // Clean up internal-only sort fields if not requested
+        if (!includeSize) {
+          for (const r of results) delete r.sizeBytes;
+        }
+        if (!includeModified) {
+          for (const r of results) delete r.modifiedAt;
+        }
+
+        return mcpText(ok({
+          pattern,
+          totalResults: matched.length,
+          truncated,
+          results,
+        }, estimator));
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return mcpText(fail(`Find file failed: ${msg}`));
+      }
+    },
+  );
+
+  // ── mindmap_batch_read ────────────────────────────────────────
+  server.tool(
+    'mindmap_batch_read',
+    'Read multiple file regions in a single call. Eliminates per-call overhead when reading from several files. ' +
+      'Each file request specifies a path and optional line range. Returns all results at once.',
+    {
+      files: z.array(
+        z.object({
+          path: z.string().describe('Absolute or relative file path'),
+          startLine: z.number().int().min(1).default(1).describe('First line to read (1-indexed)'),
+          endLine: z.number().int().min(1).optional().describe('Last line to read (1-indexed). Omit to read 100 lines from startLine'),
+          label: z.string().optional().describe('Optional label/tag for this read (for AI to reference)'),
+        })
+      ).min(1).max(20).describe('Array of file read requests (max 20)'),
+      includeContext: z.boolean().default(true).describe('If true and graph is indexed, include containing symbol info'),
+    },
+    async ({ files: fileRequests, includeContext }) => {
+      const MAX_BATCH_FILES = 20;
+      const MAX_LINES_PER_READ = 300;
+      const DEFAULT_BATCH_WINDOW = 100;
+
+      const capped = fileRequests.slice(0, MAX_BATCH_FILES);
+      const results: Array<{
+        path: string;
+        label?: string;
+        startLine: number;
+        endLine: number;
+        totalLines: number;
+        lines: string[];
+        containingSymbol?: ContainingSymbol;
+        error?: string;
+      }> = [];
+
+      for (const req of capped) {
+        try {
+          // Resolve path: if not absolute, resolve against projectRoot
+          let resolved: string | null;
+          if (isAbsolute(req.path)) {
+            resolved = resolve(req.path);
+          } else {
+            resolved = resolvePath(req.path, config.projectRoot, false);
+          }
+
+          if (!resolved) {
+            results.push({
+              path: req.path,
+              label: req.label,
+              startLine: req.startLine,
+              endLine: 0,
+              totalLines: 0,
+              lines: [],
+              error: `Path "${req.path}" resolves outside the project root`,
+            });
+            continue;
+          }
+
+          if (!existsSync(resolved)) {
+            results.push({
+              path: req.path,
+              label: req.label,
+              startLine: req.startLine,
+              endLine: 0,
+              totalLines: 0,
+              lines: [],
+              error: `File not found: ${resolved}`,
+            });
+            continue;
+          }
+
+          const content = readFileSync(resolved, 'utf-8');
+          const allLines = content.split('\n');
+          const totalLines = allLines.length;
+
+          // Normalise line range (1-indexed)
+          const effectiveStart = Math.max(1, req.startLine);
+          let effectiveEnd: number;
+
+          if (req.endLine !== undefined) {
+            effectiveEnd = Math.min(req.endLine, totalLines);
+          } else {
+            effectiveEnd = Math.min(effectiveStart + DEFAULT_BATCH_WINDOW - 1, totalLines);
+          }
+
+          // Cap at MAX_LINES_PER_READ
+          if (effectiveEnd - effectiveStart + 1 > MAX_LINES_PER_READ) {
+            effectiveEnd = effectiveStart + MAX_LINES_PER_READ - 1;
+          }
+
+          const lines = allLines.slice(effectiveStart - 1, effectiveEnd);
+
+          // Graph context: find containing symbol
+          let containingSymbol: ContainingSymbol | undefined;
+          if (includeContext && graph) {
+            try {
+              const nodes = graph.getFileStructure(resolved);
+              if (nodes && nodes.length > 0) {
+                let bestMatch: GraphNode | null = null;
+                let bestRange = Infinity;
+                for (const node of nodes) {
+                  if (
+                    node.type !== 'file' &&
+                    node.startLine <= effectiveStart &&
+                    node.endLine >= effectiveStart
+                  ) {
+                    const range = node.endLine - node.startLine;
+                    if (range < bestRange) {
+                      bestRange = range;
+                      bestMatch = node;
+                    }
+                  }
+                }
+                if (bestMatch) {
+                  containingSymbol = {
+                    name: bestMatch.name,
+                    type: bestMatch.type,
+                    signature: bestMatch.signature,
+                    startLine: bestMatch.startLine,
+                    endLine: bestMatch.endLine,
+                  };
+                }
+              }
+            } catch {
+              // Graph not indexed yet or file not in graph — that's fine
+            }
+          }
+
+          results.push({
+            path: resolved,
+            label: req.label,
+            startLine: effectiveStart,
+            endLine: effectiveEnd,
+            totalLines,
+            lines,
+            ...(containingSymbol ? { containingSymbol } : {}),
+          });
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          results.push({
+            path: req.path,
+            label: req.label,
+            startLine: req.startLine,
+            endLine: 0,
+            totalLines: 0,
+            lines: [],
+            error: `Failed to read: ${msg}`,
+          });
+        }
+      }
+
+      return mcpText(ok({ totalFiles: results.length, results }, estimator));
     },
   );
 }
