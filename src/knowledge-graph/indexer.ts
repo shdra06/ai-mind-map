@@ -365,9 +365,10 @@ export class Indexer {
       return stats;
     }
 
-    // ── Incremental path: if we have existing index data, only reparse changed files ──
+    // -- Incremental path: if we have existing index data AND graph has nodes, only reparse changed files --
     const existingCount = this.graph.getFileIndexCount();
-    if (existingCount > 0) {
+    const nodeCount = this.graph.getStats().totalNodes;
+    if (existingCount > 0 && nodeCount > 0) {
       const staleFiles: string[] = [];
       const currentFileSet = new Set(files);
 
