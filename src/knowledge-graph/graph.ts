@@ -1110,7 +1110,7 @@ export class KnowledgeGraph {
       VALUES (@sourceId, @targetId, @type, @metadata)
     `);
     const insertFileIdx = this.db.prepare(`
-      INSERT INTO file_index (file_path, mtime_ms, size_bytes, content_hash, indexed_at)
+      INSERT OR REPLACE INTO file_index (file_path, mtime_ms, size_bytes, content_hash, indexed_at)
       VALUES (?, ?, ?, ?, ?)
     `);
 
@@ -1238,6 +1238,11 @@ export class KnowledgeGraph {
       // Delete nodes for this project
       const del = this.db.prepare(
         'DELETE FROM nodes WHERE filePath LIKE ? OR filePath LIKE ?'
+      ).run(`${prefix}%`, `${altPrefix}%`);
+
+      // Delete file_index entries for this project
+      this.db.prepare(
+        'DELETE FROM file_index WHERE file_path LIKE ? OR file_path LIKE ?'
       ).run(`${prefix}%`, `${altPrefix}%`);
 
       return del.changes;
