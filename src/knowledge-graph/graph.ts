@@ -1490,17 +1490,26 @@ export class KnowledgeGraph {
     this.db.prepare('INSERT INTO content_fts (file_path, content) VALUES (?, ?)').run(filePath, content);
   }
 
-  /** Batch index file contents */
-  batchIndexContents(items: Array<{ filePath: string; content: string }>): void {
-    const del = this.db.prepare('DELETE FROM content_fts WHERE file_path = ?');
+  /** Batch index file contents. skipDelete=true during full reindex (table already cleared by enterBulkMode). */
+  batchIndexContents(items: Array<{ filePath: string; content: string }>, skipDelete: boolean = false): void {
     const ins = this.db.prepare('INSERT INTO content_fts (file_path, content) VALUES (?, ?)');
-    const txn = this.db.transaction((batch: Array<{ filePath: string; content: string }>) => {
-      for (const item of batch) {
-        del.run(item.filePath);
-        ins.run(item.filePath, item.content);
-      }
-    });
-    txn(items);
+    if (skipDelete) {
+      const txn = this.db.transaction((batch: Array<{ filePath: string; content: string }>) => {
+        for (const item of batch) {
+          ins.run(item.filePath, item.content);
+        }
+      });
+      txn(items);
+    } else {
+      const del = this.db.prepare('DELETE FROM content_fts WHERE file_path = ?');
+      const txn = this.db.transaction((batch: Array<{ filePath: string; content: string }>) => {
+        for (const item of batch) {
+          del.run(item.filePath);
+          ins.run(item.filePath, item.content);
+        }
+      });
+      txn(items);
+    }
   }
 
   /** Search file contents using FTS5 */

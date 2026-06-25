@@ -455,6 +455,28 @@ export class Indexer {
         this.graph.batchReplaceFileData(batchItems, false); // NOT skipDelete - files have existing data
       }
 
+      // Index changed file contents for FTS5 search
+      try {
+        const contentItems: Array<{ filePath: string; content: string }> = [];
+        for (const result of parseResults) {
+          if (result.sourceContent) {
+            const content = result.sourceContent;
+            contentItems.push({ 
+              filePath: result.filePath, 
+              content: content.length > 102400 ? content.substring(0, 102400) : content 
+            });
+          }
+        }
+        if (contentItems.length > 0) {
+          this.graph.batchIndexContents(contentItems, false); // NOT skipDelete for incremental
+        }
+      } catch { /* Non-fatal */ }
+
+      // Free cached source content to reduce memory pressure
+      for (const result of parseResults) {
+        result.sourceContent = undefined;
+      }
+
       stats.filesScanned = files.length;
       stats.filesParsed = batchItems.length;
       stats.filesSkipped = files.length - staleFiles.length;
@@ -562,25 +584,29 @@ export class Indexer {
     });
     this.graph.batchReplaceFileData(batchItems, true); // skipDelete: clearProject already cleared
 
-    // Index file contents for FTS5 search
+    // Index file contents for FTS5 search (using cached content from parse phase)
     try {
       const contentItems: Array<{ filePath: string; content: string }> = [];
-      for (const item of batchItems) {
-        try {
-          const content = readFileSync(item.filePath, 'utf-8');
-          // Cap content at 500KB per file to avoid DB bloat
+      for (const result of parseResults) {
+        if (result.sourceContent) {
+          const content = result.sourceContent;
           contentItems.push({ 
-            filePath: item.filePath, 
-            content: content.length > 512000 ? content.substring(0, 512000) : content 
+            filePath: result.filePath, 
+            content: content.length > 102400 ? content.substring(0, 102400) : content 
           });
-        } catch { /* skip unreadable files */ }
+        }
       }
       if (contentItems.length > 0) {
-        this.graph.batchIndexContents(contentItems);
+        this.graph.batchIndexContents(contentItems, true); // skipDelete: enterBulkMode already cleared
       }
     } catch (err) {
       // Non-fatal: content FTS is an optimization, not critical
       console.error(`[ai-mind-map] Content FTS indexing failed: ${err}`);
+    }
+
+    // Free cached source content to reduce memory pressure
+    for (const result of parseResults) {
+      result.sourceContent = undefined;
     }
 
     } finally {

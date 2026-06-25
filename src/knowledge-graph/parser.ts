@@ -135,6 +135,7 @@ export interface ParseResult {
   nodes: GraphNode[];
   edges: GraphEdge[];
   parseErrors: string[];
+  sourceContent?: string;  // cached file content for FTS5 (avoids re-reading)
 }
 
 // ============================================================
@@ -1336,7 +1337,7 @@ export async function parseFile(filePath: string, source?: string): Promise<Pars
     edges = result.edges;
   }
 
-  return { filePath, language, nodes, edges, parseErrors };
+  return { filePath, language, nodes, edges, parseErrors, sourceContent: content };
 }
 
 /**
@@ -1379,7 +1380,7 @@ export async function parseFiles(
 
   // Determine worker count: min(cpu cores, 4, ceil(files / 2))
   const numCpus = cpus().length;
-  const workerCount = Math.min(numCpus, 4, Math.ceil(total / 2));
+  const workerCount = Math.min(numCpus, 8, Math.ceil(total / 2));
 
   // Distribute files round-robin across workers
   const chunks: string[][] = Array.from({ length: workerCount }, () => []);
