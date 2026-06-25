@@ -365,8 +365,123 @@ export class Indexer {
       return stats;
     }
 
+    // ── Incremental path: if we have existing index data, only reparse changed files ──
+    const existingCount = this.graph.getFileIndexCount();
+    if (existingCount > 0) {
+      const staleFiles: string[] = [];
+      const currentFileSet = new Set(files);
+
+      for (const file of files) {
+        const cached = this.graph.getFileIndexEntry(file);
+        if (cached) {
+          try {
+            const fileStat = statSync(file);
+            if (Math.abs(cached.mtime_ms - fileStat.mtimeMs) < 1 && cached.size_bytes === fileStat.size) {
+              continue; // Unchanged - skip
+            }
+          } catch {
+            // File stat failed, reparse it
+          }
+        }
+        staleFiles.push(file);
+      }
+
+      // Remove deleted files from graph
+      const indexedFiles = this.graph.getIndexedFiles();
+      let filesDeleted = 0;
+      for (const indexed of indexedFiles) {
+        if (!currentFileSet.has(indexed)) {
+          this.graph.deleteFileNodes(indexed);
+          this.graph.removeFileIndex(indexed);
+          filesDeleted++;
+        }
+      }
+
+      if (staleFiles.length === 0) {
+        stats.filesDeleted = filesDeleted;
+        stats.durationMs = Date.now() - startTime;
+        onProgress?.({
+          phase: 'complete',
+          current: 0,
+          total: files.length,
+          message: `No files changed since last index. ${filesDeleted} deleted.`,
+        });
+        return stats;
+      }
+
+      // Parse only stale files
+      onProgress?.({
+        phase: 'parsing',
+        current: 0,
+        total: staleFiles.length,
+        message: `Incremental: parsing ${staleFiles.length} changed files...`,
+      });
+      const parseResults = await parseFiles(staleFiles, 16);
+
+      // Use batchReplaceFileData WITHOUT skipDelete (files have existing data)
+      const batchItems: Array<{filePath: string, nodes: GraphNode[], edges: GraphEdge[], mtimeMs?: number, sizeBytes?: number, contentHash?: string}> = [];
+      let nodesCreated = 0, edgesCreated = 0, parseErrors = 0;
+      const languages: Record<string, number> = {};
+
+      for (const result of parseResults) {
+        if (result.nodes.length === 0 && result.parseErrors.length > 0) {
+          parseErrors += result.parseErrors.length;
+          continue;
+        }
+        nodesCreated += result.nodes.length;
+        edgesCreated += result.edges.length;
+        if (result.language !== 'unknown') {
+          languages[result.language] = (languages[result.language] ?? 0) + 1;
+        }
+        if (result.parseErrors.length > 0) parseErrors += result.parseErrors.length;
+
+        let mtimeMs: number | undefined;
+        let sizeBytes: number | undefined;
+        let contentHash: string | undefined;
+        try {
+          const fileStat = statSync(result.filePath);
+          mtimeMs = fileStat.mtimeMs;
+          sizeBytes = fileStat.size;
+          contentHash = result.nodes.find(n => n.type === 'file')?.hash ?? '';
+        } catch {
+          // File may have been deleted between parse and store
+        }
+
+        batchItems.push({ filePath: result.filePath, nodes: result.nodes, edges: result.edges, mtimeMs, sizeBytes, contentHash });
+      }
+
+      if (batchItems.length > 0) {
+        this.graph.batchReplaceFileData(batchItems, false); // NOT skipDelete - files have existing data
+      }
+
+      stats.filesScanned = files.length;
+      stats.filesParsed = batchItems.length;
+      stats.filesSkipped = files.length - staleFiles.length;
+      stats.filesDeleted = filesDeleted;
+      stats.nodesCreated = nodesCreated;
+      stats.edgesCreated = edgesCreated;
+      stats.parseErrors = parseErrors;
+      stats.durationMs = Date.now() - startTime;
+      stats.languages = languages;
+
+      onProgress?.({
+        phase: 'complete',
+        current: batchItems.length,
+        total: files.length,
+        message: `Incremental: ${staleFiles.length} changed files reparsed, ${files.length - staleFiles.length} skipped in ${stats.durationMs}ms`,
+      });
+
+      return stats;
+    }
+
+    // ── Full reindex path (no existing data) ──
+
     // Clear only nodes belonging to THIS project (preserve other projects)
     this.graph.clearProject(this.config.projectRoot);
+
+    // Enter bulk mode: drop indexes/triggers for maximum insert speed
+    this.graph.enterBulkMode();
+    try {
 
     // Phase 2: Parsing
     onProgress?.({
@@ -446,12 +561,17 @@ export class Indexer {
     });
     this.graph.batchReplaceFileData(batchItems, true); // skipDelete: clearProject already cleared
 
-    // Cleanup orphaned edges after full reindex
-    try {
-      this.graph.cleanOrphanedEdges();
-    } catch {
-      // Non-critical cleanup
+    } finally {
+      // Exit bulk mode: rebuild indexes/FTS triggers regardless of success/failure
+      this.graph.exitBulkMode();
     }
+
+    // Skip cleanOrphanedEdges after full reindex — no orphans possible when we just rebuilt everything
+    // try {
+    //   this.graph.cleanOrphanedEdges();
+    // } catch {
+    //   // Non-critical cleanup
+    // }
 
     // Phase 4: Complete
     stats.durationMs = Date.now() - startTime;

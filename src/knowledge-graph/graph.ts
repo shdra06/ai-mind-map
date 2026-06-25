@@ -1017,7 +1017,7 @@ export class KnowledgeGraph {
       VALUES (@sourceId, @targetId, @type, @metadata)
     `);
     const upsertFileIdx = this.db.prepare(`
-      INSERT OR REPLACE INTO file_index (filePath, mtimeMs, sizeBytes, contentHash, indexedAt)
+      INSERT OR REPLACE INTO file_index (file_path, mtime_ms, size_bytes, content_hash, indexed_at)
       VALUES (?, ?, ?, ?, ?)
     `);
 
@@ -1359,6 +1359,85 @@ export class KnowledgeGraph {
          OR targetId NOT IN (SELECT id FROM nodes)
     `).run();
     return result.changes;
+  }
+
+  // ============================================================
+  // Bulk Mode & Index Management (Performance Optimizations)
+  // ============================================================
+
+  /** Drop FTS triggers for bulk operations */
+  private dropFtsTriggers(): void {
+    this.db.exec('DROP TRIGGER IF EXISTS nodes_ai');
+    this.db.exec('DROP TRIGGER IF EXISTS nodes_ad');
+    this.db.exec('DROP TRIGGER IF EXISTS nodes_au');
+  }
+
+  /** Recreate FTS triggers and rebuild FTS index */
+  private recreateFtsTriggers(): void {
+    this.db.exec(`
+      CREATE TRIGGER IF NOT EXISTS nodes_ai AFTER INSERT ON nodes BEGIN
+        INSERT INTO nodes_fts(rowid, id, name, qualifiedName, signature, docComment)
+        VALUES (new.rowid, new.id, new.name, new.qualifiedName, new.signature, new.docComment);
+      END;
+      CREATE TRIGGER IF NOT EXISTS nodes_ad AFTER DELETE ON nodes BEGIN
+        INSERT INTO nodes_fts(nodes_fts, rowid, id, name, qualifiedName, signature, docComment)
+        VALUES ('delete', old.rowid, old.id, old.name, old.qualifiedName, old.signature, old.docComment);
+      END;
+      CREATE TRIGGER IF NOT EXISTS nodes_au AFTER UPDATE ON nodes BEGIN
+        INSERT INTO nodes_fts(nodes_fts, rowid, id, name, qualifiedName, signature, docComment)
+        VALUES ('delete', old.rowid, old.id, old.name, old.qualifiedName, old.signature, old.docComment);
+        INSERT INTO nodes_fts(rowid, id, name, qualifiedName, signature, docComment)
+        VALUES (new.rowid, new.id, new.name, new.qualifiedName, new.signature, new.docComment);
+      END;
+    `);
+  }
+
+  /** Rebuild FTS index from current nodes data */
+  private rebuildFts(): void {
+    this.db.exec("INSERT INTO nodes_fts(nodes_fts) VALUES('rebuild')");
+  }
+
+  /** Drop all performance indexes (for bulk insert) */
+  private dropIndexes(): void {
+    this.db.exec('DROP INDEX IF EXISTS idx_nodes_filePath');
+    this.db.exec('DROP INDEX IF EXISTS idx_nodes_type');
+    this.db.exec('DROP INDEX IF EXISTS idx_nodes_name');
+    this.db.exec('DROP INDEX IF EXISTS idx_nodes_language');
+    this.db.exec('DROP INDEX IF EXISTS idx_nodes_hash');
+    this.db.exec('DROP INDEX IF EXISTS idx_edges_sourceId');
+    this.db.exec('DROP INDEX IF EXISTS idx_edges_targetId');
+    this.db.exec('DROP INDEX IF EXISTS idx_edges_type');
+  }
+
+  /** Recreate all performance indexes */
+  private recreateIndexes(): void {
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_nodes_filePath ON nodes(filePath)');
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type)');
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_nodes_name ON nodes(name)');
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_nodes_language ON nodes(language)');
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_nodes_hash ON nodes(hash)');
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_edges_sourceId ON edges(sourceId)');
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_edges_targetId ON edges(targetId)');
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_edges_type ON edges(type)');
+  }
+
+  /** Enter bulk insert mode - relaxes safety for maximum speed */
+  enterBulkMode(): void {
+    this.db.pragma('synchronous = OFF');
+    this.db.pragma('temp_store = MEMORY');
+    this.db.pragma('mmap_size = 268435456');
+    this.dropFtsTriggers();
+    this.dropIndexes();
+  }
+
+  /** Exit bulk insert mode - restores safety and rebuilds indexes/FTS */
+  exitBulkMode(): void {
+    this.recreateIndexes();
+    this.recreateFtsTriggers();
+    this.rebuildFts();
+    this.db.pragma('synchronous = NORMAL');
+    this.db.pragma('temp_store = DEFAULT');
+    this.db.pragma('mmap_size = 0');
   }
 
   /**
