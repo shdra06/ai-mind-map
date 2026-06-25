@@ -984,6 +984,25 @@ export class KnowledgeGraph {
   }
 
   /**
+   * Replace data for MANY files in a single transaction.
+   *
+   * Used by the indexer's fullIndex to avoid 1-transaction-per-file overhead.
+   * Optionally upserts file_index entries when mtime metadata is provided.
+   */
+  batchReplaceFileData(items: Array<{filePath: string, nodes: GraphNode[], edges: GraphEdge[], mtimeMs?: number, sizeBytes?: number, contentHash?: string}>): void {
+    this.db.transaction(() => {
+      for (const item of items) {
+        this.deleteFileNodes(item.filePath);
+        this.upsertNodes(item.nodes);
+        this.upsertEdges(item.edges);
+        if (item.mtimeMs !== undefined) {
+          this.upsertFileIndex(item.filePath, item.mtimeMs, item.sizeBytes ?? 0, item.contentHash ?? '');
+        }
+      }
+    })();
+  }
+
+  /**
    * Get all node IDs in the graph (used for PageRank).
    */
   getAllNodeIds(): string[] {

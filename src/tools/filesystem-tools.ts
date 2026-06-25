@@ -19,7 +19,7 @@ import {
   existsSync,
   Dirent,
 } from 'node:fs';
-import { resolve, relative, extname, basename, join, sep } from 'node:path';
+import { resolve, relative, extname, basename, join, sep, isAbsolute } from 'node:path';
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ToolResult, MindMapConfig, GraphNode } from '../types.js';
@@ -148,8 +148,16 @@ const MAX_TREE_DISPLAY_ENTRIES = 50;
 /**
  * Resolve a potentially relative path against the project root.
  * Returns null if the resolved path is outside the project root (security).
+ *
+ * @param allowAbsolute - When true, absolute input paths are returned directly
+ *   without checking against projectRoot. Used by list_dir and read_lines
+ *   so they work before the target project has been indexed.
  */
-function resolvePath(inputPath: string, projectRoot: string): string | null {
+function resolvePath(inputPath: string, projectRoot: string, allowAbsolute: boolean = false): string | null {
+  // If allowAbsolute and the input is already an absolute path, use it directly
+  if (allowAbsolute && isAbsolute(inputPath)) {
+    return resolve(inputPath); // normalize separators
+  }
   const resolved = resolve(projectRoot, inputPath);
   // Security: prevent directory traversal outside project
   const normalizedResolved = resolved.replace(/\\/g, '/');
@@ -641,7 +649,7 @@ export function registerFilesystemTools(
     },
     async ({ path: inputPath, includeHidden }) => {
       try {
-        const resolved = resolvePath(inputPath, config.projectRoot);
+        const resolved = resolvePath(inputPath, config.projectRoot, true);
         if (!resolved) {
           return mcpText(fail(`Path "${inputPath}" resolves outside the project root`));
         }
@@ -675,7 +683,7 @@ export function registerFilesystemTools(
     },
     async ({ filePath: inputPath, startLine, endLine, includeContext }) => {
       try {
-        const resolved = resolvePath(inputPath, config.projectRoot);
+        const resolved = resolvePath(inputPath, config.projectRoot, true);
         if (!resolved) {
           return mcpText(fail(`Path "${inputPath}" resolves outside the project root`));
         }

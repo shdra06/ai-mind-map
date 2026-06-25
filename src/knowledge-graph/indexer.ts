@@ -16,7 +16,7 @@ import { relative, join } from 'node:path';
 import v8 from 'node:v8';
 import { glob } from 'glob';
 import ignore from 'ignore';
-import type { MindMapConfig } from '../types.js';
+import type { MindMapConfig, GraphNode, GraphEdge } from '../types.js';
 import { KnowledgeGraph } from './graph.js';
 import {
   parseFile,
@@ -386,74 +386,65 @@ export class Indexer {
       });
     });
 
-    // Phase 3: Storing
+    // Memory pressure check before entering the store phase
+    {
+      const heapStats = v8.getHeapStatistics();
+      if (heapStats.used_heap_size / heapStats.heap_size_limit > MEMORY_PRESSURE_THRESHOLD) {
+        process.stderr.write(
+          `Memory pressure before store phase. Stopping early.\n`
+        );
+        stats.durationMs = Date.now() - startTime;
+        return stats;
+      }
+    }
+
+    // Phase 3: Collect all valid results, then store in ONE transaction
+    const batchItems: Array<{filePath: string, nodes: GraphNode[], edges: GraphEdge[], mtimeMs?: number, sizeBytes?: number, contentHash?: string}> = [];
+
+    for (const result of parseResults) {
+      if (result.nodes.length === 0 && result.parseErrors.length > 0) {
+        stats.filesSkipped++;
+        stats.parseErrors += result.parseErrors.length;
+        continue;
+      }
+
+      stats.filesParsed++;
+      stats.nodesCreated += result.nodes.length;
+      stats.edgesCreated += result.edges.length;
+
+      // Track language distribution
+      if (result.language !== 'unknown') {
+        stats.languages[result.language] = (stats.languages[result.language] ?? 0) + 1;
+      }
+
+      if (result.parseErrors.length > 0) {
+        stats.parseErrors += result.parseErrors.length;
+      }
+
+      // Get file stat synchronously (file is hot in OS cache from parsing)
+      let mtimeMs: number | undefined;
+      let sizeBytes: number | undefined;
+      let contentHash: string | undefined;
+      try {
+        const fileStat = statSync(result.filePath);
+        mtimeMs = fileStat.mtimeMs;
+        sizeBytes = fileStat.size;
+        contentHash = result.nodes.find(n => n.type === 'file')?.hash ?? '';
+      } catch {
+        // File may have been deleted between parse and store
+      }
+
+      batchItems.push({ filePath: result.filePath, nodes: result.nodes, edges: result.edges, mtimeMs, sizeBytes, contentHash });
+    }
+
+    // Store ALL files in ONE transaction
     onProgress?.({
       phase: 'storing',
       current: 0,
-      total: parseResults.length,
-      message: 'Storing parsed data in knowledge graph...',
+      total: batchItems.length,
+      message: `Storing ${batchItems.length} files in database...`,
     });
-
-    for (let i = 0; i < parseResults.length; i++) {
-      const result = parseResults[i];
-
-      // If any single file fails, log and continue
-      try {
-        if (result.nodes.length === 0 && result.parseErrors.length > 0) {
-          stats.filesSkipped++;
-          stats.parseErrors += result.parseErrors.length;
-          continue;
-        }
-
-        stats.filesParsed++;
-        stats.nodesCreated += result.nodes.length;
-        stats.edgesCreated += result.edges.length;
-
-        // Track language distribution
-        if (result.language !== 'unknown') {
-          stats.languages[result.language] = (stats.languages[result.language] ?? 0) + 1;
-        }
-
-        if (result.parseErrors.length > 0) {
-          stats.parseErrors += result.parseErrors.length;
-        }
-
-        // Store in graph
-        this.graph.replaceFileData(result.filePath, result.nodes, result.edges);
-
-        // Update file_index for mtime-first change detection
-        try {
-          const fileStat = await stat(result.filePath);
-          const fileHash = result.nodes.find(n => n.type === 'file')?.hash ?? '';
-          this.graph.upsertFileIndex(result.filePath, fileStat.mtimeMs, fileStat.size, fileHash);
-        } catch {
-          // File may have been deleted between parse and store
-        }
-
-        if (i % 50 === 0) {
-          onProgress?.({
-            phase: 'storing',
-            current: i + 1,
-            total: parseResults.length,
-            currentFile: result.filePath,
-            message: `Stored ${i + 1}/${parseResults.length} files`,
-          });
-        }
-
-        // Memory pressure check every 100 files
-        if (i % 100 === 0 && i > 0) {
-          const heapStats = v8.getHeapStatistics();
-          if (heapStats.used_heap_size / heapStats.heap_size_limit > MEMORY_PRESSURE_THRESHOLD) {
-            process.stderr.write(
-              `Memory pressure during fullIndex at file ${i}/${parseResults.length}. Stopping early.\n`
-            );
-            break;
-          }
-        }
-      } catch {
-        stats.parseErrors++;
-      }
-    }
+    this.graph.batchReplaceFileData(batchItems);
 
     // Cleanup orphaned edges after full reindex
     try {
