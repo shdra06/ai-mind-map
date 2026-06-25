@@ -128,8 +128,9 @@ async function detectProjectRoot(startDir: string): Promise<string> {
     const git = simpleGit(startDir);
     const topLevel = await git.revparse(['--show-toplevel']);
     return path.resolve(topLevel.trim());
-  } catch {
-    // Not a Git repo — fall back to cwd
+  } catch (err) {
+    // Not a Git repo — fall back to startDir, but log the reason
+    process.stderr.write(`[ai-mind-map] Git root detection failed: ${err instanceof Error ? err.message : String(err)}. Using fallback.\n`);
     return path.resolve(startDir);
   }
 }

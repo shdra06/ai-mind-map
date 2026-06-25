@@ -107,7 +107,7 @@ export class PageRankEngine {
    */
   private computeGraphHash(): string {
     const stats = this.graph.getStats();
-    return `${stats.totalNodes}:${stats.totalEdges}:${Date.now() >> 16}`;
+    return `${stats.totalNodes}:${stats.totalEdges}`;
   }
 
   /**

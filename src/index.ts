@@ -274,7 +274,9 @@ function createGraphAdapter(
         // No node found — try text-based fallback
         const textRefs: { filePath: string; line: number; context: string }[] = [];
         const indexedFiles = graph.getIndexedFiles();
-        for (const file of indexedFiles) {
+        // Cap text search to first 50 files to avoid blocking
+        const filesToSearch = indexedFiles.slice(0, 50);
+        for (const file of filesToSearch) {
           if (textRefs.length >= 20) break;
           try {
             const absPath = path.resolve(config.projectRoot, file);
@@ -302,7 +304,9 @@ function createGraphAdapter(
         // Graph edges empty — try text-based fallback
         const textRefs: { filePath: string; line: number; context: string }[] = [];
         const indexedFiles = graph.getIndexedFiles();
-        for (const file of indexedFiles) {
+        // Cap text search to first 50 files to avoid blocking
+        const filesToSearch = indexedFiles.slice(0, 50);
+        for (const file of filesToSearch) {
           if (textRefs.length >= 20) break;
           try {
             const absPath = path.resolve(config.projectRoot, file);
@@ -992,7 +996,42 @@ function enrichToolResponse(
   if (textIdx === -1) return response;
 
   try {
-    const result = JSON.parse(response.content[textIdx].text);
+    const text = response.content[textIdx].text;
+
+    // Fast path: if it looks like a JSON object, use string concat to avoid parse/stringify overhead
+    if (text.startsWith('{') && text.endsWith('}')) {
+      const outputTokens = estimator.estimate(text);
+      // Extract tokensSaved from the raw text if present
+      const tokensSavedMatch = text.match(/"tokensSaved"\s*:\s*(\d+)/);
+      const tokensSaved = tokensSavedMatch ? parseInt(tokensSavedMatch[1], 10) : 0;
+      tracker.record(inputTokens, outputTokens, tokensSaved);
+
+      const projectInfo = getProjectInfo();
+      const nodeCount = graphNodeCount();
+      const rootIsBlocked = isBlockedDirectory(projectInfo.root);
+
+      // Build the suffix metadata
+      const meta: Record<string, unknown> = {
+        _project: projectInfo,
+        _sessionTokens: tracker.getSummary(),
+      };
+
+      if (nodeCount === 0 || rootIsBlocked) {
+        meta._indexRequired = true;
+        meta._action = 'REQUIRED: Call mindmap_reindex({ projectPath: "<USER_WORKSPACE_PATH>" }). ' +
+          'The current root "' + projectInfo.root + '" is NOT a user project. ' +
+          'Use the workspace/project directory that the user has open in their editor. ' +
+          'IMPORTANT: Before calling reindex, tell the user: "Indexing your project for the first time. ' +
+          'This builds a full knowledge graph of all functions, classes, and relationships. ' +
+          'It takes about 30-90 seconds on the first run, but after that all tools respond instantly."';
+      }
+
+      const suffix = JSON.stringify(meta);
+      // Remove closing } from text, append suffix properties, close
+      response.content[textIdx].text = text.slice(0, -1) + ',' + suffix.slice(1);
+    } else {
+      // Fallback: parse and re-stringify for non-object responses
+      const result = JSON.parse(text);
 
     // Estimate tokens for this response
     const outputTokens = estimator.estimate(response.content[textIdx].text);
@@ -1023,6 +1062,7 @@ function enrichToolResponse(
     result._sessionTokens = tracker.getSummary();
 
     response.content[textIdx].text = JSON.stringify(result);
+    }
   } catch {
     // If parsing fails, return original response unchanged
   }
@@ -1281,6 +1321,16 @@ async function main(): Promise<void> {
   const tokenTracker = new SessionTokenTracker();
   const originalToolFn = server.tool.bind(server) as Function;
 
+  // Fix 4: Cache graph.getStats() with 5-second TTL to avoid calling it twice per response
+  let cachedStats: { data: ReturnType<typeof graph.getStats>; timestamp: number } | null = null;
+  function getCachedStats() {
+    const now = Date.now();
+    if (!cachedStats || now - cachedStats.timestamp > 5000) {
+      cachedStats = { data: graph.getStats(), timestamp: now };
+    }
+    return cachedStats.data;
+  }
+
   // M1: Override server.tool to wrap every handler with token tracking
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof (server as any).tool !== 'function') {
@@ -1305,9 +1355,9 @@ async function main(): Promise<void> {
           response,
           tokenTracker,
           tokenEstimator,
-          () => graph.getStats().totalNodes,
+          () => getCachedStats().totalNodes,
           () => {
-            const s = graph.getStats();
+            const s = getCachedStats();
             return { root: config.projectRoot, indexedFiles: s.totalFiles, totalNodes: s.totalNodes };
           },
           inputTokens,

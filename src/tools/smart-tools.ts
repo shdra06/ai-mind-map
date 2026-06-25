@@ -90,6 +90,9 @@ export function registerSmartTools(
   semanticEngine?: SemanticSearchEngine,
 ): void {
 
+  // Create FlowAnalyzer once and reuse across all tool handlers
+  const flowAnalyzer = new FlowAnalyzer(graph, config.projectRoot);
+
   // ── mindmap_explain ──────────────────────────────────────────
   server.tool(
     'mindmap_explain',
@@ -153,7 +156,6 @@ export function registerSmartTools(
         }));
 
         // 3. Classify layer with confidence
-        const flowAnalyzer = new FlowAnalyzer(graph, config.projectRoot);
         const absPath = resolve(config.projectRoot, node.filePath);
         const classification = flowAnalyzer.getFileClassification(absPath);
 
@@ -538,7 +540,6 @@ export function registerSmartTools(
           }, estimator));
         }
 
-        const flowAnalyzer = new FlowAnalyzer(graph, config.projectRoot);
         let totalTokensSaved = 0;
 
         const results = searchResults.map(node => {

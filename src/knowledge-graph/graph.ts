@@ -1104,17 +1104,20 @@ export class KnowledgeGraph {
   getNodesByIds(ids: string[]): GraphNode[] {
     if (ids.length === 0) return [];
 
-    const placeholders = ids.map(() => '?').join(',');
-    const rows = this.db.prepare(
-      `SELECT * FROM nodes WHERE id IN (${placeholders})`,
-    ).all(...ids) as any[];
-
-    // Preserve the order of the input IDs
     const nodeMap = new Map<string, GraphNode>();
-    for (const row of rows) {
-      nodeMap.set(row.id, this.rowToNode(row));
+    // Chunk to stay within SQLite parameter limits (~999 max)
+    for (let i = 0; i < ids.length; i += 500) {
+      const chunk = ids.slice(i, i + 500);
+      const placeholders = chunk.map(() => '?').join(',');
+      const rows = this.db.prepare(
+        `SELECT * FROM nodes WHERE id IN (${placeholders})`,
+      ).all(...chunk) as any[];
+      for (const row of rows) {
+        nodeMap.set(row.id, this.rowToNode(row));
+      }
     }
 
+    // Preserve input order
     return ids.map(id => nodeMap.get(id)).filter((n): n is GraphNode => n !== undefined);
   }
 
