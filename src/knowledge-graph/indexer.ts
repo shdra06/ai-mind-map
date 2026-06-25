@@ -504,6 +504,8 @@ export class Indexer {
 
     // Enter bulk mode: drop indexes/triggers for maximum insert speed
     this.graph.enterBulkMode();
+    // Collect content items for FTS indexing (populated inside try, used after finally)
+    let contentItems: Array<{ filePath: string; content: string }> = [];
     try {
 
     // Phase 2: Parsing
@@ -514,6 +516,7 @@ export class Indexer {
       message: `Parsing ${files.length} files...`,
     });
 
+    const parseStart = Date.now();
     const parseResults = await parseFiles(files, 16, (current, total) => {
       onProgress?.({
         phase: 'parsing',
@@ -523,6 +526,7 @@ export class Indexer {
         message: `Parsed ${current}/${total} files`,
       });
     });
+    process.stderr.write(`[ai-mind-map] Parse phase: ${Date.now() - parseStart}ms (${files.length} files)\n`);
 
     // Memory pressure check before entering the store phase
     {
@@ -575,33 +579,28 @@ export class Indexer {
       batchItems.push({ filePath: result.filePath, nodes: result.nodes, edges: result.edges, mtimeMs, sizeBytes, contentHash });
     }
 
-    // Store ALL files in ONE transaction
+    // Store ALL files in ONE transaction (plain INSERT — no conflict checks needed after clearProject)
     onProgress?.({
       phase: 'storing',
       current: 0,
       total: batchItems.length,
       message: `Storing ${batchItems.length} files in database...`,
     });
-    this.graph.batchReplaceFileData(batchItems, true); // skipDelete: clearProject already cleared
+    const storeStart = Date.now();
+    this.graph.batchInsertFileData(batchItems);
+    process.stderr.write(`[ai-mind-map] Store phase: ${Date.now() - storeStart}ms (${batchItems.length} files, ${stats.nodesCreated} nodes, ${stats.edgesCreated} edges)\n`);
 
-    // Index file contents for FTS5 search (using cached content from parse phase)
-    try {
-      const contentItems: Array<{ filePath: string; content: string }> = [];
-      for (const result of parseResults) {
-        if (result.sourceContent) {
-          const content = result.sourceContent;
-          contentItems.push({ 
-            filePath: result.filePath, 
-            content: content.length > 102400 ? content.substring(0, 102400) : content 
-          });
-        }
+    // Free cached source content to reduce memory pressure
+    // (but keep sourceContent references for FTS indexing below — copy references first)
+    contentItems = [];
+    for (const result of parseResults) {
+      if (result.sourceContent) {
+        const content = result.sourceContent;
+        contentItems.push({ 
+          filePath: result.filePath, 
+          content: content.length > 51200 ? content.substring(0, 51200) : content 
+        });
       }
-      if (contentItems.length > 0) {
-        this.graph.batchIndexContents(contentItems, true); // skipDelete: enterBulkMode already cleared
-      }
-    } catch (err) {
-      // Non-fatal: content FTS is an optimization, not critical
-      console.error(`[ai-mind-map] Content FTS indexing failed: ${err}`);
     }
 
     // Free cached source content to reduce memory pressure
@@ -611,8 +610,25 @@ export class Indexer {
 
     } finally {
       // Exit bulk mode: rebuild indexes/FTS triggers regardless of success/failure
+      const rebuildStart = Date.now();
       this.graph.exitBulkMode();
+      process.stderr.write(`[ai-mind-map] Index rebuild: ${Date.now() - rebuildStart}ms\n`);
     }
+
+    // Content FTS happens AFTER bulk mode exit (separate transactions)
+    // FTS5 has its own inverted index — doesn't benefit from dropped regular indexes
+    const ftsStart = Date.now();
+    try {
+      // Batch in chunks of 50 to limit transaction size
+      for (let i = 0; i < contentItems.length; i += 50) {
+        const chunk = contentItems.slice(i, i + 50);
+        this.graph.batchIndexContents(chunk, true);
+      }
+    } catch (err) {
+      // Non-fatal: content FTS is an optimization, not critical
+      console.error(`[ai-mind-map] Content FTS indexing failed: ${err}`);
+    }
+    process.stderr.write(`[ai-mind-map] Content FTS: ${Date.now() - ftsStart}ms (${contentItems.length} files)\n`);
 
     // Skip cleanOrphanedEdges after full reindex — no orphans possible when we just rebuilt everything
     // try {

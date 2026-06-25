@@ -157,10 +157,12 @@ export class KnowledgeGraph {
     try {
       this.db = new Database(dbPath);
       this.db.pragma('journal_mode = WAL');
+      this.db.pragma('wal_autocheckpoint = 0'); // Defer checkpointing during bulk ops
       this.db.pragma('synchronous = NORMAL');
       this.db.pragma('foreign_keys = ON');
       this.db.pragma('busy_timeout = 5000');
-      this.db.pragma('cache_size = -64000');
+      this.db.pragma('page_size = 8192');  // 8KB pages for better I/O alignment
+      this.db.pragma('cache_size = -64000');  // 64MB cache
       this.initializeSchema();
     } catch (err) {
       // If DB is corrupt, delete and retry once
@@ -174,10 +176,12 @@ export class KnowledgeGraph {
           }
           this.db = new Database(dbPath);
           this.db.pragma('journal_mode = WAL');
+          this.db.pragma('wal_autocheckpoint = 0'); // Defer checkpointing during bulk ops
           this.db.pragma('synchronous = NORMAL');
           this.db.pragma('foreign_keys = ON');
           this.db.pragma('busy_timeout = 5000');
-          this.db.pragma('cache_size = -64000');
+          this.db.pragma('page_size = 8192');  // 8KB pages for better I/O alignment
+          this.db.pragma('cache_size = -64000');  // 64MB cache
           this.initializeSchema();
           console.error('[ai-mind-map] Recovered from corrupt database — rebuilt from scratch');
         } else {
@@ -1086,6 +1090,70 @@ export class KnowledgeGraph {
   }
 
   /**
+   * Optimized insert for full reindex (no existing data, skip conflict checks).
+   * Uses plain INSERT instead of INSERT OR REPLACE since clearProject already deleted everything.
+   */
+  batchInsertFileData(items: Array<{filePath: string, nodes: GraphNode[], edges: GraphEdge[], mtimeMs?: number, sizeBytes?: number, contentHash?: string}>): void {
+    const insertNode = this.db.prepare(`
+      INSERT INTO nodes (
+        id, type, name, qualifiedName, filePath, startLine, endLine,
+        signature, docComment, hash, language, visibility,
+        isAsync, isStatic, isExported, parameters, returnType, updatedAt
+      ) VALUES (
+        @id, @type, @name, @qualifiedName, @filePath, @startLine, @endLine,
+        @signature, @docComment, @hash, @language, @visibility,
+        @isAsync, @isStatic, @isExported, @parameters, @returnType, @updatedAt
+      )
+    `);
+    const insertEdge = this.db.prepare(`
+      INSERT INTO edges (sourceId, targetId, type, metadata)
+      VALUES (@sourceId, @targetId, @type, @metadata)
+    `);
+    const insertFileIdx = this.db.prepare(`
+      INSERT INTO file_index (file_path, mtime_ms, size_bytes, content_hash, indexed_at)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+
+    this.db.transaction(() => {
+      for (const item of items) {
+        for (const node of item.nodes) {
+          insertNode.run({
+            id: node.id,
+            type: node.type,
+            name: node.name,
+            qualifiedName: node.qualifiedName,
+            filePath: node.filePath,
+            startLine: node.startLine,
+            endLine: node.endLine,
+            signature: node.signature,
+            docComment: node.docComment,
+            hash: node.hash,
+            language: node.language,
+            visibility: node.visibility,
+            isAsync: node.isAsync ? 1 : 0,
+            isStatic: node.isStatic ? 1 : 0,
+            isExported: node.isExported ? 1 : 0,
+            parameters: this.serializeParams(node.parameters),
+            returnType: node.returnType ?? null,
+            updatedAt: node.updatedAt,
+          });
+        }
+        for (const edge of item.edges) {
+          insertEdge.run({
+            sourceId: edge.sourceId,
+            targetId: edge.targetId,
+            type: edge.type,
+            metadata: edge.metadata ? JSON.stringify(edge.metadata) : null,
+          });
+        }
+        if (item.mtimeMs !== undefined) {
+          insertFileIdx.run(item.filePath, item.mtimeMs, item.sizeBytes ?? 0, item.contentHash ?? '', Date.now());
+        }
+      }
+    })();
+  }
+
+  /**
    * Get all node IDs in the graph (used for PageRank).
    */
   getAllNodeIds(): string[] {
@@ -1451,6 +1519,9 @@ export class KnowledgeGraph {
     this.db.pragma('synchronous = NORMAL');
     this.db.pragma('temp_store = DEFAULT');
     this.db.pragma('mmap_size = 0');
+    // WAL checkpoint after bulk ops, then restore normal auto-checkpointing
+    this.db.pragma('wal_checkpoint(TRUNCATE)');
+    this.db.pragma('wal_autocheckpoint = 1000');
   }
 
   /**
