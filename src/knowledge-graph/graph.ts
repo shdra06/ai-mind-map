@@ -988,15 +988,90 @@ export class KnowledgeGraph {
    *
    * Used by the indexer's fullIndex to avoid 1-transaction-per-file overhead.
    * Optionally upserts file_index entries when mtime metadata is provided.
+   * When skipDelete is true (after clearProject), skips per-file delete for speed.
    */
-  batchReplaceFileData(items: Array<{filePath: string, nodes: GraphNode[], edges: GraphEdge[], mtimeMs?: number, sizeBytes?: number, contentHash?: string}>): void {
+  batchReplaceFileData(items: Array<{filePath: string, nodes: GraphNode[], edges: GraphEdge[], mtimeMs?: number, sizeBytes?: number, contentHash?: string}>, skipDelete = false): void {
+    // Prepare all statements ONCE outside the transaction
+    const deleteEdgesForNode = this.db.prepare(
+      'DELETE FROM edges WHERE sourceId = ? OR targetId = ?'
+    );
+    const selectNodeIds = this.db.prepare(
+      'SELECT id FROM nodes WHERE filePath = ?'
+    );
+    const deleteNodes = this.db.prepare(
+      'DELETE FROM nodes WHERE filePath = ?'
+    );
+    const insertNode = this.db.prepare(`
+      INSERT OR REPLACE INTO nodes (
+        id, type, name, qualifiedName, filePath, startLine, endLine,
+        signature, docComment, hash, language, visibility,
+        isAsync, isStatic, isExported, parameters, returnType, updatedAt
+      ) VALUES (
+        @id, @type, @name, @qualifiedName, @filePath, @startLine, @endLine,
+        @signature, @docComment, @hash, @language, @visibility,
+        @isAsync, @isStatic, @isExported, @parameters, @returnType, @updatedAt
+      )
+    `);
+    const insertEdge = this.db.prepare(`
+      INSERT OR REPLACE INTO edges (sourceId, targetId, type, metadata)
+      VALUES (@sourceId, @targetId, @type, @metadata)
+    `);
+    const upsertFileIdx = this.db.prepare(`
+      INSERT OR REPLACE INTO file_index (filePath, mtimeMs, sizeBytes, contentHash, indexedAt)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+
+    // ONE transaction for ALL files
     this.db.transaction(() => {
       for (const item of items) {
-        this.deleteFileNodes(item.filePath);
-        this.upsertNodes(item.nodes);
-        this.upsertEdges(item.edges);
+        // Delete existing nodes/edges for this file (skip if clearProject already ran)
+        if (!skipDelete) {
+          const nodeIds = selectNodeIds.all(item.filePath) as { id: string }[];
+          if (nodeIds.length > 0) {
+            for (const { id } of nodeIds) {
+              deleteEdgesForNode.run(id, id);
+            }
+            deleteNodes.run(item.filePath);
+          }
+        }
+
+        // Insert new nodes
+        for (const node of item.nodes) {
+          insertNode.run({
+            id: node.id,
+            type: node.type,
+            name: node.name,
+            qualifiedName: node.qualifiedName,
+            filePath: node.filePath,
+            startLine: node.startLine,
+            endLine: node.endLine,
+            signature: node.signature,
+            docComment: node.docComment,
+            hash: node.hash,
+            language: node.language,
+            visibility: node.visibility,
+            isAsync: node.isAsync ? 1 : 0,
+            isStatic: node.isStatic ? 1 : 0,
+            isExported: node.isExported ? 1 : 0,
+            parameters: this.serializeParams(node.parameters),
+            returnType: node.returnType ?? null,
+            updatedAt: node.updatedAt,
+          });
+        }
+
+        // Insert new edges
+        for (const edge of item.edges) {
+          insertEdge.run({
+            sourceId: edge.sourceId,
+            targetId: edge.targetId,
+            type: edge.type,
+            metadata: edge.metadata ? JSON.stringify(edge.metadata) : null,
+          });
+        }
+
+        // Update file index
         if (item.mtimeMs !== undefined) {
-          this.upsertFileIndex(item.filePath, item.mtimeMs, item.sizeBytes ?? 0, item.contentHash ?? '');
+          upsertFileIdx.run(item.filePath, item.mtimeMs, item.sizeBytes ?? 0, item.contentHash ?? '', Date.now());
         }
       }
     })();

@@ -444,7 +444,7 @@ export class Indexer {
       total: batchItems.length,
       message: `Storing ${batchItems.length} files in database...`,
     });
-    this.graph.batchReplaceFileData(batchItems);
+    this.graph.batchReplaceFileData(batchItems, true); // skipDelete: clearProject already cleared
 
     // Cleanup orphaned edges after full reindex
     try {
