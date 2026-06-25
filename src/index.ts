@@ -1724,62 +1724,46 @@ async function main(): Promise<void> {
     log('info', `   Database: ${config.dbPath}`);
     log('info', `   Session: ${sessionMemory.getCurrentSessionId()}`);
 
-    // -- Zombie Prevention: exit when parent disconnects --
-    // On Windows, SIGTERM doesn't work. When the MCP proxy restarts,
-    // it closes stdin but the old process stays alive as a zombie.
-    // These handlers ensure we exit when the parent is gone.
+    // -- Process Lifecycle Protection --
+    // Prevents zombie processes when the MCP proxy restarts without killing us.
+    // On Windows, SIGTERM doesn't work reliably, so we use these mechanisms:
 
-    // 1. Exit when stdin closes (parent process closed the pipe)
-    process.stdin.on('end', () => {
-      log('info', 'stdin closed (parent disconnected). Shutting down...');
-      void shutdown('stdin-end');
-    });
-    process.stdin.on('close', () => {
-      log('info', 'stdin pipe closed. Exiting...');
-      process.exit(0);
-    });
-
-    // 2. Periodic parent process check (every 30s)
+    // 1. Parent process monitoring (every 30s)
+    // If the parent process (Gemini proxy) dies, we should exit too.
     const parentPid = process.ppid;
-    if (parentPid) {
+    if (parentPid && parentPid > 1) {
       const parentCheck = setInterval(() => {
         try {
-          // process.kill(pid, 0) checks if process exists without killing it
-          process.kill(parentPid, 0);
+          process.kill(parentPid, 0); // Check if parent exists (signal 0 = no-op)
         } catch {
-          log('info', `Parent process (PID ${parentPid}) died. Exiting...`);
+          log('info', `Parent process (PID ${parentPid}) is gone. Exiting...`);
           clearInterval(parentCheck);
           process.exit(0);
         }
       }, 30_000);
-      parentCheck.unref(); // Don't keep process alive just for this timer
+      parentCheck.unref();
     }
 
-    // 3. Inactivity timeout: exit after 10 minutes of no MCP messages
-    let lastActivity = Date.now();
-    const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
-    process.stdin.on('data', () => { lastActivity = Date.now(); });
-    const inactivityCheck = setInterval(() => {
-      if (Date.now() - lastActivity > INACTIVITY_TIMEOUT_MS) {
-        log('info', 'No MCP messages for 10 minutes. Exiting to free resources...');
-        clearInterval(inactivityCheck);
-        process.exit(0);
-      }
-    }, 60_000);
-    inactivityCheck.unref();
-
-    // 4. Memory cap: exit if heap exceeds 512MB (prevents zombie bloat)
+    // 2. Memory cap (512MB) - prevent heap bloat in zombie processes
     const MAX_HEAP_MB = 512;
     const memoryCheck = setInterval(() => {
-      const heapUsed = process.memoryUsage().heapUsed;
-      const heapMB = Math.round(heapUsed / 1024 / 1024);
+      const heapMB = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
       if (heapMB > MAX_HEAP_MB) {
-        log('warn', `Memory limit exceeded: ${heapMB}MB > ${MAX_HEAP_MB}MB. Exiting to prevent bloat...`);
+        log('warn', `Memory limit exceeded: ${heapMB}MB > ${MAX_HEAP_MB}MB. Exiting...`);
         clearInterval(memoryCheck);
         process.exit(0);
       }
     }, 60_000);
     memoryCheck.unref();
+
+    // 3. Stdin pipe close detection
+    // When the MCP proxy dies, stdin becomes unreadable.
+    // The StdioServerTransport owns stdin, so we listen on the 'end' event
+    // which fires when the readable side closes (no data conflict).
+    process.stdin.on('end', () => {
+      log('info', 'stdin ended (parent disconnected). Exiting...');
+      process.exit(0);
+    });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     log('error', `Failed to start MCP server: ${msg}`);
