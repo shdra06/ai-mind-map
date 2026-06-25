@@ -91,6 +91,7 @@ import { ChangelogEngine } from './knowledge-graph/changelog.js';
 import { registerSessionTools } from './tools/session-tools.js';
 import { registerDigestTools } from './tools/digest-tools.js';
 import { registerExploreTools } from './tools/explore-tools.js';
+import { registerFilesystemTools } from './tools/filesystem-tools.js';
 
 
 // Read version from package.json dynamically
@@ -1365,6 +1366,9 @@ async function main(): Promise<void> {
 
   registerExploreTools(server, graph, indexer, config, tokenEstimator);
   log('debug', 'Registered explore tools (1)');
+
+  registerFilesystemTools(server, graph, config, tokenEstimator);
+  log('debug', 'Registered filesystem tools (3)');
 
   // â”€â”€ mindmap_sync_shared_context â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   server.tool(
