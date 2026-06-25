@@ -1767,6 +1767,19 @@ async function main(): Promise<void> {
       }
     }, 60_000);
     inactivityCheck.unref();
+
+    // 4. Memory cap: exit if heap exceeds 512MB (prevents zombie bloat)
+    const MAX_HEAP_MB = 512;
+    const memoryCheck = setInterval(() => {
+      const heapUsed = process.memoryUsage().heapUsed;
+      const heapMB = Math.round(heapUsed / 1024 / 1024);
+      if (heapMB > MAX_HEAP_MB) {
+        log('warn', `Memory limit exceeded: ${heapMB}MB > ${MAX_HEAP_MB}MB. Exiting to prevent bloat...`);
+        clearInterval(memoryCheck);
+        process.exit(0);
+      }
+    }, 60_000);
+    memoryCheck.unref();
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     log('error', `Failed to start MCP server: ${msg}`);
