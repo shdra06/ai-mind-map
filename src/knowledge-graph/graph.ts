@@ -1091,11 +1091,11 @@ export class KnowledgeGraph {
 
   /**
    * Optimized insert for full reindex (no existing data, skip conflict checks).
-   * Uses plain INSERT instead of INSERT OR REPLACE since clearProject already deleted everything.
+   * Optimized for full reindex: uses INSERT OR REPLACE but skips per-file deletion.
    */
   batchInsertFileData(items: Array<{filePath: string, nodes: GraphNode[], edges: GraphEdge[], mtimeMs?: number, sizeBytes?: number, contentHash?: string}>): void {
     const insertNode = this.db.prepare(`
-      INSERT INTO nodes (
+      INSERT OR REPLACE INTO nodes (
         id, type, name, qualifiedName, filePath, startLine, endLine,
         signature, docComment, hash, language, visibility,
         isAsync, isStatic, isExported, parameters, returnType, updatedAt
@@ -1106,7 +1106,7 @@ export class KnowledgeGraph {
       )
     `);
     const insertEdge = this.db.prepare(`
-      INSERT INTO edges (sourceId, targetId, type, metadata)
+      INSERT OR REPLACE INTO edges (sourceId, targetId, type, metadata)
       VALUES (@sourceId, @targetId, @type, @metadata)
     `);
     const insertFileIdx = this.db.prepare(`
