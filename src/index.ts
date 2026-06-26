@@ -1745,7 +1745,7 @@ async function main(): Promise<void> {
     }
 
     // 2. Memory cap (512MB) - prevent heap bloat in zombie processes
-    const MAX_HEAP_MB = 512;
+    const MAX_HEAP_MB = 1024;
     const memoryCheck = setInterval(() => {
       const heapMB = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
       if (heapMB > MAX_HEAP_MB) {
