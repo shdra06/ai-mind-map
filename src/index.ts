@@ -1724,44 +1724,73 @@ async function main(): Promise<void> {
     log('info', `   Database: ${config.dbPath}`);
     log('info', `   Session: ${sessionMemory.getCurrentSessionId()}`);
 
-    // -- Process Lifecycle Protection --
-    // Prevents zombie processes when the MCP proxy restarts without killing us.
-    // On Windows, SIGTERM doesn't work reliably, so we use these mechanisms:
+    // -- Process Lifecycle: Clean Exit on Disconnect --
+    // When Antigravity/Cursor closes, the MCP must:
+    //   1. Detect the disconnection immediately
+    //   2. Save state (checkpoint WAL, end session)
+    //   3. Kill itself cleanly (no zombie)
 
-    // 1. Parent process monitoring (every 30s)
-    // If the parent process (Gemini proxy) dies, we should exit too.
+    // Helper: synchronous emergency cleanup (no async, no exceptions)
+    function emergencyCleanup(reason: string): void {
+      try { log('info', `[SHUTDOWN] ${reason}`); } catch {}
+      try {
+        // Checkpoint WAL to ensure all data is on disk
+        graph.getDb().pragma('wal_checkpoint(TRUNCATE)');
+      } catch {}
+      try { sessionMemory.endSession(); } catch {}
+      try { persistentMemory.applyDecay(); } catch {}
+      try { changeLog.close(); } catch {}
+      try { graph.close(); } catch {}
+      try { sharedDb.close(); } catch {}
+      try { log('info', '[SHUTDOWN] State saved. Clean exit.'); } catch {}
+    }
+
+    // 1. MCP Server close event (transport died)
+    // This fires when the StdioServerTransport detects pipe closure
+    server.server.onclose = () => {
+      emergencyCleanup('MCP transport closed');
+      process.exit(0);
+    };
+
+    // 2. Parent process monitoring (every 10s)
     const parentPid = process.ppid;
     if (parentPid && parentPid > 1) {
       const parentCheck = setInterval(() => {
         try {
-          process.kill(parentPid, 0); // Check if parent exists (signal 0 = no-op)
+          process.kill(parentPid, 0);
         } catch {
-          log('info', `Parent process (PID ${parentPid}) is gone. Exiting...`);
           clearInterval(parentCheck);
+          emergencyCleanup(`Parent PID ${parentPid} gone`);
           process.exit(0);
         }
-      }, 30_000);
+      }, 10_000); // Check every 10s (was 30s)
       parentCheck.unref();
     }
 
-    // 2. Memory cap (512MB) - prevent heap bloat in zombie processes
+    // 3. Memory cap (1GB) - prevent heap bloat
     const MAX_HEAP_MB = 1024;
     const memoryCheck = setInterval(() => {
       const heapMB = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
       if (heapMB > MAX_HEAP_MB) {
-        log('warn', `Memory limit exceeded: ${heapMB}MB > ${MAX_HEAP_MB}MB. Exiting...`);
-        clearInterval(memoryCheck);
+        emergencyCleanup(`Heap ${heapMB}MB > ${MAX_HEAP_MB}MB`);
         process.exit(0);
       }
     }, 60_000);
     memoryCheck.unref();
 
-    // 3. Stdin pipe close detection
-    // When the MCP proxy dies, stdin becomes unreadable.
-    // The StdioServerTransport owns stdin, so we listen on the 'end' event
-    // which fires when the readable side closes (no data conflict).
-    process.stdin.on('end', () => {
-      log('info', 'stdin ended (parent disconnected). Exiting...');
+    // 4. Emergency exit handler (last resort)
+    // Runs synchronously on ANY exit (even process.exit())
+    let cleanedUp = false;
+    process.on('exit', (code) => {
+      if (!cleanedUp) {
+        cleanedUp = true;
+        emergencyCleanup(`process.exit(${code})`); 
+      }
+    });
+
+    // 5. Windows: handle console close (Ctrl+C, window close)
+    process.on('SIGHUP', () => {
+      emergencyCleanup('SIGHUP (console closed)');
       process.exit(0);
     });
   } catch (err: unknown) {
