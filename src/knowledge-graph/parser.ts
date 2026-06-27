@@ -1458,84 +1458,11 @@ export async function parseFiles(
 
   if (total === 0) return [];
 
-  // For small file counts, skip worker overhead
-  if (total <= 4) {
-    return parseFilesSingleThreaded(files, concurrency, onProgress);
-  }
-
-  // Resolve the compiled worker script path
-  const workerPath = resolveWorkerPath();
-  if (!workerPath) {
-    // Worker script not found — fall back to single-threaded
-    return parseFilesSingleThreaded(files, concurrency, onProgress);
-  }
-
-  // Determine worker count: min(cpu cores, 4, ceil(files / 2))
-  const numCpus = cpus().length;
-  const workerCount = Math.min(numCpus, 8, Math.ceil(total / 2));
-
-  // Distribute files round-robin across workers
-  const chunks: string[][] = Array.from({ length: workerCount }, () => []);
-  for (let i = 0; i < total; i++) {
-    chunks[i % workerCount].push(files[i]);
-  }
-
-  // Launch workers and collect results
-  let completed = 0;
-  const workerPromises = chunks.map((chunk) => {
-    return new Promise<ParseResult[]>((resolve, reject) => {
-      const worker = new Worker(workerPath);
-
-      worker.on('message', (results: ParseResult[]) => {
-        completed += results.length;
-        onProgress?.(Math.min(completed, total), total);
-        worker.terminate();
-        resolve(results);
-      });
-
-      worker.on('error', (err) => {
-        worker.terminate();
-        console.error(
-          `[ai-mind-map] Worker failed, falling back to main thread: ${err.message}`,
-        );
-        // Graceful degradation: parse this chunk on the main thread
-        parseFilesSingleThreaded(chunk, concurrency).then(
-          (results) => {
-            completed += results.length;
-            onProgress?.(Math.min(completed, total), total);
-            resolve(results);
-          },
-          reject,
-        );
-      });
-
-      worker.on('exit', (code) => {
-        if (code !== 0 && code !== 1) {
-          console.error(`[ai-mind-map] Worker exited with code ${code}`);
-        }
-      });
-
-      // Send the file chunk to the worker
-      worker.postMessage({ files: chunk });
-    });
-  });
-
-  try {
-    const allResults = await Promise.all(workerPromises);
-
-    // Re-assemble results in original file order
-    const resultMap = new Map<string, ParseResult>();
-    for (const workerResults of allResults) {
-      for (const result of workerResults) {
-        resultMap.set(result.filePath, result);
-      }
-    }
-    return files.map((f) => resultMap.get(f)!).filter(Boolean);
-  } catch (err) {
-    // Complete fallback: parse everything on the main thread
-    console.error(
-      `[ai-mind-map] All workers failed, using single-threaded fallback: ${err}`,
-    );
+  // Always use single-threaded parsing.
+  // Benchmarks: single-threaded parses 315 files in 575ms which is fast enough.
+  // Worker threads cause 1400x slowdown (575ms -> 821s) under MCP stdio
+  // transport because worker postMessage/onmessage competes with JSON-RPC I/O.
+  if (true) {
     return parseFilesSingleThreaded(files, concurrency, onProgress);
   }
 }
