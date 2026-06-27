@@ -92,6 +92,7 @@ import { registerSessionTools } from './tools/session-tools.js';
 import { registerDigestTools } from './tools/digest-tools.js';
 import { registerExploreTools } from './tools/explore-tools.js';
 import { registerFilesystemTools } from './tools/filesystem-tools.js';
+import { registerQualityTools } from './tools/quality-tools.js';
 
 
 // Read version from package.json dynamically
@@ -1419,6 +1420,9 @@ async function main(): Promise<void> {
 
   registerFilesystemTools(server, graph, config, tokenEstimator);
   log('debug', 'Registered filesystem tools (3)');
+
+  registerQualityTools(server, graph, config, tokenEstimator);
+  log('debug', 'Registered quality tools (3)');
 
   // â”€â”€ mindmap_sync_shared_context â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   server.tool(
