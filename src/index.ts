@@ -1607,6 +1607,24 @@ async function main(): Promise<void> {
     const allNodes = graph.getAllNodes();
     const nonFileNodes = allNodes.filter(n => n.type !== 'file');
     if (nonFileNodes.length > 0) {
+      // Build a cache of file contents for code body extraction
+      const fileContentsCache = new Map<string, string[]>();
+      function getCodeBody(node: GraphNode): string {
+        if (!node.filePath || !node.startLine || !node.endLine) return '';
+        if (!['function', 'method', 'class', 'constructor'].includes(node.type)) return '';
+        try {
+          let lines = fileContentsCache.get(node.filePath);
+          if (!lines) {
+            lines = readFileSync(node.filePath, 'utf-8').split('\n');
+            fileContentsCache.set(node.filePath, lines);
+          }
+          const bodyLines = lines.slice(node.startLine - 1, Math.min(node.endLine, node.startLine + 20));
+          return bodyLines.join(' ').slice(0, 500);
+        } catch {
+          return '';
+        }
+      }
+
       semanticEngine.indexNodes(
         nonFileNodes.map(n => ({
           id: n.id,
@@ -1615,8 +1633,10 @@ async function main(): Promise<void> {
           signature: n.signature,
           docComment: n.docComment,
           filePath: n.filePath,
+          codeBody: getCodeBody(n),
         }))
       );
+      fileContentsCache.clear(); // Free memory
       semanticEngine.rebuildIDF();
       log('info', `Semantic index built: ${nonFileNodes.length} symbols indexed`);
     }

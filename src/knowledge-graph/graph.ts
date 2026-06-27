@@ -785,14 +785,24 @@ export class KnowledgeGraph {
           LIMIT @limit
         `).all({ query: trimmed, like: likePattern, fts: sanitized, limit }) as any[];
 
-        return rows.map((r: any) => this.rowToNode(r));
+        if (rows.length > 0) {
+          return rows.map((r: any) => this.rowToNode(r));
+        }
+        // FTS + LIKE found nothing, try LIKE-only
+        const likeResults = this.searchLike(trimmed, limit);
+        if (likeResults.length > 0) return likeResults;
       } else {
         // Sanitized FTS query was empty — fall back to LIKE-only search
-        return this.searchLike(trimmed, limit);
+        const likeResults = this.searchLike(trimmed, limit);
+        if (likeResults.length > 0) return likeResults;
       }
     } catch {
-      return this.searchLike(trimmed, limit);
+      const likeResults = this.searchLike(trimmed, limit);
+      if (likeResults.length > 0) return likeResults;
     }
+
+    // Strategy 3: Fuzzy word-level matching (splits query into words, matches each independently)
+    return this.searchFuzzy(trimmed, limit);
   }
 
   /** Split camelCase/PascalCase into words and build an FTS5 AND query.
@@ -815,6 +825,44 @@ export class KnowledgeGraph {
 
     if (words.length === 0) return '';
     return words.map(w => `"${w}"`).join(' AND ');
+  }
+
+  /** Fuzzy word-level search: splits query into words and matches each independently */
+  private searchFuzzy(query: string, limit: number): GraphNode[] {
+    const words = query
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[_\-./\\]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length >= 2)
+      .map(w => `%${w.toLowerCase()}%`);
+
+    if (words.length === 0) return [];
+
+    // Search for nodes where name/qualifiedName/signature contains ANY of the words
+    const allMatches: GraphNode[] = [];
+    const seen = new Set<string>();
+
+    for (const pattern of words) {
+      try {
+        const rows = this.db.prepare(`
+          SELECT * FROM nodes
+          WHERE LOWER(name) LIKE ? OR LOWER(qualifiedName) LIKE ? OR LOWER(signature) LIKE ?
+          LIMIT 20
+        `).all(pattern, pattern, pattern) as any[];
+
+        for (const row of rows) {
+          if (!seen.has(row.id)) {
+            seen.add(row.id);
+            allMatches.push(this.rowToNode(row));
+          }
+        }
+      } catch {
+        // ignore
+      }
+      if (allMatches.length >= limit) break;
+    }
+
+    return allMatches.slice(0, limit);
   }
 
   /** Fallback LIKE-based search */

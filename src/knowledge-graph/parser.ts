@@ -825,6 +825,57 @@ function extractFromTreeSitter(
     }
   }
 
+  // ── Call Detection: find method invocations within function/method bodies ──
+  // Build a set of all function/method node names in this file
+  const functionNodes = nodes.filter(n => 
+    ['function', 'method', 'constructor'].includes(n.type) && n.startLine && n.endLine
+  );
+  const functionNames = new Map<string, typeof nodes[0]>();
+  for (const fn of functionNodes) {
+    functionNames.set(fn.name, fn);
+  }
+
+  // For each function, scan its body for calls to other known functions
+  if (functionNames.size > 0 && sourceLines.length > 0) {
+    // Build regex pattern from all function names (escape special chars)
+    const nameList = [...functionNames.keys()].filter(n => n.length >= 2 && /^\w+$/.test(n));
+    if (nameList.length > 0) {
+      const callPattern = new RegExp(
+        `\\b(${nameList.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\s*\\(`,
+        'g'
+      );
+
+      for (const caller of functionNodes) {
+        if (!caller.startLine || !caller.endLine) continue;
+        // Get the body text of this function
+        const bodyStart = caller.startLine; // skip the declaration line
+        const bodyEnd = Math.min(caller.endLine, sourceLines.length);
+        if (bodyStart >= bodyEnd) continue;
+        
+        const bodyText = sourceLines.slice(bodyStart, bodyEnd).join('\n');
+        
+        let match: RegExpExecArray | null;
+        const calledNames = new Set<string>();
+        callPattern.lastIndex = 0;
+        while ((match = callPattern.exec(bodyText)) !== null) {
+          const calledName = match[1];
+          // Don't create self-referential edges (recursion is ok but skip if same node)
+          if (calledName !== caller.name && !calledNames.has(calledName)) {
+            calledNames.add(calledName);
+            const callee = functionNames.get(calledName);
+            if (callee) {
+              edges.push({
+                sourceId: caller.id,
+                targetId: callee.id,
+                type: 'calls' as EdgeType,
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
   return { nodes, edges };
 }
 
@@ -1251,6 +1302,47 @@ function parseWithRegex(
           type: 'imports',
           metadata: { raw: match[0].trim() },
         });
+      }
+    }
+  }
+
+  // ── Call Detection for regex-parsed files ──
+  const regexFunctionNodes = nodes.filter(n => 
+    ['function', 'method', 'constructor'].includes(n.type) && n.startLine && n.endLine
+  );
+  const regexFunctionNames = new Map<string, typeof nodes[0]>();
+  for (const fn of regexFunctionNodes) {
+    regexFunctionNames.set(fn.name, fn);
+  }
+
+  if (regexFunctionNames.size > 0) {
+    const nameList = [...regexFunctionNames.keys()].filter(n => n.length >= 2 && /^\w+$/.test(n));
+    if (nameList.length > 0) {
+      const callPattern = new RegExp(
+        `\\b(${nameList.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\s*\\(`,
+        'g'
+      );
+      const contentLines = source.split('\n');
+      for (const caller of regexFunctionNodes) {
+        if (!caller.startLine || !caller.endLine) continue;
+        const bodyText = contentLines.slice(caller.startLine, Math.min(caller.endLine, contentLines.length)).join('\n');
+        let match: RegExpExecArray | null;
+        const calledNames = new Set<string>();
+        callPattern.lastIndex = 0;
+        while ((match = callPattern.exec(bodyText)) !== null) {
+          const calledName = match[1];
+          if (calledName !== caller.name && !calledNames.has(calledName)) {
+            calledNames.add(calledName);
+            const callee = regexFunctionNames.get(calledName);
+            if (callee) {
+              edges.push({
+                sourceId: caller.id,
+                targetId: callee.id,
+                type: 'calls' as EdgeType,
+              });
+            }
+          }
+        }
       }
     }
   }

@@ -462,6 +462,7 @@ export class SemanticSearchEngine {
     signature: string,
     docComment: string | null,
     filePath: string,
+    codeBody?: string,
   ): string {
     // Weight by repetition: name is most important (3x), then qualifiedName (2x),
     // then signature and docComment (1x each)
@@ -470,8 +471,10 @@ export class SemanticSearchEngine {
       qualifiedName, qualifiedName,             // 2× weight
       signature,                                // 1× weight
       docComment ?? '',                         // 1× weight
-      filePath.replace(/[/\\]/g, ' '),          // 1× weight (path words)
+      filePath.replace(/[\/\\]/g, ' '),          // 1× weight (path words)
     ];
+    // Code body gets 1× weight (first 500 chars only to avoid bloat)
+    if (codeBody) parts.push(codeBody.slice(0, 500));
     return parts.join(' ');
   }
 
@@ -488,8 +491,9 @@ export class SemanticSearchEngine {
     signature: string,
     docComment: string | null,
     filePath: string,
+    codeBody?: string,
   ): void {
-    const text = this.buildNodeText(name, qualifiedName, signature, docComment, filePath);
+    const text = this.buildNodeText(name, qualifiedName, signature, docComment, filePath, codeBody);
     const tokens = tokenize(text);
 
     if (tokens.length === 0) {
@@ -525,6 +529,7 @@ export class SemanticSearchEngine {
       signature: string;
       docComment: string | null;
       filePath: string;
+      codeBody?: string;
     }>,
   ): void {
     const indexInTransaction = this.db.transaction(() => {
@@ -536,6 +541,7 @@ export class SemanticSearchEngine {
           node.signature,
           node.docComment,
           node.filePath,
+          node.codeBody,
         );
       }
     });
