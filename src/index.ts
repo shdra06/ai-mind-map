@@ -93,6 +93,7 @@ import { registerDigestTools } from './tools/digest-tools.js';
 import { registerExploreTools } from './tools/explore-tools.js';
 import { registerFilesystemTools } from './tools/filesystem-tools.js';
 import { registerQualityTools } from './tools/quality-tools.js';
+import { registerProjectMapTool } from './tools/project-map-tool.js';
 
 
 // Read version from package.json dynamically
@@ -1423,6 +1424,9 @@ async function main(): Promise<void> {
 
   registerQualityTools(server, graph, config, tokenEstimator);
   log('debug', 'Registered quality tools (3)');
+
+  registerProjectMapTool(server, graph, config, tokenEstimator);
+  log('debug', 'Registered project map tool (1)');
 
   // CONSOLIDATED: mindmap_sync_shared_context disabled to reduce schema payload
   /*
