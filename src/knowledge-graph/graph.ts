@@ -59,8 +59,9 @@ CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type);
 CREATE INDEX IF NOT EXISTS idx_nodes_name ON nodes(name);
 CREATE INDEX IF NOT EXISTS idx_nodes_language ON nodes(language);
 CREATE INDEX IF NOT EXISTS idx_nodes_hash ON nodes(hash);
-CREATE INDEX IF NOT EXISTS idx_edges_sourceId ON edges(sourceId);
-CREATE INDEX IF NOT EXISTS idx_edges_targetId ON edges(targetId);
+-- Composite indexes for common edge queries (type is always in WHERE clause)
+CREATE INDEX IF NOT EXISTS idx_edges_source_type ON edges(sourceId, type);
+CREATE INDEX IF NOT EXISTS idx_edges_target_type ON edges(targetId, type);
 CREATE INDEX IF NOT EXISTS idx_edges_type ON edges(type);
 
 -- FTS5 virtual table for full-text search across names, signatures, and doc comments
@@ -133,7 +134,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS content_fts USING fts5(
 );
 `;
 
-const SCHEMA_VERSION = '5';
+const SCHEMA_VERSION = '6';
 
 // ============================================================
 // KnowledgeGraph Class
@@ -147,6 +148,27 @@ const SCHEMA_VERSION = '5';
  */
 export class KnowledgeGraph {
   private db: Database.Database;
+
+  // Cached prepared statements for hot-path queries (parse once, reuse forever)
+  private _stmtCache = new Map<string, any>();
+
+  /** Get or create a cached prepared statement */
+  private stmt(sql: string): any {
+    let s = this._stmtCache.get(sql);
+    if (!s) {
+      s = this.db.prepare(sql);
+      this._stmtCache.set(sql, s);
+    }
+    return s;
+  }
+
+  // In-memory adjacency cache for ultra-fast graph traversal
+  private adjOut = new Map<string, Map<string, string[]>>(); // nodeId → type → targetIds
+  private adjIn  = new Map<string, Map<string, string[]>>(); // nodeId → type → sourceIds
+  private adjDirty = true; // Rebuilt on first query after index
+
+  // Stats cache with 5-second TTL
+  private _statsCache: { data: any; time: number } | null = null;
 
   /**
    * Create or open a knowledge graph database.
@@ -245,7 +267,7 @@ export class KnowledgeGraph {
    * Used by changelog engine to diff old vs new nodes during re-indexing.
    */
   getNodesForFile(filePath: string): GraphNode[] {
-    const rows = this.db.prepare('SELECT * FROM nodes WHERE filePath = ?').all(filePath);
+    const rows = this.stmt('SELECT * FROM nodes WHERE filePath = ?').all(filePath);
     return rows.map((r: any) => this.rowToNode(r));
   }
 
@@ -379,7 +401,7 @@ export class KnowledgeGraph {
    * Get a node by its ID.
    */
   getNode(id: string): GraphNode | null {
-    const row = this.db.prepare('SELECT * FROM nodes WHERE id = ?').get(id);
+    const row = this.stmt('SELECT * FROM nodes WHERE id = ?').get(id);
     return row ? this.rowToNode(row) : null;
   }
 
@@ -387,7 +409,7 @@ export class KnowledgeGraph {
    * Get nodes by name (may return multiple matches across files).
    */
   getNodesByName(name: string): GraphNode[] {
-    const rows = this.db.prepare('SELECT * FROM nodes WHERE name = ?').all(name);
+    const rows = this.stmt('SELECT * FROM nodes WHERE name = ?').all(name);
     return rows.map((r: any) => this.rowToNode(r));
   }
 
@@ -395,7 +417,7 @@ export class KnowledgeGraph {
    * Get all nodes of a specific type.
    */
   getNodesByType(type: NodeType): GraphNode[] {
-    const rows = this.db.prepare('SELECT * FROM nodes WHERE type = ?').all(type);
+    const rows = this.stmt('SELECT * FROM nodes WHERE type = ?').all(type);
     return rows.map((r: any) => this.rowToNode(r));
   }
 
@@ -496,7 +518,7 @@ export class KnowledgeGraph {
    * Get all edges originating from a node.
    */
   getOutEdges(nodeId: string): GraphEdge[] {
-    const rows = this.db.prepare('SELECT * FROM edges WHERE sourceId = ?').all(nodeId) as any[];
+    const rows = this.stmt('SELECT * FROM edges WHERE sourceId = ?').all(nodeId) as any[];
     return rows.map(r => ({
       sourceId: r.sourceId,
       targetId: r.targetId,
@@ -509,7 +531,7 @@ export class KnowledgeGraph {
    * Get all edges pointing to a node.
    */
   getInEdges(nodeId: string): GraphEdge[] {
-    const rows = this.db.prepare('SELECT * FROM edges WHERE targetId = ?').all(nodeId) as any[];
+    const rows = this.stmt('SELECT * FROM edges WHERE targetId = ?').all(nodeId) as any[];
     return rows.map(r => ({
       sourceId: r.sourceId,
       targetId: r.targetId,
@@ -522,7 +544,7 @@ export class KnowledgeGraph {
    * Get edges of a specific type originating from a node.
    */
   getOutEdgesByType(nodeId: string, type: EdgeType): GraphEdge[] {
-    const rows = this.db.prepare(
+    const rows = this.stmt(
       'SELECT * FROM edges WHERE sourceId = ? AND type = ?',
     ).all(nodeId, type) as any[];
     return rows.map(r => ({
@@ -537,7 +559,7 @@ export class KnowledgeGraph {
    * Get edges of a specific type pointing to a node.
    */
   getInEdgesByType(nodeId: string, type: EdgeType): GraphEdge[] {
-    const rows = this.db.prepare(
+    const rows = this.stmt(
       'SELECT * FROM edges WHERE targetId = ? AND type = ?',
     ).all(nodeId, type) as any[];
     return rows.map(r => ({
@@ -556,7 +578,7 @@ export class KnowledgeGraph {
    * Find all nodes that call a given node (callers / "who calls this?").
    */
   findCallers(nodeId: string): GraphNode[] {
-    const rows = this.db.prepare(`
+    const rows = this.stmt(`
       SELECT n.* FROM nodes n
       JOIN edges e ON n.id = e.sourceId
       WHERE e.targetId = ? AND e.type = 'calls'
@@ -568,7 +590,7 @@ export class KnowledgeGraph {
    * Find all nodes that a given node calls (callees / "what does this call?").
    */
   findCallees(nodeId: string): GraphNode[] {
-    const rows = this.db.prepare(`
+    const rows = this.stmt(`
       SELECT n.* FROM nodes n
       JOIN edges e ON n.id = e.targetId
       WHERE e.sourceId = ? AND e.type = 'calls'
@@ -583,50 +605,26 @@ export class KnowledgeGraph {
    * @param maxDepth - Maximum traversal depth (default 10)
    */
   findAncestors(nodeId: string, maxDepth: number = 10): GraphNode[] {
-    const visited = new Set<string>();
-    const result: GraphNode[] = [];
-
-    const queue: { id: string; depth: number }[] = [{ id: nodeId, depth: 0 }];
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      if (current.depth >= maxDepth || visited.has(current.id)) continue;
-      visited.add(current.id);
-
-      // inherits/implements: sourceId=child, targetId=parent → follow targetId
-      const inheritEdges = this.db.prepare(`
-        SELECT e.targetId FROM edges e
-        WHERE e.sourceId = ? AND e.type IN ('inherits', 'implements')
-      `).all(current.id) as { targetId: string }[];
-
-      for (const { targetId } of inheritEdges) {
-        if (!visited.has(targetId)) {
-          const node = this.getNode(targetId);
-          if (node) {
-            result.push(node);
-            queue.push({ id: targetId, depth: current.depth + 1 });
-          }
-        }
-      }
-
-      // contains: sourceId=parent, targetId=child → find parent via targetId=current
-      const containsEdges = this.db.prepare(`
-        SELECT e.sourceId FROM edges e
-        WHERE e.targetId = ? AND e.type = 'contains'
-      `).all(current.id) as { sourceId: string }[];
-
-      for (const { sourceId } of containsEdges) {
-        if (!visited.has(sourceId)) {
-          const node = this.getNode(sourceId);
-          if (node) {
-            result.push(node);
-            queue.push({ id: sourceId, depth: current.depth + 1 });
-          }
-        }
-      }
-    }
-
-    return result;
+    // Single recursive CTE replaces N+1 JavaScript BFS loop
+    const rows = this.db.prepare(`
+      WITH RECURSIVE anc(id, depth) AS (
+        SELECT @nodeId, 0
+        UNION
+        SELECT e.targetId, anc.depth + 1
+        FROM edges e
+        JOIN anc ON e.sourceId = anc.id
+        WHERE anc.depth < @maxDepth AND e.type IN ('inherits', 'implements')
+        UNION
+        SELECT e.sourceId, anc.depth + 1
+        FROM edges e
+        JOIN anc ON e.targetId = anc.id
+        WHERE anc.depth < @maxDepth AND e.type = 'contains'
+      )
+      SELECT DISTINCT n.* FROM nodes n
+      JOIN anc ON n.id = anc.id
+      WHERE n.id != @nodeId
+    `).all({ nodeId, maxDepth }) as any[];
+    return rows.map((r: any) => this.rowToNode(r));
   }
 
   /**
@@ -636,50 +634,26 @@ export class KnowledgeGraph {
    * @param maxDepth - Maximum traversal depth (default 10)
    */
   findDescendants(nodeId: string, maxDepth: number = 10): GraphNode[] {
-    const visited = new Set<string>();
-    const result: GraphNode[] = [];
-
-    const queue: { id: string; depth: number }[] = [{ id: nodeId, depth: 0 }];
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      if (current.depth >= maxDepth || visited.has(current.id)) continue;
-      visited.add(current.id);
-
-      // contains: sourceId=parent, targetId=child → follow targetId
-      const containsEdges = this.db.prepare(`
-        SELECT e.targetId FROM edges e
-        WHERE e.sourceId = ? AND e.type = 'contains'
-      `).all(current.id) as { targetId: string }[];
-
-      for (const { targetId } of containsEdges) {
-        if (!visited.has(targetId)) {
-          const node = this.getNode(targetId);
-          if (node) {
-            result.push(node);
-            queue.push({ id: targetId, depth: current.depth + 1 });
-          }
-        }
-      }
-
-      // inherits/implements: sourceId=child, targetId=parent → find children via targetId=current
-      const inheritEdges = this.db.prepare(`
-        SELECT e.sourceId FROM edges e
-        WHERE e.targetId = ? AND e.type IN ('inherits', 'implements')
-      `).all(current.id) as { sourceId: string }[];
-
-      for (const { sourceId } of inheritEdges) {
-        if (!visited.has(sourceId)) {
-          const node = this.getNode(sourceId);
-          if (node) {
-            result.push(node);
-            queue.push({ id: sourceId, depth: current.depth + 1 });
-          }
-        }
-      }
-    }
-
-    return result;
+    // Single recursive CTE replaces N+1 JavaScript BFS loop
+    const rows = this.db.prepare(`
+      WITH RECURSIVE desc_tree(id, depth) AS (
+        SELECT @nodeId, 0
+        UNION
+        SELECT e.targetId, desc_tree.depth + 1
+        FROM edges e
+        JOIN desc_tree ON e.sourceId = desc_tree.id
+        WHERE desc_tree.depth < @maxDepth AND e.type = 'contains'
+        UNION
+        SELECT e.sourceId, desc_tree.depth + 1
+        FROM edges e
+        JOIN desc_tree ON e.targetId = desc_tree.id
+        WHERE desc_tree.depth < @maxDepth AND e.type IN ('inherits', 'implements')
+      )
+      SELECT DISTINCT n.* FROM nodes n
+      JOIN desc_tree ON n.id = desc_tree.id
+      WHERE n.id != @nodeId
+    `).all({ nodeId, maxDepth }) as any[];
+    return rows.map((r: any) => this.rowToNode(r));
   }
 
   /**
@@ -692,36 +666,23 @@ export class KnowledgeGraph {
    * @returns All nodes that depend on the changed node
    */
   blastRadius(nodeId: string, maxDepth: number = 5): GraphNode[] {
-    const visited = new Set<string>();
-    const result: GraphNode[] = [];
-    const dependencyTypes: EdgeType[] = ['calls', 'imports', 'inherits', 'implements', 'uses', 'depends_on'];
-    const typeFilter = dependencyTypes.map(t => `'${t}'`).join(',');
-
-    const queue: { id: string; depth: number }[] = [{ id: nodeId, depth: 0 }];
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      if (current.depth >= maxDepth || visited.has(current.id)) continue;
-      visited.add(current.id);
-
-      // Find nodes that depend ON this node (reverse dependency)
-      const dependents = this.db.prepare(`
-        SELECT e.sourceId FROM edges e
-        WHERE e.targetId = ? AND e.type IN (${typeFilter})
-      `).all(current.id) as { sourceId: string }[];
-
-      for (const { sourceId } of dependents) {
-        if (!visited.has(sourceId)) {
-          const node = this.getNode(sourceId);
-          if (node) {
-            result.push(node);
-            queue.push({ id: sourceId, depth: current.depth + 1 });
-          }
-        }
-      }
-    }
-
-    return result;
+    // Single recursive CTE replaces N+1 JavaScript BFS loop
+    // Traces reverse dependencies: who depends on this node, transitively
+    const rows = this.db.prepare(`
+      WITH RECURSIVE blast(id, depth) AS (
+        SELECT @nodeId, 0
+        UNION
+        SELECT e.sourceId, blast.depth + 1
+        FROM edges e
+        JOIN blast ON e.targetId = blast.id
+        WHERE blast.depth < @maxDepth
+          AND e.type IN ('calls','imports','inherits','implements','uses','depends_on')
+      )
+      SELECT DISTINCT n.* FROM nodes n
+      JOIN blast ON n.id = blast.id
+      WHERE n.id != @nodeId
+    `).all({ nodeId, maxDepth }) as any[];
+    return rows.map((r: any) => this.rowToNode(r));
   }
 
   // ============================================================
@@ -904,7 +865,7 @@ export class KnowledgeGraph {
    * Get the content hash for a file node (used for change detection).
    */
   getFileHash(filePath: string): string | null {
-    const row = this.db.prepare(
+    const row = this.stmt(
       "SELECT hash FROM nodes WHERE filePath = ? AND type = 'file' LIMIT 1",
     ).get(filePath) as { hash: string } | undefined;
     return row?.hash ?? null;
@@ -914,7 +875,7 @@ export class KnowledgeGraph {
    * Get all indexed file paths.
    */
   getIndexedFiles(): string[] {
-    const rows = this.db.prepare(
+    const rows = this.stmt(
       "SELECT DISTINCT filePath FROM nodes WHERE type = 'file' ORDER BY filePath",
     ).all() as { filePath: string }[];
     return rows.map(r => r.filePath);
@@ -994,11 +955,17 @@ export class KnowledgeGraph {
     edgesByType: Record<string, number>;
     languageBreakdown: Record<string, number>;
   } {
-    const totalNodes = (this.db.prepare('SELECT COUNT(*) as count FROM nodes').get() as any).count;
-    const totalEdges = (this.db.prepare('SELECT COUNT(*) as count FROM edges').get() as any).count;
-    const totalFiles = (this.db.prepare("SELECT COUNT(*) as count FROM nodes WHERE type = 'file'").get() as any).count;
+    // Return cached stats if <5 seconds old (avoids 6 COUNT queries per tool response)
+    const now = Date.now();
+    if (this._statsCache && now - this._statsCache.time < 5000) {
+      return this._statsCache.data;
+    }
 
-    const nodesByTypeRows = this.db.prepare(
+    const totalNodes = (this.stmt('SELECT COUNT(*) as count FROM nodes').get() as any).count;
+    const totalEdges = (this.stmt('SELECT COUNT(*) as count FROM edges').get() as any).count;
+    const totalFiles = (this.stmt("SELECT COUNT(*) as count FROM nodes WHERE type = 'file'").get() as any).count;
+
+    const nodesByTypeRows = this.stmt(
       'SELECT type, COUNT(*) as count FROM nodes GROUP BY type',
     ).all() as { type: string; count: number }[];
     const nodesByType: Record<string, number> = {};
@@ -1006,7 +973,7 @@ export class KnowledgeGraph {
       nodesByType[type] = count;
     }
 
-    const edgesByTypeRows = this.db.prepare(
+    const edgesByTypeRows = this.stmt(
       'SELECT type, COUNT(*) as count FROM edges GROUP BY type',
     ).all() as { type: string; count: number }[];
     const edgesByType: Record<string, number> = {};
@@ -1014,7 +981,7 @@ export class KnowledgeGraph {
       edgesByType[type] = count;
     }
 
-    const langRows = this.db.prepare(
+    const langRows = this.stmt(
       "SELECT language, COUNT(*) as count FROM nodes WHERE type = 'file' GROUP BY language",
     ).all() as { language: string; count: number }[];
     const languageBreakdown: Record<string, number> = {};
@@ -1022,7 +989,9 @@ export class KnowledgeGraph {
       languageBreakdown[language] = count;
     }
 
-    return { totalNodes, totalEdges, totalFiles, nodesByType, edgesByType, languageBreakdown };
+    const result = { totalNodes, totalEdges, totalFiles, nodesByType, edgesByType, languageBreakdown };
+    this._statsCache = { data: result, time: now };
+    return result;
   }
 
   // ============================================================
@@ -1041,6 +1010,8 @@ export class KnowledgeGraph {
       this.upsertNodes(nodes);
       this.upsertEdges(edges);
     })();
+    this.adjDirty = true;
+    this._statsCache = null;
   }
 
   /**
@@ -1135,6 +1106,8 @@ export class KnowledgeGraph {
         }
       }
     })();
+    this.adjDirty = true;
+    this._statsCache = null;
   }
 
   /**
@@ -1199,14 +1172,15 @@ export class KnowledgeGraph {
         }
       }
     })();
+    this.adjDirty = true;
+    this._statsCache = null;
   }
 
   /**
    * Get all node IDs in the graph (used for PageRank).
    */
   getAllNodeIds(): string[] {
-    const rows = this.db.prepare('SELECT id FROM nodes').all() as { id: string }[];
-    return rows.map(r => r.id);
+    return this.stmt('SELECT id FROM nodes').pluck().all() as string[];
   }
 
   /**
@@ -1253,6 +1227,8 @@ export class KnowledgeGraph {
       this.db.prepare('DELETE FROM edges').run();
       this.db.prepare('DELETE FROM nodes').run();
     })();
+    this.adjDirty = true;
+    this._statsCache = null;
   }
 
   /**
@@ -1296,6 +1272,8 @@ export class KnowledgeGraph {
       return del.changes;
     })();
 
+    this.adjDirty = true;
+    this._statsCache = null;
     return result;
   }
 
@@ -1444,7 +1422,7 @@ export class KnowledgeGraph {
    * Get stored file index entry for staleness comparison.
    */
   getFileIndexEntry(filePath: string): { mtime_ms: number; size_bytes: number; content_hash: string; indexed_at: number } | null {
-    return this.db.prepare(
+    return this.stmt(
       'SELECT mtime_ms, size_bytes, content_hash, indexed_at FROM file_index WHERE file_path = ?'
     ).get(filePath) as any ?? null;
   }
@@ -1477,7 +1455,7 @@ export class KnowledgeGraph {
    * Count tracked files in file_index.
    */
   getFileIndexCount(): number {
-    return (this.db.prepare('SELECT COUNT(*) as c FROM file_index').get() as any)?.c ?? 0;
+    return (this.stmt('SELECT COUNT(*) as c FROM file_index').get() as any)?.c ?? 0;
   }
 
   /**
@@ -1536,9 +1514,12 @@ export class KnowledgeGraph {
     this.db.exec('DROP INDEX IF EXISTS idx_nodes_name');
     this.db.exec('DROP INDEX IF EXISTS idx_nodes_language');
     this.db.exec('DROP INDEX IF EXISTS idx_nodes_hash');
+    this.db.exec('DROP INDEX IF EXISTS idx_edges_source_type');
+    this.db.exec('DROP INDEX IF EXISTS idx_edges_target_type');
+    this.db.exec('DROP INDEX IF EXISTS idx_edges_type');
+    // Also drop old single-column indexes if they exist from previous versions
     this.db.exec('DROP INDEX IF EXISTS idx_edges_sourceId');
     this.db.exec('DROP INDEX IF EXISTS idx_edges_targetId');
-    this.db.exec('DROP INDEX IF EXISTS idx_edges_type');
   }
 
   /** Recreate all performance indexes */
@@ -1548,8 +1529,8 @@ export class KnowledgeGraph {
     this.db.exec('CREATE INDEX IF NOT EXISTS idx_nodes_name ON nodes(name)');
     this.db.exec('CREATE INDEX IF NOT EXISTS idx_nodes_language ON nodes(language)');
     this.db.exec('CREATE INDEX IF NOT EXISTS idx_nodes_hash ON nodes(hash)');
-    this.db.exec('CREATE INDEX IF NOT EXISTS idx_edges_sourceId ON edges(sourceId)');
-    this.db.exec('CREATE INDEX IF NOT EXISTS idx_edges_targetId ON edges(targetId)');
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_edges_source_type ON edges(sourceId, type)');
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_edges_target_type ON edges(targetId, type)');
     this.db.exec('CREATE INDEX IF NOT EXISTS idx_edges_type ON edges(type)');
   }
 
@@ -1566,6 +1547,7 @@ export class KnowledgeGraph {
 
   /** Exit bulk insert mode - restores safety and rebuilds indexes/FTS */
   exitBulkMode(): void {
+    this.invalidateAdjCache();
     this.recreateIndexes();
     this.recreateFtsTriggers();
     this.rebuildFts();
@@ -1575,6 +1557,88 @@ export class KnowledgeGraph {
     // WAL checkpoint after bulk ops, then restore normal auto-checkpointing
     this.db.pragma('wal_checkpoint(TRUNCATE)');
     this.db.pragma('wal_autocheckpoint = 1000');
+  }
+
+  /**
+   * Build in-memory adjacency cache for ultra-fast graph traversal.
+   * Called automatically on first traversal query after index.
+   * ~2MB RAM for 13K edges — negligible.
+   */
+  buildAdjacencyCache(): void {
+    this.adjOut.clear();
+    this.adjIn.clear();
+    const rows = this.stmt('SELECT sourceId, targetId, type FROM edges').all() as any[];
+    for (const r of rows) {
+      // Forward: sourceId → type → [targetIds]
+      if (!this.adjOut.has(r.sourceId)) this.adjOut.set(r.sourceId, new Map());
+      const fwd = this.adjOut.get(r.sourceId)!;
+      if (!fwd.has(r.type)) fwd.set(r.type, []);
+      fwd.get(r.type)!.push(r.targetId);
+      // Reverse: targetId → type → [sourceIds]
+      if (!this.adjIn.has(r.targetId)) this.adjIn.set(r.targetId, new Map());
+      const rev = this.adjIn.get(r.targetId)!;
+      if (!rev.has(r.type)) rev.set(r.type, []);
+      rev.get(r.type)!.push(r.sourceId);
+    }
+    this.adjDirty = false;
+  }
+
+  /** Invalidate adjacency cache (call after any edge mutation) */
+  invalidateAdjCache(): void {
+    this.adjDirty = true;
+    this._statsCache = null;
+    this._stmtCache.clear(); // Also clear stmt cache on schema changes
+  }
+
+  /** Get callers from adjacency cache (in-memory, sub-microsecond) */
+  getCallersFromCache(nodeId: string): string[] {
+    if (this.adjDirty) this.buildAdjacencyCache();
+    return this.adjIn.get(nodeId)?.get('calls') ?? [];
+  }
+
+  /** Get callees from adjacency cache (in-memory, sub-microsecond) */
+  getCalleesFromCache(nodeId: string): string[] {
+    if (this.adjDirty) this.buildAdjacencyCache();
+    return this.adjOut.get(nodeId)?.get('calls') ?? [];
+  }
+
+  /** Get reverse dependencies from adjacency cache for blast radius */
+  getReverseDepsFromCache(nodeId: string, types: string[]): string[] {
+    if (this.adjDirty) this.buildAdjacencyCache();
+    const byType = this.adjIn.get(nodeId);
+    if (!byType) return [];
+    const result: string[] = [];
+    for (const t of types) {
+      const ids = byType.get(t);
+      if (ids) result.push(...ids);
+    }
+    return result;
+  }
+
+  /**
+   * Shortest path between two nodes via dependency edges.
+   * Returns the path as an array of node IDs, or empty if no path exists.
+   */
+  shortestPath(startId: string, endId: string, maxDepth: number = 10): string[] {
+    try {
+      const rows = this.db.prepare(`
+        WITH RECURSIVE path(id, depth, route) AS (
+          SELECT ?1, 0, ?1
+          UNION ALL
+          SELECT e.targetId, path.depth + 1, path.route || '>' || e.targetId
+          FROM edges e
+          JOIN path ON e.sourceId = path.id
+          WHERE path.depth < ?3
+            AND e.type IN ('calls','imports','inherits','implements','uses','depends_on')
+            AND instr(path.route, e.targetId) = 0
+        )
+        SELECT route FROM path WHERE id = ?2
+        ORDER BY depth LIMIT 1
+      `).get(startId, endId, maxDepth) as { route: string } | undefined;
+      return rows ? rows.route.split('>') : [];
+    } catch {
+      return [];
+    }
   }
 
   /**
