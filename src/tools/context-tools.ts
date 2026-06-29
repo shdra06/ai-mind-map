@@ -160,7 +160,8 @@ export function registerContextTools(
   indexer: IIndexer,
   estimator: ITokenEstimator = defaultEstimator,
 ): void {
-  // ── mindmap_get_context ─────────────────────────────────────
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   server.tool(
     'mindmap_get_context',
     'Smart context loading for the current task. Returns a tiered ContextPackage with project summary, relevant graph results, memories, and changes.',
@@ -194,8 +195,10 @@ export function registerContextTools(
       }
     },
   );
+  } */
 
-  // ── mindmap_compress ────────────────────────────────────────
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   server.tool(
     'mindmap_compress',
     'Compress content to reduce token usage before adding to context. Auto-detects content type if not specified.',
@@ -232,6 +235,7 @@ export function registerContextTools(
       }
     },
   );
+  } */
 
   // ── mindmap_reindex ─────────────────────────────────────────
   server.tool(

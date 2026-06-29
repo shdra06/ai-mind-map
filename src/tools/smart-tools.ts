@@ -272,6 +272,8 @@ export function registerSmartTools(
     },
   );
 
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   // ── mindmap_git_changes ──────────────────────────────────────
   server.tool(
     'mindmap_git_changes',
@@ -459,6 +461,7 @@ export function registerSmartTools(
       }
     },
   );
+  } */
 
   // ── mindmap_smart_search ─────────────────────────────────────
   server.tool(

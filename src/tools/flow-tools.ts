@@ -123,7 +123,8 @@ The AI doesn't need to read any code to understand the flow.`,
     },
   );
 
-  // ── mindmap_interaction_map ───────────────────────────────
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   server.tool(
     'mindmap_interaction_map',
     ` Get the FULL INTERACTION MAP of the application.
@@ -190,8 +191,10 @@ This is the app's behavioral blueprint — the AI reads this ONCE and understand
       }
     },
   );
+  } */
 
-  // ── mindmap_classify_file ─────────────────────────────────
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   server.tool(
     'mindmap_classify_file',
     ` Classify a file by its architectural layer.
@@ -224,8 +227,10 @@ Helps the AI understand WHERE a file fits in the architecture without reading it
       }
     },
   );
+  } */
 
-  // ── mindmap_layer_overview ────────────────────────────────
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   server.tool(
     'mindmap_layer_overview',
     ` Show how the app is organized by architectural layers.
@@ -261,6 +266,7 @@ One-shot understanding of the app's structure.`,
       }
     },
   );
+  } */
 }
 
 // ============================================================

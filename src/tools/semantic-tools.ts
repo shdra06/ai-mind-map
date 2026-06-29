@@ -145,6 +145,8 @@ export function registerSemanticTools(
     },
   );
 
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   // ── mindmap_semantic_stats ──────────────────────────────────
   server.tool(
     'mindmap_semantic_stats',
@@ -171,7 +173,10 @@ export function registerSemanticTools(
       }
     },
   );
+  } */
 
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   // ── mindmap_synonyms ────────────────────────────────────────
   server.tool(
     'mindmap_synonyms',
@@ -196,4 +201,5 @@ export function registerSemanticTools(
       }
     },
   );
+  } */
 }

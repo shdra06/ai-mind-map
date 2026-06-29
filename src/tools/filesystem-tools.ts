@@ -717,6 +717,8 @@ export function registerFilesystemTools(
   );
 
   // ── mindmap_project_summary ───────────────────────────────────
+  // CONSOLIDATED: mindmap_project_summary disabled to reduce schema payload
+  if (false as boolean) {
   server.tool(
     'mindmap_project_summary',
     'Get a complete project overview in a single call — WITHOUT indexing. ' +
@@ -798,6 +800,7 @@ export function registerFilesystemTools(
       }
     },
   );
+  }
 
   // ── mindmap_grep ──────────────────────────────────────────────
 
@@ -857,6 +860,8 @@ export function registerFilesystemTools(
     }
   }
 
+  // CONSOLIDATED: mindmap_grep disabled to reduce schema payload
+  if (false as boolean) {
   server.tool(
     'mindmap_grep',
     'Powerful text search across project files. Searches file contents for a pattern (literal or regex) with optional context lines, file filtering, and word-boundary matching. Like ripgrep but through MCP. Returns matching lines with file paths and line numbers.',
@@ -1000,6 +1005,7 @@ export function registerFilesystemTools(
       }
     },
   );
+  }
 
   // ── mindmap_find_file ─────────────────────────────────────────
 
@@ -1062,6 +1068,8 @@ export function registerFilesystemTools(
     return 40;
   }
 
+  // CONSOLIDATED: mindmap_find_file disabled to reduce schema payload
+  if (false as boolean) {
   server.tool(
     'mindmap_find_file',
     'Find files by name pattern across the project. Supports wildcards (* and ?) and regex. Searches indexed files first for instant results, falls back to filesystem walk. Returns paths sorted by relevance.',
@@ -1201,8 +1209,11 @@ export function registerFilesystemTools(
       }
     },
   );
+  }
 
   // ── mindmap_batch_read ────────────────────────────────────────
+  // CONSOLIDATED: mindmap_batch_read disabled to reduce schema payload
+  if (false as boolean) {
   server.tool(
     'mindmap_batch_read',
     'Read multiple file regions in a single call. Eliminates per-call overhead when reading from several files. ' +
@@ -1354,4 +1365,5 @@ export function registerFilesystemTools(
       return mcpText(ok({ totalFiles: results.length, results }, estimator));
     },
   );
+  }
 }

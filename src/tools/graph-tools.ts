@@ -164,7 +164,8 @@ export function registerGraphTools(
     },
   );
 
-  // ── mindmap_get_structure ───────────────────────────────────
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   server.tool(
     'mindmap_get_structure',
     'Get the project architecture overview — file tree with top-level symbols per file.',
@@ -187,6 +188,7 @@ export function registerGraphTools(
       }
     },
   );
+  } */
 
   // ── mindmap_trace_dependencies ──────────────────────────────
   server.tool(
@@ -222,7 +224,8 @@ export function registerGraphTools(
     },
   );
 
-  // ── mindmap_get_signature ───────────────────────────────────
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   server.tool(
     'mindmap_get_signature',
     'Get the full signature of a function or class (parameters, return type, doc comment) — without the body.',
@@ -251,6 +254,7 @@ export function registerGraphTools(
       }
     },
   );
+  } */
 
   // ── mindmap_find_references ─────────────────────────────────
   server.tool(

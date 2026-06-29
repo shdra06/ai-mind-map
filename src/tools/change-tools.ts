@@ -116,7 +116,8 @@ export function registerChangeTools(
   tracker: IChangeTracker,
   estimator: ITokenEstimator = defaultEstimator,
 ): void {
-  // ── mindmap_what_changed ────────────────────────────────────
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   server.tool(
     'mindmap_what_changed',
     'Get a summary of recent codebase changes. Useful for understanding what happened while the AI was away.',
@@ -141,8 +142,10 @@ export function registerChangeTools(
       }
     },
   );
+  } */
 
-  // ── mindmap_session_diff ────────────────────────────────────
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   server.tool(
     'mindmap_session_diff',
     `Get what changed since the last AI session ended. Returns a diff summary with affected symbols.`,
@@ -157,6 +160,7 @@ export function registerChangeTools(
       }
     },
   );
+  } */
 
   // ── mindmap_impact_analysis ─────────────────────────────────
   server.tool(

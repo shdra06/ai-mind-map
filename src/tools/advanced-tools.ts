@@ -136,7 +136,8 @@ export function registerAdvancedTools(
   estimator: ITokenEstimator = defaultEstimator,
   semanticEngine?: SemanticSearchEngine,
 ): void {
-  // ── mindmap_query_graph ─────────────────────────────────────
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   server.tool(
     'mindmap_query_graph',
     'Execute a Cypher-like query against the knowledge graph. ' +
@@ -164,6 +165,7 @@ export function registerAdvancedTools(
       }
     },
   );
+  } */
 
   // ── mindmap_dead_code ───────────────────────────────────────
   server.tool(
@@ -468,7 +470,8 @@ export function registerAdvancedTools(
     },
   );
 
-  // ── mindmap_list_projects ───────────────────────────────────
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   server.tool(
     'mindmap_list_projects',
     'List all indexed projects with statistics: node counts, edge counts, ' +
@@ -529,8 +532,10 @@ export function registerAdvancedTools(
       }
     },
   );
+  } */
 
-  // ── mindmap_health ──────────────────────────────────────────
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   server.tool(
     'mindmap_health',
     'Health check and diagnostics for the AI Mind Map system. ' +
@@ -677,4 +682,5 @@ export function registerAdvancedTools(
       }
     },
   );
+  } */
 }

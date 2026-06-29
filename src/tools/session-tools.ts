@@ -49,6 +49,8 @@ export function registerSessionTools(
   estimator: ITokenEstimator = defaultEstimator,
 ): void {
 
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   // ── mindmap_session_start ──────────────────────────────────
   server.tool(
     'mindmap_session_start',
@@ -75,6 +77,7 @@ export function registerSessionTools(
       }
     },
   );
+  } */
 
   // ── mindmap_session_resume ─────────────────────────────────
   server.tool(
@@ -277,6 +280,8 @@ export function registerSessionTools(
     },
   );
 
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   // ── mindmap_hotspots ───────────────────────────────────────
   server.tool(
     'mindmap_hotspots',
@@ -352,7 +357,10 @@ export function registerSessionTools(
       }
     },
   );
+  } */
 
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   // ── mindmap_verify_changes ─────────────────────────────────
   server.tool(
     'mindmap_verify_changes',
@@ -492,4 +500,5 @@ export function registerSessionTools(
       }
     },
   );
+  } */
 }

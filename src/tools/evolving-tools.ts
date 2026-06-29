@@ -218,6 +218,8 @@ export function registerEvolvingTools(
     },
   );
 
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   // ── mindmap_forget ───────────────────────────────────────────
   server.tool(
     'mindmap_forget',
@@ -245,4 +247,5 @@ export function registerEvolvingTools(
       }
     },
   );
+  } */
 }

@@ -308,7 +308,8 @@ export function registerDigestTools(
     return mcpText(ok(result, estimator));
   }
 
-  // ── mindmap_verify ─────────────────────────────────────────
+  // CONSOLIDATED: mindmap_verify disabled to reduce schema payload
+  if (false as boolean) {
   server.tool(
     'mindmap_verify',
     'Verify that a file or symbol still matches what you expect. ' +
@@ -397,4 +398,5 @@ export function registerDigestTools(
       }
     },
   );
+  } // end CONSOLIDATED mindmap_verify
 }

@@ -206,7 +206,8 @@ export function registerMemoryTools(
     },
   );
 
-  // ── mindmap_get_decisions ───────────────────────────────────
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   server.tool(
     'mindmap_get_decisions',
     'Retrieve architectural and technical decisions. Useful for understanding why things were built a certain way.',
@@ -231,6 +232,7 @@ export function registerMemoryTools(
       }
     },
   );
+  } */
 
   // ── mindmap_decide ──────────────────────────────────────────
   server.tool(
@@ -289,7 +291,8 @@ export function registerMemoryTools(
     },
   );
 
-  // ── mindmap_session_summary ─────────────────────────────────
+  // CONSOLIDATED: Functionality available via other tools
+  /* if (false) {
   server.tool(
     'mindmap_session_summary',
     'Get summaries of previous AI sessions — what was done, what changed, and what was decided.',
@@ -312,4 +315,5 @@ export function registerMemoryTools(
       }
     },
   );
+  } */
 }

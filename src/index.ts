@@ -1382,14 +1382,14 @@ async function main(): Promise<void> {
   registerContextTools(server, contextAdapter, indexerAdapter, tokenEstimator);
   log('debug', 'Registered context tools (4)');
 
-  registerDebugTools(server, graph, config, tokenEstimator);
-  log('debug', 'Registered debug tools (3)');
+  // CONSOLIDATED: debug tools (3) disabled to reduce schema payload
+  // registerDebugTools(server, graph, config, tokenEstimator);
 
   registerFlowTools(server, graph, config, tokenEstimator);
-  log('debug', 'Registered flow tools (4)');
+  log('debug', 'Registered flow tools');
 
-  registerSnapshotTools(server, graph, config, tokenEstimator);
-  log('debug', 'Registered snapshot tools (3)');
+  // CONSOLIDATED: snapshot tools (3) disabled to reduce schema payload
+  // registerSnapshotTools(server, graph, config, tokenEstimator);
 
   // Initialize semantic search engine
   const semanticEngine = new SemanticSearchEngine(graph.getDb());
@@ -1415,8 +1415,8 @@ async function main(): Promise<void> {
   registerDigestTools(server, graph, changelogEngine, config, tokenEstimator);
   log('debug', 'Registered digest tools (3)');
 
-  registerExploreTools(server, graph, indexer, config, tokenEstimator);
-  log('debug', 'Registered explore tools (1)');
+  // CONSOLIDATED: explore tools (1) disabled to reduce schema payload
+  // registerExploreTools(server, graph, indexer, config, tokenEstimator);
 
   registerFilesystemTools(server, graph, config, tokenEstimator);
   log('debug', 'Registered filesystem tools (3)');
@@ -1424,7 +1424,8 @@ async function main(): Promise<void> {
   registerQualityTools(server, graph, config, tokenEstimator);
   log('debug', 'Registered quality tools (3)');
 
-  // â”€â”€ mindmap_sync_shared_context â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // CONSOLIDATED: mindmap_sync_shared_context disabled to reduce schema payload
+  /*
   server.tool(
     'mindmap_sync_shared_context',
     'Synchronise local memories, decisions, and learned rules with the team-shared `.mindmap-shared.json` file. ' +
@@ -1461,7 +1462,22 @@ async function main(): Promise<void> {
       }
     }
   );
-  log('debug', 'Registered shared context sync tool');
+  */
+
+  log('info', 'MCP tools registered (~25 active, reduced from 63):');
+  log('info', '  Graph:    mindmap_search, mindmap_trace_dependencies, mindmap_find_references, mindmap_get_file_map');
+  log('info', '  Changes:  mindmap_impact_analysis');
+  log('info', '  Memory:   mindmap_recall, mindmap_remember, mindmap_decide');
+  log('info', '  Context:  mindmap_reindex, mindmap_status');
+  log('info', '  Flow:     mindmap_trace_flow');
+  log('info', '  Advanced: mindmap_dead_code, mindmap_architecture, mindmap_get_code_snippet, mindmap_search_code');
+  log('info', '  Smart:    mindmap_explain, mindmap_smart_search');
+  log('info', '  Evolving: mindmap_teach, mindmap_get_learned');
+  log('info', '  Semantic: mindmap_semantic_search');
+  log('info', '  Session:  mindmap_session_resume, mindmap_session_end, mindmap_changelog');
+  log('info', '  Digest:   mindmap_digest, mindmap_file_digest');
+  log('info', '  Filesys:  mindmap_read_lines, mindmap_list_dir');
+  log('info', '  Quality:  mindmap_code_metrics, mindmap_security_scan, mindmap_code_duplication');
 
 
   log('info', 'ðŸ”§ All MCP tools registered:');
