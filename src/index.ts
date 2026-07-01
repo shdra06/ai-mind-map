@@ -832,14 +832,14 @@ function createIndexerAdapter(
       const startTime = Date.now();
       const resolvedPath = path.resolve(projectPath);
       try {
-        // Re-target the indexer to the new project
+        // Re-target the indexer AND config to the new project
         indexer.setProjectRoot(resolvedPath);
-        log('info', `ðŸ“ Re-targeted to project: ${resolvedPath}`);
+        config.projectRoot = resolvedPath; // Keep config in sync to prevent redundant reindexes
+        log('info', `📁 Re-targeted to project: ${resolvedPath}`);
 
         // Also watch the new project directory for changes
         if (watcher) {
           watcher.addRoot(resolvedPath);
-          log('info', `ðŸ‘ï¸ File watcher now also watching: ${resolvedPath}`);
         }
 
         // Run full index on the new project (don't clear â€” multi-project)

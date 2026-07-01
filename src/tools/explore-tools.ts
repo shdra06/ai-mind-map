@@ -564,30 +564,20 @@ export function registerExploreTools(
         }
       }
 
-      // Ensure the project is indexed
+      // Switch project root if needed (but do NOT auto-reindex — let the AI agent call mindmap_reindex explicitly)
       const currentRoot = config.projectRoot;
-      const needsReindex = currentRoot !== projectPath;
-      if (needsReindex) {
-        // Use indexer.setProjectRoot which clears the graph to prevent
-        // cross-project pollution (e.g., Comfy-Desktop nodes in FlyShelf results)
+      if (currentRoot !== projectPath) {
         indexer.setProjectRoot(projectPath);
+        config.projectRoot = projectPath;
+        process.stderr.write(`[deep_explore] Switched project root to: ${projectPath}\n`);
       }
 
-      // Check if indexed, auto-index if needed (with timeout)
+      // Check if indexed — if not, return a hint instead of silently blocking for minutes
       const stats = graph.getStats();
-      if (stats.totalNodes === 0 || needsReindex) {
-        try {
-          // Race indexing against a timeout to prevent hanging on huge projects
-          await Promise.race([
-            indexer.fullIndex(),
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Indexing timed out')), INDEX_TIMEOUT_MS)
-            ),
-          ]);
-        } catch (e) {
-          // Non-fatal — we can still explore without graph data
-          process.stderr.write(`[deep_explore] Indexing warning: ${e}\n`);
-        }
+      if (stats.totalNodes === 0) {
+        return mcpText(fail(
+          `Project "${projectPath}" is not indexed yet. Call mindmap_reindex({ projectPath: "${projectPath}" }) first.`
+        ));
       }
 
       // 1. Scan directory tree and collect files (with caps)
