@@ -131,22 +131,22 @@ export class Indexer {
   }
 
   /**
-   * Re-target the indexer to a different project directory.
+   * Change the active project root at runtime.
    * Reloads .gitignore patterns and updates config.projectRoot.
-   * CLEARS the entire graph to prevent cross-project data pollution.
-   * Previous project's ignore patterns are preserved for file watcher events.
+   * 
+   * IMPORTANT: Does NOT clear the graph. The database stores filePath per node,
+   * so data from different projects coexists safely. fullIndex() uses
+   * clearProject() to clean only the current project's stale data before
+   * re-parsing. Previously indexed projects are PRESERVED — switching back
+   * to them is instant if no files changed (mtime staleness check).
    */
   setProjectRoot(newRoot: string): void {
     const oldRoot = this.config.projectRoot;
     this.config.projectRoot = newRoot;
 
-    // Clear the entire graph when switching projects to prevent
-    // cross-project pollution (e.g., Comfy-Desktop nodes appearing
-    // in FlyShelf search results)
     if (oldRoot !== newRoot) {
-      this.graph.clear();
       process.stderr.write(
-        `[indexer] Project switched: ${oldRoot} -> ${newRoot}. Graph cleared.\n`
+        `[indexer] Project switched: ${oldRoot} -> ${newRoot}. Previous index data preserved in DB.\n`
       );
     }
 
