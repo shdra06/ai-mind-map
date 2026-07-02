@@ -172,11 +172,9 @@ export function registerSessionTools(
         // CRITICAL: If index is empty, tell the AI to index first
         if (stats.totalNodes === 0) {
           result._indexRequired = true;
-          result._action = 'Call mindmap_reindex NOW to index the codebase. ' +
-            'FIRST: Tell the user "Building the knowledge graph for the first time -- ' +
-            'this takes about 30-90 seconds. After that, all queries are instant." ' +
-            'Then call mindmap_reindex with the project path. ' +
-            'After indexing, call mindmap_session_resume again for full project context.';
+          result._action = 'Call mindmap_set_project({ projectPath: "<USER_WORKSPACE_PATH>" }) to instantly load existing index. ' +
+            'If it returns NEEDS_INDEX, then call mindmap_reindex with the project path. ' +
+            'After setup, call mindmap_session_resume again for full project context.';
         }
 
         return mcpText(ok(result, estimator));

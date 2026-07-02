@@ -423,9 +423,12 @@ export class KnowledgeGraph {
 
   /**
    * Get all nodes in the graph.
+   * @param limit Maximum number of nodes to return (default 50000, prevents OOM)
    */
-  getAllNodes(): GraphNode[] {
-    const rows = this.db.prepare('SELECT * FROM nodes').all();
+  getAllNodes(limit: number = 50000): GraphNode[] {
+    // Security fix (H-1): cap result set to prevent OOM on large codebases
+    const safeLimit = Math.min(Math.max(1, limit), 100000);
+    const rows = this.db.prepare('SELECT * FROM nodes LIMIT ?').all(safeLimit);
     return rows.map((r: any) => this.rowToNode(r));
   }
 
@@ -770,16 +773,18 @@ export class KnowledgeGraph {
    *  Returns empty string if the input is empty/whitespace-only or produces no valid words. */
   private sanitizeFtsQuery(query: string): string {
     if (!query || query.trim().length === 0) return '';
-    const stripped = query.replace(/[{}[\]()^~@!$"]/g, ' ');
+    // Security: strip all FTS5 operators including *, :, - to prevent query injection
+    const stripped = query.replace(/[{}[\]()^~@!$"*:\-]/g, ' ');
 
     const words: string[] = [];
     for (const token of stripped.split(/\s+/).filter(Boolean)) {
       const parts = token
         .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
         .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-        .replace(/[_\-./\\]/g, ' ')
+        .replace(/[_./\\]/g, ' ')
         .split(/\s+/)
         .map(p => p.toLowerCase())
+        .filter(p => /^[a-z0-9]+$/i.test(p))  // Security: only alphanumeric words
         .filter(Boolean);
       words.push(...parts);
     }
@@ -1185,14 +1190,17 @@ export class KnowledgeGraph {
 
   /**
    * Get all edges in the graph (used for PageRank adjacency matrix).
+   * @param limit Maximum number of edges to return (default 200000, prevents OOM)
    */
-  getAllEdges(): GraphEdge[] {
-    const rows = this.db.prepare('SELECT * FROM edges').all() as any[];
+  getAllEdges(limit: number = 200000): GraphEdge[] {
+    // Security fix (H-1): cap result set to prevent OOM on large codebases
+    const safeLimit = Math.min(Math.max(1, limit), 500000);
+    const rows = this.db.prepare('SELECT * FROM edges LIMIT ?').all(safeLimit) as any[];
     return rows.map(r => ({
       sourceId: r.sourceId,
       targetId: r.targetId,
       type: r.type as EdgeType,
-      metadata: r.metadata ? JSON.parse(r.metadata) : undefined,
+      metadata: r.metadata ? (() => { try { return JSON.parse(r.metadata); } catch { return undefined; } })() : undefined,
     }));
   }
 
@@ -1459,6 +1467,19 @@ export class KnowledgeGraph {
   }
 
   /**
+   * Count nodes belonging to a specific project path.
+   * Used to check if a project has existing indexed data without scanning files.
+   * Returns count instantly from SQLite index.
+   */
+  getProjectNodeCount(projectRoot: string): number {
+    const prefix = projectRoot.replace(/\\/g, '/').replace(/\/$/, '') + '/';
+    const altPrefix = projectRoot.replace(/\//g, '\\').replace(/\\$/, '') + '\\';
+    return (this.db.prepare(
+      'SELECT COUNT(*) as c FROM nodes WHERE filePath LIKE ? OR filePath LIKE ?'
+    ).get(`${prefix}%`, `${altPrefix}%`) as any)?.c ?? 0;
+  }
+
+  /**
    * Remove orphaned edges (edges pointing to non-existent nodes).
    * Should be called periodically or after reindexing.
    */
@@ -1534,9 +1555,10 @@ export class KnowledgeGraph {
     this.db.exec('CREATE INDEX IF NOT EXISTS idx_edges_type ON edges(type)');
   }
 
-  /** Enter bulk insert mode - relaxes safety for maximum speed */
+  /** Enter bulk insert mode - relaxes safety for speed while maintaining WAL durability */
   enterBulkMode(): void {
-    this.db.pragma('synchronous = OFF');
+    // Security fix (H-2): Use NORMAL instead of OFF to prevent DB corruption on crash
+    this.db.pragma('synchronous = NORMAL');
     this.db.pragma('temp_store = MEMORY');
     this.db.pragma('mmap_size = 268435456');
     this.dropFtsTriggers();
@@ -1702,7 +1724,13 @@ export class KnowledgeGraph {
 
   /** Search file contents using FTS5 */
   searchContent(query: string, limit: number = 50): Array<{ filePath: string; snippet: string; rank: number }> {
-    // Use FTS5 highlight and rank functions
+    // Security fix (C-1): sanitize query to prevent FTS5 injection
+    const sanitized = this.sanitizeFtsQuery(query);
+    if (!sanitized) return [];
+
+    // Cap limit to prevent unbounded result sets
+    const safeLimit = Math.min(Math.max(1, limit), 200);
+
     try {
       return this.db.prepare(`
         SELECT 
@@ -1713,23 +1741,9 @@ export class KnowledgeGraph {
         WHERE content MATCH ?
         ORDER BY rank
         LIMIT ?
-      `).all(query, limit) as any[];
+      `).all(sanitized, safeLimit) as any[];
     } catch {
-      // If FTS5 query syntax is invalid, try as a phrase
-      try {
-        return this.db.prepare(`
-          SELECT 
-            file_path as filePath,
-            snippet(content_fts, 1, '>>>', '<<<', '...', 40) as snippet,
-            rank
-          FROM content_fts
-          WHERE content MATCH '"' || ? || '"'
-          ORDER BY rank
-          LIMIT ?
-        `).all(query, limit) as any[];
-      } catch {
-        return [];
-      }
+      return [];
     }
   }
 

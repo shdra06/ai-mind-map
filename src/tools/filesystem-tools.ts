@@ -155,14 +155,25 @@ const MAX_TREE_DISPLAY_ENTRIES = 50;
  * Resolve a potentially relative path against the project root.
  * Returns null if the resolved path is outside the project root (security).
  *
- * @param allowAbsolute - When true, absolute input paths are returned directly
- *   without checking against projectRoot. Used by list_dir and read_lines
+ * @param allowAbsolute - When true, absolute input paths are allowed but still
+ *   validated against blocked system directories. Used by list_dir and read_lines
  *   so they work before the target project has been indexed.
  */
 function resolvePath(inputPath: string, projectRoot: string, allowAbsolute: boolean = false): string | null {
-  // If allowAbsolute and the input is already an absolute path, use it directly
+  // If allowAbsolute and the input is already an absolute path, validate it
   if (allowAbsolute && isAbsolute(inputPath)) {
-    return resolve(inputPath); // normalize separators
+    const resolved = resolve(inputPath); // normalize separators
+    const normalized = resolved.replace(/\\/g, '/').toLowerCase();
+    // Security fix (C-2): block access to sensitive system directories
+    const BLOCKED_PREFIXES = [
+      'c:/windows', 'c:/program files', 'c:/program files (x86)',
+      'c:/programdata', 'c:/recovery', 'c:/$recycle.bin',
+      '/etc', '/var', '/usr', '/sbin', '/bin', '/boot', '/root', '/proc', '/sys',
+    ];
+    if (BLOCKED_PREFIXES.some(p => normalized.startsWith(p))) {
+      return null;
+    }
+    return resolved;
   }
   const resolved = resolve(projectRoot, inputPath);
   // Security: prevent directory traversal outside project

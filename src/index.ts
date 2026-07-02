@@ -18,6 +18,7 @@ import process from 'node:process';
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { z } from 'zod';
 import Database from 'better-sqlite3';
 
 import { loadConfig, parseCliArgs } from './config.js';
@@ -1020,12 +1021,11 @@ function enrichToolResponse(
 
       if (nodeCount === 0 || rootIsBlocked) {
         meta._indexRequired = true;
-        meta._action = 'REQUIRED: Call mindmap_reindex({ projectPath: "<USER_WORKSPACE_PATH>" }). ' +
+        meta._action = 'REQUIRED: Call mindmap_set_project({ projectPath: "<USER_WORKSPACE_PATH>" }) FIRST. ' +
+          'This instantly switches to the project using existing indexed data (0 seconds). ' +
+          'Only call mindmap_reindex if mindmap_set_project returns status: NEEDS_INDEX. ' +
           'The current root "' + projectInfo.root + '" is NOT a user project. ' +
-          'Use the workspace/project directory that the user has open in their editor. ' +
-          'IMPORTANT: Before calling reindex, tell the user: "Indexing your project for the first time. ' +
-          'This builds a full knowledge graph of all functions, classes, and relationships. ' +
-          'It takes about 30-90 seconds on the first run, but after that all tools respond instantly."';
+          'Use the workspace/project directory that the user has open in their editor.';
       }
 
       const suffix = JSON.stringify(meta);
@@ -1052,12 +1052,11 @@ function enrichToolResponse(
 
     if (nodeCount === 0 || rootIsBlocked) {
       result._indexRequired = true;
-      result._action = 'REQUIRED: Call mindmap_reindex({ projectPath: "<USER_WORKSPACE_PATH>" }). ' +
+      result._action = 'REQUIRED: Call mindmap_set_project({ projectPath: "<USER_WORKSPACE_PATH>" }) FIRST. ' +
+        'This instantly switches to the project using existing indexed data (0 seconds). ' +
+        'Only call mindmap_reindex if mindmap_set_project returns status: NEEDS_INDEX. ' +
         'The current root "' + projectInfo.root + '" is NOT a user project. ' +
-        'Use the workspace/project directory that the user has open in their editor. ' +
-        'IMPORTANT: Before calling reindex, tell the user: "Indexing your project for the first time. ' +
-        'This builds a full knowledge graph of all functions, classes, and relationships. ' +
-        'It takes about 30-90 seconds on the first run, but after that all tools respond instantly."';
+        'Use the workspace/project directory that the user has open in their editor.';
     }
 
     // Always add session token metadata
@@ -1428,6 +1427,86 @@ async function main(): Promise<void> {
   registerProjectMapTool(server, graph, config, tokenEstimator);
   log('debug', 'Registered project map tool (1)');
 
+  // ── mindmap_set_project (instant project switch, no reindex) ──
+  server.tool(
+    'mindmap_set_project',
+    'FAST: Switch to a project directory INSTANTLY using existing indexed data from the database. ' +
+      'Call this FIRST before any other tool when working on a project. ' +
+      'If the project was previously indexed, all tools work immediately (0 seconds). ' +
+      'If the project has NEVER been indexed, this returns a hint to call mindmap_reindex. ' +
+      'ALWAYS prefer this over mindmap_reindex — reindex is only needed for first-time indexing or to refresh stale data.',
+    {
+      projectPath: z.string().describe(
+        'Absolute path to the project directory (e.g. "E:\\\\exeapps\\\\FlyShelf" or "/home/user/project")'
+      ),
+    },
+    async ({ projectPath }: { projectPath: string }) => {
+      try {
+        const resolvedPath = path.resolve(projectPath);
+        const nodeCount = graph.getProjectNodeCount(resolvedPath);
+
+        // Switch config to this project
+        indexer.setProjectRoot(resolvedPath);
+        config.projectRoot = resolvedPath;
+
+        if (nodeCount > 0) {
+          const stats = graph.getStats();
+          return {
+            content: [{
+              type: 'text' as const,
+              text: JSON.stringify({
+                success: true,
+                data: {
+                  projectRoot: resolvedPath,
+                  existingNodes: nodeCount,
+                  totalNodes: stats.totalNodes,
+                  totalEdges: stats.totalEdges,
+                  totalFiles: stats.totalFiles,
+                  status: 'READY',
+                  message: `Switched to ${path.basename(resolvedPath)}. Found ${nodeCount} existing indexed symbols. All tools are ready — no reindex needed.`,
+                },
+                tokenCount: 80,
+                tokensSaved: 0,
+              }),
+            }],
+          };
+        } else {
+          return {
+            content: [{
+              type: 'text' as const,
+              text: JSON.stringify({
+                success: true,
+                data: {
+                  projectRoot: resolvedPath,
+                  existingNodes: 0,
+                  status: 'NEEDS_INDEX',
+                  message: `Project ${path.basename(resolvedPath)} has no existing index. Call mindmap_reindex({ projectPath: "${resolvedPath}" }) to build the knowledge graph.`,
+                  _action: `Call mindmap_reindex({ projectPath: "${resolvedPath}" }) to index this project for the first time.`,
+                },
+                tokenCount: 80,
+                tokensSaved: 0,
+              }),
+            }],
+          };
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          content: [{
+            type: 'text' as const,
+            text: JSON.stringify({
+              success: false,
+              message: `set_project failed: ${msg}`,
+              tokenCount: 0,
+              tokensSaved: 0,
+            }),
+          }],
+        };
+      }
+    },
+  );
+  log('debug', 'Registered mindmap_set_project tool (1)');
+
   // CONSOLIDATED: mindmap_sync_shared_context disabled to reduce schema payload
   /*
   server.tool(
@@ -1472,7 +1551,7 @@ async function main(): Promise<void> {
   log('info', '  Graph:    mindmap_search, mindmap_trace_dependencies, mindmap_find_references, mindmap_get_file_map');
   log('info', '  Changes:  mindmap_impact_analysis');
   log('info', '  Memory:   mindmap_recall, mindmap_remember, mindmap_decide');
-  log('info', '  Context:  mindmap_reindex, mindmap_status');
+  log('info', '  Context:  mindmap_set_project, mindmap_reindex, mindmap_status');
   log('info', '  Flow:     mindmap_trace_flow');
   log('info', '  Advanced: mindmap_dead_code, mindmap_architecture, mindmap_get_code_snippet, mindmap_search_code');
   log('info', '  Smart:    mindmap_explain, mindmap_smart_search');

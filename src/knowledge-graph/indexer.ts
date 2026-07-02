@@ -10,9 +10,9 @@
  * Inspired by CocoIndex's incremental approach and Cursor's Merkle tree.
  */
 
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync, statSync, existsSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
-import { relative, join } from 'node:path';
+import { relative, join, resolve } from 'node:path';
 import v8 from 'node:v8';
 import { glob } from 'glob';
 import ignore from 'ignore';
@@ -141,12 +141,32 @@ export class Indexer {
    * to them is instant if no files changed (mtime staleness check).
    */
   setProjectRoot(newRoot: string): void {
-    const oldRoot = this.config.projectRoot;
-    this.config.projectRoot = newRoot;
+    // Security fix (C-3): validate the new project root
+    const resolvedRoot = resolve(newRoot);
+    if (!existsSync(resolvedRoot)) {
+      throw new Error(`[indexer] Invalid project root: path does not exist: ${resolvedRoot}`);
+    }
+    const st = statSync(resolvedRoot);
+    if (!st.isDirectory()) {
+      throw new Error(`[indexer] Invalid project root: not a directory: ${resolvedRoot}`);
+    }
+    // Block sensitive system directories
+    const normalized = resolvedRoot.replace(/\\/g, '/').toLowerCase();
+    const BLOCKED = [
+      'c:/windows', 'c:/program files', 'c:/program files (x86)',
+      'c:/programdata', 'c:/recovery',
+      '/etc', '/var', '/usr', '/sbin', '/bin', '/boot', '/root', '/proc', '/sys',
+    ];
+    if (BLOCKED.some(b => normalized.startsWith(b))) {
+      throw new Error(`[indexer] Cannot index system directory: ${resolvedRoot}`);
+    }
 
-    if (oldRoot !== newRoot) {
+    const oldRoot = this.config.projectRoot;
+    this.config.projectRoot = resolvedRoot;
+
+    if (oldRoot !== resolvedRoot) {
       process.stderr.write(
-        `[indexer] Project switched: ${oldRoot} -> ${newRoot}. Previous index data preserved in DB.\n`
+        `[indexer] Project switched: ${oldRoot} -> ${resolvedRoot}. Previous index data preserved in DB.\n`
       );
     }
 
@@ -154,9 +174,9 @@ export class Indexer {
     this.ig = ignore();
     this.loadIgnorePatterns();
     // Store the new project's ignore patterns
-    this.projectIgnores.set(newRoot, this.ig);
-    if (!this.knownProjectRoots.includes(newRoot)) {
-      this.knownProjectRoots.push(newRoot);
+    this.projectIgnores.set(resolvedRoot, this.ig);
+    if (!this.knownProjectRoots.includes(resolvedRoot)) {
+      this.knownProjectRoots.push(resolvedRoot);
     }
   }
 

@@ -678,8 +678,12 @@ export class SemanticSearchEngine {
     // Pre-filter: only load vectors containing at least one query term (avoids full table scan)
     let candidates: Array<{ node_id: string; terms: string; magnitude: number; doc_length: number }>;
     if (searchTerms.length > 0 && searchTerms.length <= 20) {
-      const termPatterns = searchTerms.map(t => `%"${t.replace(/"/g, '')}":%`);
-      const whereClauses = termPatterns.map(() => 'terms LIKE ?').join(' OR ');
+      // Security fix (H-3): escape LIKE wildcards to prevent unintended broad matches
+      const termPatterns = searchTerms.map(t => {
+        const escaped = t.replace(/\"/g, '').replace(/[%_\\]/g, '\\$&');
+        return `%"${escaped}":%`;
+      });
+      const whereClauses = termPatterns.map(() => "terms LIKE ? ESCAPE '\\'").join(' OR ');
       try {
         candidates = this.db.prepare(
           `SELECT node_id, terms, magnitude, doc_length FROM tfidf_vectors WHERE ${whereClauses}`
