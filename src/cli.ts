@@ -229,7 +229,9 @@ function openMemoryDb(config: MindMapConfig): Database.Database {
 
 /** ai-mind-map serve — Start MCP server (default) */
 async function cmdServe(): Promise<void> {
-  info('Starting AI Mind Map MCP server...');
+  // CRITICAL: Must use stderr, NOT stdout. stdout is reserved for JSON-RPC.
+  // Writing non-JSON to stdout corrupts the MCP protocol and disconnects the client.
+  process.stderr.write('Starting AI Mind Map MCP server...\n');
   // Dynamic import triggers the MCP server startup as a side effect.
   // index.ts self-executes when imported (registers tools + connects transport).
   await import('./index.js');
