@@ -802,6 +802,18 @@ function createIndexerAdapter(
   watcher?: { addRoot(root: string): void } | null,
   onProjectSwitch?: () => void,
 ): IIndexer {
+  // C-3 FIX: Mutex to prevent concurrent project root mutations.
+  // Without this, two simultaneous set_project/reindex calls could
+  // leave config.projectRoot in an inconsistent state.
+  let projectSwitchLock: Promise<void> = Promise.resolve();
+
+  const acquireLock = (): { release: () => void; wait: Promise<void> } => {
+    let release: () => void;
+    const next = new Promise<void>(resolve => { release = resolve; });
+    const wait = projectSwitchLock;
+    projectSwitchLock = projectSwitchLock.then(() => next);
+    return { release: release!, wait };
+  };
   return {
     reindex: async () => {
       const startTime = Date.now();
@@ -830,12 +842,15 @@ function createIndexerAdapter(
     },
 
     reindexProject: async (projectPath: string) => {
+      // C-3 FIX: Acquire mutex to prevent concurrent project root mutations
+      const lock = acquireLock();
+      await lock.wait;
       const startTime = Date.now();
       const resolvedPath = path.resolve(projectPath);
       try {
         // Re-target the indexer AND config to the new project
         indexer.setProjectRoot(resolvedPath);
-        config.projectRoot = resolvedPath; // Keep config in sync to prevent redundant reindexes
+        config.projectRoot = resolvedPath;
         log('info', `📁 Re-targeted to project: ${resolvedPath}`);
 
         // Also watch the new project directory for changes
@@ -845,6 +860,7 @@ function createIndexerAdapter(
 
         // Run full index on the new project (don't clear â€” multi-project)
         const result = await indexer.fullIndex();
+        lock.release(); // C-3: Release mutex after config mutations
         return {
           filesScanned: result.filesScanned,
           filesIndexed: result.filesParsed,
@@ -857,6 +873,7 @@ function createIndexerAdapter(
           projectRoot: resolvedPath,
         };
       } catch (err) {
+        lock.release(); // C-3: Release mutex on error too
         return {
           filesScanned: 0,
           filesIndexed: 0,
@@ -1001,52 +1018,21 @@ function enrichToolResponse(
   try {
     const text = response.content[textIdx].text;
 
-    // Fast path: if it looks like a JSON object, use string concat to avoid parse/stringify overhead
-    if (text.startsWith('{') && text.endsWith('}')) {
-      const outputTokens = estimator.estimate(text);
-      // Extract tokensSaved from the raw text if present
-      const tokensSavedMatch = text.match(/"tokensSaved"\s*:\s*(\d+)/);
-      const tokensSaved = tokensSavedMatch ? parseInt(tokensSavedMatch[1], 10) : 0;
-      tracker.record(inputTokens, outputTokens, tokensSaved);
-
-      const projectInfo = getProjectInfo();
-      const nodeCount = graphNodeCount();
-      const rootIsBlocked = isBlockedDirectory(projectInfo.root);
-
-      // Build the suffix metadata
-      const meta: Record<string, unknown> = {
-        _project: projectInfo,
-        _sessionTokens: tracker.getSummary(),
-      };
-
-      if (nodeCount === 0 || rootIsBlocked) {
-        meta._indexRequired = true;
-        meta._action = 'REQUIRED: Call mindmap_set_project({ projectPath: "<USER_WORKSPACE_PATH>" }) FIRST. ' +
-          'This instantly switches to the project using existing indexed data (0 seconds). ' +
-          'Only call mindmap_reindex if mindmap_set_project returns status: NEEDS_INDEX. ' +
-          'The current root "' + projectInfo.root + '" is NOT a user project. ' +
-          'Use the workspace/project directory that the user has open in their editor.';
-      }
-
-      const suffix = JSON.stringify(meta);
-      // Remove closing } from text, append suffix properties, close
-      response.content[textIdx].text = text.slice(0, -1) + ',' + suffix.slice(1);
-    } else {
-      // Fallback: parse and re-stringify for non-object responses
-      const result = JSON.parse(text);
+    // C-1 FIX: Always use safe JSON.parse/stringify — never string concat.
+    // The old "fast path" used text.slice(0,-1) + suffix.slice(1) which
+    // corrupted JSON when text had trailing whitespace or nested '}'.
+    const result = JSON.parse(text);
 
     // Estimate tokens for this response
-    const outputTokens = estimator.estimate(response.content[textIdx].text);
+    const outputTokens = estimator.estimate(text);
     const tokensSaved = result.tokensSaved ?? 0;
-
-    // Record in tracker (inputTokens passed from caller)
     tracker.record(inputTokens, outputTokens, tokensSaved);
 
     // Always add project metadata
     const projectInfo = getProjectInfo();
     result._project = projectInfo;
 
-    // ALWAYS tell the agent to provide project path if no real project is indexed
+    // Tell the agent to set project if no real project is indexed
     const nodeCount = graphNodeCount();
     const rootIsBlocked = isBlockedDirectory(projectInfo.root);
 
@@ -1063,9 +1049,9 @@ function enrichToolResponse(
     result._sessionTokens = tracker.getSummary();
 
     response.content[textIdx].text = JSON.stringify(result);
-    }
-  } catch {
-    // If parsing fails, return original response unchanged
+  } catch (err) {
+    // M-2 FIX: Log errors to stderr instead of silently swallowing
+    process.stderr.write(`[enrichToolResponse] Failed to enrich response: ${err instanceof Error ? err.message : String(err)}\n`);
   }
 
   return response;
@@ -1115,18 +1101,8 @@ async function main(): Promise<void> {
   // SessionMemory, PersistentMemory, and DecisionLog each need
   // a shared Database instance for their tables.
   log('info', 'Initialising databaseâ€¦');
+  // C-2 FIX: sharedDb assigned from graph.getDb() after KnowledgeGraph init
   let sharedDb: Database.Database;
-  try {
-    sharedDb = new Database(config.dbPath);
-    sharedDb.pragma('journal_mode = WAL');
-    sharedDb.pragma('foreign_keys = ON');
-    sharedDb.pragma('busy_timeout = 5000');
-    log('info', 'Database initialized with WAL mode');
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log('error', `Failed to initialize database: ${msg}`);
-    process.exit(1);
-  }
 
   // â”€â”€ 4. Initialise real subsystems â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   log('info', 'Initialising subsystemsâ€¦');
@@ -1139,13 +1115,16 @@ async function main(): Promise<void> {
   const pagerank = new PageRankEngine(graph);
 
   // Changelog Engine â€” node-level change tracking (v1.4.0)
-  const changelogEngine = new ChangelogEngine(graph.getDb());
+  // C-2 FIX: Use graph's single DB connection for ALL subsystems
+  sharedDb = graph.getDb();
+  const changelogEngine = new ChangelogEngine(sharedDb);
   indexer.setChangelog(changelogEngine);
   log('info', 'âœ… Knowledge Graph initialized (with changelog engine)');
 
   // Change Tracker
   // ChangeLog constructor takes ChangeLogConfig: { dbPath, retentionDays?, defaultSearchLimit? }
-  const changeLog = new ChangeLog({ dbPath: config.dbPath });
+  // C-2 FIX: Pass shared DB to ChangeLog instead of creating a 3rd connection
+  const changeLog = new ChangeLog({ dbPath: config.dbPath, db: sharedDb });
   const diffEngine = new DiffEngine(config.projectRoot);
   let watcher: FileWatcher | null = null;
 

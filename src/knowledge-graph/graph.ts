@@ -162,6 +162,14 @@ export class KnowledgeGraph {
     return s;
   }
 
+  /**
+   * H-5 FIX: Escape LIKE wildcards (% and _) in path patterns.
+   * Without this, underscores in paths like "my_project" match ANY character.
+   */
+  private escapeLikePattern(pattern: string): string {
+    return pattern.replace(/%/g, '\\%').replace(/_/g, '\\_');
+  }
+
   // In-memory adjacency cache for ultra-fast graph traversal
   private adjOut = new Map<string, Map<string, string[]>>(); // nodeId → type → targetIds
   private adjIn  = new Map<string, Map<string, string[]>>(); // nodeId → type → sourceIds
@@ -1245,13 +1253,14 @@ export class KnowledgeGraph {
    */
   clearProject(projectRoot: string): number {
     // Normalize: ensure trailing separator for prefix matching
-    const prefix = projectRoot.replace(/\\/g, '/').replace(/\/$/, '') + '/';
-    const altPrefix = projectRoot.replace(/\//g, '\\').replace(/\\$/, '') + '\\';
+    // H-5 FIX: Escape _ and % in path to prevent LIKE wildcard matching
+    const prefix = this.escapeLikePattern(projectRoot.replace(/\\/g, '/').replace(/\/$/, '') + '/');
+    const altPrefix = this.escapeLikePattern(projectRoot.replace(/\//g, '\\').replace(/\\$/, '') + '\\');
 
     const result = this.db.transaction(() => {
       // Find all node IDs for this project
       const nodeIds = this.db.prepare(
-        'SELECT id FROM nodes WHERE filePath LIKE ? OR filePath LIKE ?'
+        "SELECT id FROM nodes WHERE filePath LIKE ? ESCAPE '\\' OR filePath LIKE ? ESCAPE '\\'"
       ).all(`${prefix}%`, `${altPrefix}%`) as Array<{ id: string }>;
 
       if (nodeIds.length === 0) return 0;
@@ -1269,12 +1278,12 @@ export class KnowledgeGraph {
 
       // Delete nodes for this project
       const del = this.db.prepare(
-        'DELETE FROM nodes WHERE filePath LIKE ? OR filePath LIKE ?'
+        "DELETE FROM nodes WHERE filePath LIKE ? ESCAPE '\\' OR filePath LIKE ? ESCAPE '\\'"
       ).run(`${prefix}%`, `${altPrefix}%`);
 
       // Delete file_index entries for this project
       this.db.prepare(
-        'DELETE FROM file_index WHERE file_path LIKE ? OR file_path LIKE ?'
+        "DELETE FROM file_index WHERE file_path LIKE ? ESCAPE '\\' OR file_path LIKE ? ESCAPE '\\'"
       ).run(`${prefix}%`, `${altPrefix}%`);
 
       return del.changes;
@@ -1472,10 +1481,11 @@ export class KnowledgeGraph {
    * Returns count instantly from SQLite index.
    */
   getProjectNodeCount(projectRoot: string): number {
-    const prefix = projectRoot.replace(/\\/g, '/').replace(/\/$/, '') + '/';
-    const altPrefix = projectRoot.replace(/\//g, '\\').replace(/\\$/, '') + '\\';
+    // H-5 FIX: Escape _ and % in path to prevent LIKE wildcard matching
+    const prefix = this.escapeLikePattern(projectRoot.replace(/\\/g, '/').replace(/\/$/, '') + '/');
+    const altPrefix = this.escapeLikePattern(projectRoot.replace(/\//g, '\\').replace(/\\$/, '') + '\\');
     return (this.db.prepare(
-      'SELECT COUNT(*) as c FROM nodes WHERE filePath LIKE ? OR filePath LIKE ?'
+      "SELECT COUNT(*) as c FROM nodes WHERE filePath LIKE ? ESCAPE '\\' OR filePath LIKE ? ESCAPE '\\'"
     ).get(`${prefix}%`, `${altPrefix}%`) as any)?.c ?? 0;
   }
 

@@ -60,6 +60,9 @@ export interface ChangeLogConfig {
   retentionDays?: number;
   /** Max results for ranked retrieval (default 20). */
   defaultSearchLimit?: number;
+  /** Optional: share an existing Database connection instead of creating a new one.
+   *  C-2 FIX: Prevents SQLITE_BUSY errors from multiple connections. */
+  db?: Database.Database;
 }
 
 // ------------------------------------------------------------------- db --
@@ -88,14 +91,20 @@ export class ChangeLog {
   private stmtDeleteOldSessions!: Database.Statement;
 
   constructor(config: ChangeLogConfig) {
-    const dbPath = path.resolve(config.dbPath);
     this.retentionDays = config.retentionDays ?? 30;
     this.defaultSearchLimit = config.defaultSearchLimit ?? 20;
 
-    this.db = new Database(dbPath);
-    this.db.pragma('journal_mode = WAL');
-    this.db.pragma('foreign_keys = ON');
-    this.db.pragma('busy_timeout = 5000');
+    if (config.db) {
+      // C-2 FIX: Use shared connection — PRAGMAs already set
+      this.db = config.db;
+    } else {
+      // Legacy path: create own connection (for backward compatibility)
+      const dbPath = path.resolve(config.dbPath);
+      this.db = new Database(dbPath);
+      this.db.pragma('journal_mode = WAL');
+      this.db.pragma('foreign_keys = ON');
+      this.db.pragma('busy_timeout = 5000');
+    }
 
     this.initSchema();
     this.prepareStatements();
