@@ -1684,47 +1684,55 @@ async function main(): Promise<void> {
   }
 
 
-  // Build semantic search TF-IDF index from existing graph nodes (if any)
-  try {
-    const allNodes = graph.getAllNodes();
-    const nonFileNodes = allNodes.filter(n => n.type !== 'file');
-    if (nonFileNodes.length > 0) {
-      // Build a cache of file contents for code body extraction
-      const fileContentsCache = new Map<string, string[]>();
-      function getCodeBody(node: GraphNode): string {
-        if (!node.filePath || !node.startLine || !node.endLine) return '';
-        if (!['function', 'method', 'class', 'constructor'].includes(node.type)) return '';
-        try {
-          let lines = fileContentsCache.get(node.filePath);
-          if (!lines) {
-            lines = readFileSync(node.filePath, 'utf-8').split('\n');
-            fileContentsCache.set(node.filePath, lines);
+  // H-4 FIX: Defer semantic index to first query instead of blocking startup.
+  // Previously loaded 50K nodes + read source files here, blocking MCP for 10-30s.
+  // Now the SemanticSearchEngine builds its TF-IDF index lazily on first search.
+  let _semanticIndexBuilt = false;
+  const buildSemanticIndexLazily = () => {
+    if (_semanticIndexBuilt) return;
+    _semanticIndexBuilt = true;
+    try {
+      const allNodes = graph.getAllNodes();
+      const nonFileNodes = allNodes.filter(n => n.type !== 'file');
+      if (nonFileNodes.length > 0) {
+        const fileContentsCache = new Map<string, string[]>();
+        function getCodeBody(node: { type: string; filePath: string; startLine: number; endLine: number }): string {
+          if (!node.filePath || !node.startLine || !node.endLine) return '';
+          if (!['function', 'method', 'class', 'constructor'].includes(node.type)) return '';
+          try {
+            let lines = fileContentsCache.get(node.filePath);
+            if (!lines) {
+              lines = readFileSync(node.filePath, 'utf-8').split('\n');
+              fileContentsCache.set(node.filePath, lines);
+            }
+            const bodyLines = lines.slice(node.startLine - 1, Math.min(node.endLine, node.startLine + 20));
+            return bodyLines.join(' ').slice(0, 500);
+          } catch {
+            return '';
           }
-          const bodyLines = lines.slice(node.startLine - 1, Math.min(node.endLine, node.startLine + 20));
-          return bodyLines.join(' ').slice(0, 500);
-        } catch {
-          return '';
         }
-      }
 
-      semanticEngine.indexNodes(
-        nonFileNodes.map(n => ({
-          id: n.id,
-          name: n.name,
-          qualifiedName: n.qualifiedName,
-          signature: n.signature,
-          docComment: n.docComment,
-          filePath: n.filePath,
-          codeBody: getCodeBody(n),
-        }))
-      );
-      fileContentsCache.clear(); // Free memory
-      semanticEngine.rebuildIDF();
-      log('info', `Semantic index built: ${nonFileNodes.length} symbols indexed`);
+        semanticEngine.indexNodes(
+          nonFileNodes.map(n => ({
+            id: n.id,
+            name: n.name,
+            qualifiedName: n.qualifiedName,
+            signature: n.signature,
+            docComment: n.docComment,
+            filePath: n.filePath,
+            codeBody: getCodeBody(n),
+          }))
+        );
+        fileContentsCache.clear();
+        semanticEngine.rebuildIDF();
+        log('info', `Semantic index built lazily: ${nonFileNodes.length} symbols indexed`);
+      }
+    } catch (err) {
+      log('warn', `Semantic index build failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
     }
-  } catch (err) {
-    log('warn', `Semantic index build failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
-  }
+  };
+  // Expose lazy builder for semantic tools to call before search
+  (semanticEngine as any)._ensureBuilt = buildSemanticIndexLazily;
 
   // â”€â”€ 9. Start file watcher â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (watcher && !config.memoryOnly) {
@@ -1737,6 +1745,12 @@ async function main(): Promise<void> {
   }
 
   // â”€â”€ 10. Graceful shutdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // WAL Checkpoint (every 5 minutes) - prevents WAL file growing unbounded
+  const walCheckpointInterval = setInterval(() => {
+    try { sharedDb.pragma('wal_checkpoint(PASSIVE)'); } catch { /* non-fatal */ }
+  }, 5 * 60 * 1000);
+  walCheckpointInterval.unref();
+
   let shuttingDown = false;
 
   async function shutdown(signal: string): Promise<void> {

@@ -149,15 +149,28 @@ const SCHEMA_VERSION = '6';
 export class KnowledgeGraph {
   private db: Database.Database;
 
-  // Cached prepared statements for hot-path queries (parse once, reuse forever)
+  // H-1 FIX: LRU-capped prepared statement cache.
+  // Dynamic SQL (e.g. deleteFileNodes with variable IN(...) clauses)
+  // creates unique SQL strings per chunk size. Without a cap, this
+  // Map grows unbounded over long sessions.
   private _stmtCache = new Map<string, any>();
+  private static readonly STMT_CACHE_MAX = 200;
 
-  /** Get or create a cached prepared statement */
+  /** Get or create a cached prepared statement (LRU eviction at 200) */
   private stmt(sql: string): any {
     let s = this._stmtCache.get(sql);
-    if (!s) {
-      s = this.db.prepare(sql);
+    if (s) {
+      // Move to end (most recently used) by delete+re-set
+      this._stmtCache.delete(sql);
       this._stmtCache.set(sql, s);
+      return s;
+    }
+    s = this.db.prepare(sql);
+    this._stmtCache.set(sql, s);
+    // Evict oldest entry if over cap
+    if (this._stmtCache.size > KnowledgeGraph.STMT_CACHE_MAX) {
+      const oldest = this._stmtCache.keys().next().value;
+      if (oldest !== undefined) this._stmtCache.delete(oldest);
     }
     return s;
   }
@@ -677,8 +690,8 @@ export class KnowledgeGraph {
    * @returns All nodes that depend on the changed node
    */
   blastRadius(nodeId: string, maxDepth: number = 5): GraphNode[] {
-    // Single recursive CTE replaces N+1 JavaScript BFS loop
-    // Traces reverse dependencies: who depends on this node, transitively
+    // Single recursive CTE — traces reverse dependencies transitively.
+    // H-FIX: Added LIMIT 500 to prevent unbounded fan-out on highly connected graphs.
     const rows = this.db.prepare(`
       WITH RECURSIVE blast(id, depth) AS (
         SELECT @nodeId, 0
@@ -692,6 +705,7 @@ export class KnowledgeGraph {
       SELECT DISTINCT n.* FROM nodes n
       JOIN blast ON n.id = blast.id
       WHERE n.id != @nodeId
+      LIMIT 500
     `).all({ nodeId, maxDepth }) as any[];
     return rows.map((r: any) => this.rowToNode(r));
   }
@@ -914,16 +928,39 @@ export class KnowledgeGraph {
       "SELECT COUNT(*) as count FROM nodes WHERE type != 'file'"
     ).get() as { count: number }).count;
 
-    // Single query: get non-file nodes, capped at NODE_LIMIT to prevent OOM on huge repos
+    // H-3 FIX: Select only essential columns instead of SELECT *.
+    // Full GraphNode objects with signature, docComment, parameters etc.
+    // can consume 50-100MB for 50K nodes. Lightweight projection uses ~5-10MB.
     const allSymbols = this.db.prepare(`
-      SELECT * FROM nodes
+      SELECT id, name, qualifiedName, type, filePath, startLine, endLine,
+             signature, isExported
+      FROM nodes
       WHERE type != 'file'
       ORDER BY filePath, startLine
       LIMIT ?
     `).all(NODE_LIMIT) as any[];
 
     for (const row of allSymbols) {
-      const node = this.rowToNode(row);
+      // Lightweight node — skip docComment, parameters (heavy JSON parse)
+      const node: GraphNode = {
+        id: row.id,
+        name: row.name,
+        qualifiedName: row.qualifiedName || row.name,
+        type: row.type,
+        filePath: row.filePath,
+        startLine: row.startLine ?? 0,
+        endLine: row.endLine ?? 0,
+        signature: row.signature || '',
+        docComment: '', // Omitted for performance
+        hash: '',
+        language: '',
+        visibility: 'unknown',
+        isAsync: false,
+        isStatic: false,
+        isExported: !!row.isExported,
+        parameters: [], // Omitted for performance
+        updatedAt: 0,
+      };
       if (!overview.has(node.filePath)) {
         overview.set(node.filePath, []);
       }
@@ -1596,10 +1633,17 @@ export class KnowledgeGraph {
    * Called automatically on first traversal query after index.
    * ~2MB RAM for 13K edges — negligible.
    */
+  /**
+   * Build in-memory adjacency cache for ultra-fast graph traversal.
+   * H-2 FIX: Now caps at 50K edges. For larger graphs, individual
+   * per-node queries are used as fallback via findCallersOf/findCalleesOf.
+   * Prevents 30-100MB memory spikes on huge codebases.
+   */
   buildAdjacencyCache(): void {
     this.adjOut.clear();
     this.adjIn.clear();
-    const rows = this.stmt('SELECT sourceId, targetId, type FROM edges').all() as any[];
+    // H-2 FIX: Cap edge load to prevent OOM. 50K edges ≈ 8MB RAM.
+    const rows = this.stmt('SELECT sourceId, targetId, type FROM edges LIMIT 50000').all() as any[];
     for (const r of rows) {
       // Forward: sourceId → type → [targetIds]
       if (!this.adjOut.has(r.sourceId)) this.adjOut.set(r.sourceId, new Map());

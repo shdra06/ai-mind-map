@@ -88,6 +88,8 @@ export function registerSemanticTools(
     },
     async ({ query, limit, threshold, useSynonyms }) => {
       try {
+        // H-4 FIX: Build semantic index lazily on first search (not at startup)
+        if ((semanticEngine as any)._ensureBuilt) (semanticEngine as any)._ensureBuilt();
         const searchResults = semanticEngine.search(query, limit, threshold, useSynonyms);
 
         if (searchResults.length === 0) {
