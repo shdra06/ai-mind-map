@@ -56,6 +56,16 @@ function mcpText(result: ToolResult) {
 }
 
 /**
+ * Wrap an error ToolResult in the MCP text-content format with isError flag.
+ */
+function mcpErrorText(result: ToolResult) {
+  return {
+    content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+    isError: true,
+  };
+}
+
+/**
  * Build a successful ToolResult.
  */
 function ok(data: unknown, estimator: ITokenEstimator): ToolResult {
@@ -80,8 +90,8 @@ function okWithSavings(
 /**
  * Build an error ToolResult.
  */
-function fail(message: string): ToolResult {
-  return { success: false, data: null, tokenCount: 0, tokensSaved: 0, message };
+function fail(message: string, recovery?: string): ToolResult {
+  return { success: false, data: null, tokenCount: 0, tokensSaved: 0, message, ...(recovery ? { recovery } : {}) };
 }
 
 /**
@@ -190,7 +200,7 @@ export function registerAdvancedTools(
         return mcpText(ok(results, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`Dead code detection failed: ${msg}`));
+        return mcpErrorText(fail(`Dead code detection failed: ${msg}`, 'Ensure the project is indexed via mindmap_set_project'));
       }
     },
   );
@@ -213,7 +223,7 @@ export function registerAdvancedTools(
         return mcpText(ok(report, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`Architecture analysis failed: ${msg}`));
+        return mcpErrorText(fail(`Architecture analysis failed: ${msg}`, 'Ensure the project is indexed via mindmap_set_project'));
       }
     },
   );
@@ -259,7 +269,7 @@ export function registerAdvancedTools(
         }
 
         if (matches.length === 0) {
-          return mcpText(fail(`Symbol not found: "${symbolName}"`));
+          return mcpErrorText(fail(`Symbol not found: "${symbolName}"`, 'Ensure the project is indexed via mindmap_set_project'));
         }
 
         // Use the first (best) match
@@ -274,8 +284,8 @@ export function registerAdvancedTools(
         try {
           sourceLines = readLines(absolutePath, startLine, endLine);
         } catch {
-          return mcpText(
-            fail(`Could not read source file: ${node.filePath} (resolved to ${absolutePath})`),
+          return mcpErrorText(
+            fail(`Could not read source file: ${node.filePath} (resolved to ${absolutePath})`, 'Verify the file path exists and is within the project'),
           );
         }
 
@@ -320,7 +330,7 @@ export function registerAdvancedTools(
         return mcpText(okWithSavings(result, saved, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`Get code snippet failed: ${msg}`));
+        return mcpErrorText(fail(`Get code snippet failed: ${msg}`, 'Ensure the project is indexed via mindmap_set_project'));
       }
     },
   );
@@ -405,7 +415,7 @@ export function registerAdvancedTools(
         const lowerPattern = pattern.toLowerCase();
         const regexPattern = regex ? (() => { try { return new RegExp(pattern, 'gi'); } catch { return null; } })() : null;
         if (regex && !regexPattern) {
-          return mcpText(fail(`Invalid regex pattern: ${pattern}`));
+          return mcpErrorText(fail(`Invalid regex pattern: ${pattern}`, 'Use a valid regex pattern or set regex=false for literal matching'));
         }
         let totalFilesSearched = 0;
 
@@ -457,7 +467,7 @@ export function registerAdvancedTools(
         return mcpText(ok(result, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`Code search failed: ${msg}`));
+        return mcpErrorText(fail(`Code search failed: ${msg}`, 'Ensure the project is indexed via mindmap_set_project'));
       }
     },
   );

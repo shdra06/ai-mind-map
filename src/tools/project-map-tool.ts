@@ -36,12 +36,16 @@ function ok(data: unknown, estimator: ITokenEstimator): string {
   return JSON.stringify({ success: true, data, tokenCount: tokens });
 }
 
-function fail(message: string): string {
-  return JSON.stringify({ success: false, error: message });
+function fail(message: string, recovery?: string): string {
+  return JSON.stringify({ success: false, error: message, ...(recovery ? { recovery } : {}) });
 }
 
 function mcpText(text: string) {
   return { content: [{ type: 'text' as const, text }] };
+}
+
+function mcpErrorText(text: string) {
+  return { content: [{ type: 'text' as const, text }], isError: true };
 }
 
 const SKIP_DIRS = new Set([
@@ -271,7 +275,7 @@ export function registerProjectMapTool(
         return mcpText(ok(result, estimator));
 
       } catch (err: unknown) {
-        return mcpText(fail(`Project map failed: ${err instanceof Error ? err.message : String(err)}`));
+        return mcpErrorText(fail(`Project map failed: ${err instanceof Error ? err.message : String(err)}`, 'Ensure the project is indexed via mindmap_set_project'));
       }
     },
   );

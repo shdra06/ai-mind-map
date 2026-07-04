@@ -120,6 +120,16 @@ function mcpText(result: ToolResult) {
 }
 
 /**
+ * Wrap an error ToolResult in the MCP text-content format with isError flag.
+ */
+function mcpErrorText(result: ToolResult) {
+  return {
+    content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+    isError: true,
+  };
+}
+
+/**
  * Build a successful ToolResult.
  */
 function ok(data: unknown, estimator: ITokenEstimator): ToolResult {
@@ -131,8 +141,8 @@ function ok(data: unknown, estimator: ITokenEstimator): ToolResult {
 /**
  * Build an error ToolResult.
  */
-function fail(message: string): ToolResult {
-  return { success: false, data: null, tokenCount: 0, tokensSaved: 0, message };
+function fail(message: string, recovery?: string): ToolResult {
+  return { success: false, data: null, tokenCount: 0, tokensSaved: 0, message, ...(recovery ? { recovery } : {}) };
 }
 
 // ============================================================
@@ -176,7 +186,7 @@ export function registerGraphTools(
         return mcpText(ok(nodes.map(slimNode), estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`Search failed: ${msg}`));
+        return mcpErrorText(fail(`Search failed: ${msg}`, 'Ensure the project is indexed via mindmap_set_project'));
       }
     },
   );
@@ -230,7 +240,7 @@ export function registerGraphTools(
       try {
         const name = symbol ?? symbolName;
         if (!name) {
-          return mcpText(fail('Either symbol or symbolName must be provided'));
+          return mcpErrorText(fail('Either symbol or symbolName must be provided', 'Provide the symbol parameter with the symbol name to trace'));
         }
         const result = graph.traceDependencies(name, direction, depth);
         const slimResult = {
@@ -240,7 +250,7 @@ export function registerGraphTools(
         return mcpText(ok(slimResult, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`Trace dependencies failed: ${msg}`));
+        return mcpErrorText(fail(`Trace dependencies failed: ${msg}`, 'Ensure the project is indexed via mindmap_set_project'));
       }
     },
   );
@@ -289,13 +299,13 @@ export function registerGraphTools(
       try {
         const name = symbol ?? symbolName;
         if (!name) {
-          return mcpText(fail('Either symbol or symbolName must be provided'));
+          return mcpErrorText(fail('Either symbol or symbolName must be provided', 'Provide the symbol parameter with the symbol name to find references for'));
         }
         const result = graph.findReferences(name);
         return mcpText(ok(result, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`Find references failed: ${msg}`));
+        return mcpErrorText(fail(`Find references failed: ${msg}`, 'Ensure the project is indexed via mindmap_set_project'));
       }
     },
   );
@@ -311,12 +321,12 @@ export function registerGraphTools(
       try {
         const result = graph.getFileMap(filePath);
         if (!result) {
-          return mcpText(fail(`File not found in index: ${filePath}`));
+          return mcpErrorText(fail(`File not found in index: ${filePath}`, 'Verify the file path exists and is within the project, then run mindmap_reindex'));
         }
         return mcpText(ok(result, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`Get file map failed: ${msg}`));
+        return mcpErrorText(fail(`Get file map failed: ${msg}`, 'Verify the file path exists and is within the project'));
       }
     },
   );

@@ -53,14 +53,21 @@ function mcpText(result: ToolResult) {
   };
 }
 
+function mcpErrorText(result: ToolResult) {
+  return {
+    content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+    isError: true,
+  };
+}
+
 function ok(data: unknown, estimator: ITokenEstimator): ToolResult {
   const serialised = JSON.stringify(data);
   const tokens = estimator.estimate(serialised);
   return { success: true, data, tokenCount: tokens, tokensSaved: 0 };
 }
 
-function fail(message: string): ToolResult {
-  return { success: false, data: null, tokenCount: 0, tokensSaved: 0, message };
+function fail(message: string, recovery?: string): ToolResult {
+  return { success: false, data: null, tokenCount: 0, tokensSaved: 0, message, ...(recovery ? { recovery } : {}) };
 }
 
 // ============================================================
@@ -673,21 +680,21 @@ export function registerFilesystemTools(
       try {
         const resolved = resolvePath(inputPath, config.projectRoot, true);
         if (!resolved) {
-          return mcpText(fail(`Path "${inputPath}" resolves outside the project root`));
+          return mcpErrorText(fail(`Path "${inputPath}" resolves outside the project root`, 'Provide a path within the project root'));
         }
         if (!existsSync(resolved)) {
-          return mcpText(fail(`Directory not found: ${resolved}`));
+          return mcpErrorText(fail(`Directory not found: ${resolved}`, 'Verify the directory path exists'));
         }
         const stat = statSync(resolved);
         if (!stat.isDirectory()) {
-          return mcpText(fail(`Not a directory: ${resolved}`));
+          return mcpErrorText(fail(`Not a directory: ${resolved}`, 'Provide a path to a directory, not a file'));
         }
 
         const result = listDirectory(resolved, includeHidden);
         return mcpText(ok(result, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`Failed to list directory: ${msg}`));
+        return mcpErrorText(fail(`Failed to list directory: ${msg}`, 'Verify the directory path exists and is accessible'));
       }
     },
   );
@@ -712,14 +719,14 @@ export function registerFilesystemTools(
       try {
         const resolved = resolvePath(inputPath, config.projectRoot, true);
         if (!resolved) {
-          return mcpText(fail(`Path "${inputPath}" resolves outside the project root`));
+          return mcpErrorText(fail(`Path "${inputPath}" resolves outside the project root`, 'Provide a path within the project root'));
         }
         if (!existsSync(resolved)) {
-          return mcpText(fail(`File not found: ${resolved}`));
+          return mcpErrorText(fail(`File not found: ${resolved}`, 'Verify the file path exists and is within the project'));
         }
         const stat = statSync(resolved);
         if (!stat.isFile()) {
-          return mcpText(fail(`Not a file: ${resolved}`));
+          return mcpErrorText(fail(`Not a file: ${resolved}`, 'Provide a path to a file, not a directory'));
         }
 
         const result = readLines(
@@ -732,7 +739,7 @@ export function registerFilesystemTools(
         return mcpText(ok(result, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`Failed to read file: ${msg}`));
+        return mcpErrorText(fail(`Failed to read file: ${msg}`, 'Verify the file path exists and is within the project'));
       }
     },
   );

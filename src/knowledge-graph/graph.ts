@@ -199,39 +199,53 @@ export class KnowledgeGraph {
   constructor(dbPath: string) {
     try {
       this.db = new Database(dbPath);
+
+      // Phase 7 Fix 3: Integrity check — detect silent corruption early
+      if (dbPath !== ':memory:') {
+        const integrityResult = this.db.pragma('integrity_check') as { integrity_check: string }[];
+        if (!integrityResult || integrityResult.length === 0 || integrityResult[0]?.integrity_check !== 'ok') {
+          throw new Error(`Database integrity check failed: ${JSON.stringify(integrityResult)}`);
+        }
+      }
+
       this.db.pragma('journal_mode = WAL');
       this.db.pragma('wal_autocheckpoint = 0'); // Defer checkpointing during bulk ops
       this.db.pragma('synchronous = NORMAL');
       this.db.pragma('foreign_keys = ON');
-      this.db.pragma('busy_timeout = 5000');
+      this.db.pragma('busy_timeout = 30000'); // 30s timeout for concurrent access
       this.db.pragma('page_size = 8192');  // 8KB pages for better I/O alignment
       this.db.pragma('cache_size = -64000');  // 64MB cache
       this.initializeSchema();
     } catch (err) {
-      // If DB is corrupt, delete and retry once
+      // Phase 7 Fix 3: If DB is corrupt, delete and recreate
+      process.stderr.write(`[ai-mind-map] Database corrupted or failed to open, recreating: ${err}\n`);
       try {
+        // Try to close if partially opened
+        // Use (this as any).db because TS can't prove assignment before the catch block
+        const partialDb = (this as any).db;
+        if (partialDb) { try { partialDb.close(); } catch (_) { /* ignore close errors */ } }
         if (dbPath !== ':memory:') {
-          if (fs.existsSync(dbPath)) {
-            fs.unlinkSync(dbPath);
-            // Also remove WAL/SHM files
-            try { fs.unlinkSync(dbPath + '-wal'); } catch {}
-            try { fs.unlinkSync(dbPath + '-shm'); } catch {}
-          }
+          // Delete corrupted DB and associated WAL/SHM files
+          try { fs.unlinkSync(dbPath); } catch (_) { /* file may not exist */ }
+          try { fs.unlinkSync(dbPath + '-wal'); } catch (_) { /* ignore */ }
+          try { fs.unlinkSync(dbPath + '-shm'); } catch (_) { /* ignore */ }
+
+          // Recreate fresh database
           this.db = new Database(dbPath);
           this.db.pragma('journal_mode = WAL');
-          this.db.pragma('wal_autocheckpoint = 0'); // Defer checkpointing during bulk ops
+          this.db.pragma('wal_autocheckpoint = 0');
           this.db.pragma('synchronous = NORMAL');
           this.db.pragma('foreign_keys = ON');
-          this.db.pragma('busy_timeout = 5000');
-          this.db.pragma('page_size = 8192');  // 8KB pages for better I/O alignment
-          this.db.pragma('cache_size = -64000');  // 64MB cache
+          this.db.pragma('busy_timeout = 30000'); // 30s timeout for concurrent access
+          this.db.pragma('page_size = 8192');
+          this.db.pragma('cache_size = -64000');
           this.initializeSchema();
-          console.error('[ai-mind-map] Recovered from corrupt database — rebuilt from scratch');
+          process.stderr.write('[ai-mind-map] Recovered from corrupt database — rebuilt from scratch\n');
         } else {
           throw err;
         }
-      } catch {
-        throw new Error(`[ai-mind-map] Failed to initialize database at ${dbPath}: ${err}`);
+      } catch (retryErr) {
+        throw new Error(`[ai-mind-map] Failed to initialize database at ${dbPath}: ${retryErr}`);
       }
     }
   }

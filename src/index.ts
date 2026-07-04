@@ -1070,7 +1070,30 @@ function enrichToolResponse(
 // ============================================================
 
 async function main(): Promise<void> {
-  // â”€â”€ 1. Parse CLI & load config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Phase 7 Fix 4: Global crash prevention — keep server alive on edge-case errors
+  // These MUST be registered BEFORE any async work starts.
+  process.on('uncaughtException', (err: Error) => {
+    process.stderr.write(`[ai-mind-map] UNCAUGHT EXCEPTION (server continues): ${err.message}\n${err.stack || ''}\n`);
+    // Don't exit — keep serving. The error is logged for debugging.
+  });
+
+  process.on('unhandledRejection', (reason: unknown) => {
+    const msg = reason instanceof Error ? reason.message : String(reason);
+    process.stderr.write(`[ai-mind-map] UNHANDLED REJECTION (server continues): ${msg}\n`);
+    // Don't exit — keep serving.
+  });
+
+  // Graceful shutdown on signals
+  process.on('SIGINT', () => {
+    process.stderr.write('[ai-mind-map] Shutting down gracefully (SIGINT)...\n');
+    process.exit(0);
+  });
+  process.on('SIGTERM', () => {
+    process.stderr.write('[ai-mind-map] Shutting down gracefully (SIGTERM)...\n');
+    process.exit(0);
+  });
+
+  // ── 1. Parse CLI & load config ──────────────────────────────────
   let cliArgs;
   try {
     cliArgs = parseCliArgs();
@@ -1350,7 +1373,7 @@ async function main(): Promise<void> {
   registerMemoryTools(server, memoryAdapter, sessionAdapter, tokenEstimator);
   log('debug', 'Registered memory tools (5)');
 
-  registerContextTools(server, contextAdapter, indexerAdapter, tokenEstimator);
+  registerContextTools(server, contextAdapter, indexerAdapter, tokenEstimator, config, pkg.version, graph.getDb());
   log('debug', 'Registered context tools (4)');
 
   // CONSOLIDATED: debug tools (3) disabled to reduce schema payload
@@ -1804,18 +1827,27 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
+  // Phase 7 Fix 4: Override early handlers with subsystem-aware versions
+  // These replace the top-of-main() safety-net handlers now that subsystems exist.
+  process.removeAllListeners('SIGINT');
+  process.removeAllListeners('SIGTERM');
   process.on('SIGINT', () => void shutdown('SIGINT'));
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
-  // Handle uncaught errors gracefully
+  // Phase 7 Fix 4: Keep server alive on uncaught errors — do NOT shutdown
+  process.removeAllListeners('uncaughtException');
   process.on('uncaughtException', (err) => {
+    process.stderr.write(`[ai-mind-map] UNCAUGHT EXCEPTION (server continues): ${err.message}\n${err.stack || ''}\n`);
     log('error', `Uncaught exception: ${err.message}`, err.stack);
-    void shutdown('uncaughtException');
+    // Don't exit — keep serving. The error is logged for debugging.
   });
 
+  process.removeAllListeners('unhandledRejection');
   process.on('unhandledRejection', (reason) => {
     const msg = reason instanceof Error ? reason.message : String(reason);
+    process.stderr.write(`[ai-mind-map] UNHANDLED REJECTION (server continues): ${msg}\n`);
     log('error', `Unhandled rejection: ${msg}`);
+    // Don't exit — keep serving.
   });
 
   // â”€â”€ 11. Connect transport and start serving â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

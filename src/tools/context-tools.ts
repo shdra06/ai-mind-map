@@ -5,6 +5,8 @@
  * loading, content compression, re-indexing, and system status.
  */
 
+import { statSync } from 'node:fs';
+import { basename } from 'node:path';
 import { z } from 'zod';
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -12,6 +14,7 @@ import type {
   ContextPackage,
   CompressionLevel,
   ContentType,
+  MindMapConfig,
   MindMapStats,
   ToolResult,
 } from '../types.js';
@@ -86,6 +89,15 @@ export interface ITokenEstimator {
   estimate(text: string): number;
 }
 
+/**
+ * Optional interface for running raw SQLite diagnostics.
+ * When provided, enables DB integrity and journal-mode checks
+ * in the health-check response.
+ */
+export interface IStatusDb {
+  pragma(pragma: string): unknown;
+}
+
 const defaultEstimator: ITokenEstimator = {
   estimate: (text) => Math.ceil(text.length / 4),
 };
@@ -122,6 +134,13 @@ function mcpText(result: ToolResult) {
   };
 }
 
+function mcpErrorText(result: ToolResult) {
+  return {
+    content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+    isError: true,
+  };
+}
+
 function ok(data: unknown, estimator: ITokenEstimator): ToolResult {
   const serialised = JSON.stringify(data);
   const tokens = estimator.estimate(serialised);
@@ -138,8 +157,8 @@ function okWithSavings(
   return { success: true, data, tokenCount: tokens, tokensSaved };
 }
 
-function fail(message: string): ToolResult {
-  return { success: false, data: null, tokenCount: 0, tokensSaved: 0, message };
+function fail(message: string, recovery?: string): ToolResult {
+  return { success: false, data: null, tokenCount: 0, tokensSaved: 0, message, ...(recovery ? { recovery } : {}) };
 }
 
 // ============================================================
@@ -149,16 +168,22 @@ function fail(message: string): ToolResult {
 /**
  * Register all Context Management tools on the given MCP server.
  *
- * @param server    The MCP server instance.
- * @param context   Concrete context-engine implementation.
- * @param indexer   Concrete indexer implementation.
- * @param estimator Optional token estimator.
+ * @param server        The MCP server instance.
+ * @param context       Concrete context-engine implementation.
+ * @param indexer       Concrete indexer implementation.
+ * @param estimator     Optional token estimator.
+ * @param config        Project configuration (for health-check).
+ * @param serverVersion Package version string (for health-check).
+ * @param db            Optional raw DB handle for PRAGMA diagnostics.
  */
 export function registerContextTools(
   server: McpServer,
   context: IContextEngine,
   indexer: IIndexer,
   estimator: ITokenEstimator = defaultEstimator,
+  config?: MindMapConfig,
+  serverVersion?: string,
+  db?: IStatusDb,
 ): void {
   // CONSOLIDATED: Functionality available via other tools
   /* if (false) {
@@ -268,7 +293,7 @@ export function registerContextTools(
         return mcpText(ok(responseData, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`reindex failed: ${msg}`));
+        return mcpErrorText(fail(`reindex failed: ${msg}`, 'Check if the project path exists and is accessible'));
       }
     },
   );
@@ -276,15 +301,89 @@ export function registerContextTools(
   // ── mindmap_status ──────────────────────────────────────────
   server.tool(
     'mindmap_status',
-    'Show current index statistics and system status.',
+    'Full health check: DB integrity, index status, memory usage, uptime.',
     {},
     async () => {
       try {
         const stats = indexer.getStats();
+        const mem = process.memoryUsage();
 
-        // Add explicit guidance if no index exists
-        const response: Record<string, unknown> = { ...stats };
-        if (stats.indexedFiles === 0 && stats.totalNodes === 0) {
+        // ── DB diagnostics ────────────────────────────────
+        let dbInfo: Record<string, unknown> = {};
+        if (config) {
+          let sizeBytes = 0;
+          try {
+            sizeBytes = statSync(config.dbPath).size;
+          } catch {
+            // DB file may not exist yet
+          }
+
+          let integrity = 'unknown';
+          let walMode = false;
+          if (db) {
+            try {
+              const intResult = db.pragma('integrity_check') as { integrity_check: string }[];
+              integrity = Array.isArray(intResult) && intResult.length > 0
+                ? intResult[0].integrity_check
+                : 'ok';
+            } catch {
+              integrity = 'error';
+            }
+            try {
+              const jmResult = db.pragma('journal_mode') as { journal_mode: string }[];
+              const mode = Array.isArray(jmResult) && jmResult.length > 0
+                ? jmResult[0].journal_mode
+                : '';
+              walMode = mode === 'wal';
+            } catch {
+              // leave as false
+            }
+          }
+
+          dbInfo = {
+            path: config.dbPath,
+            sizeBytes,
+            sizeMB: (sizeBytes / 1024 / 1024).toFixed(1),
+            integrity,
+            walMode,
+          };
+        }
+
+        // ── Index status ──────────────────────────────────
+        const notIndexed = stats.indexedFiles === 0 && stats.totalNodes === 0;
+
+        // ── Assemble full health-check response ──────────
+        const response: Record<string, unknown> = {
+          healthy: !notIndexed,
+          project: config
+            ? {
+                root: config.projectRoot,
+                name: basename(config.projectRoot),
+              }
+            : { root: stats.projectRoot ?? 'unknown', name: 'unknown' },
+          db: dbInfo,
+          index: {
+            files: stats.indexedFiles,
+            symbols: stats.totalNodes,
+            edges: stats.totalEdges,
+            languages: stats.languageBreakdown,
+            stale: false,
+          },
+          runtime: {
+            heapUsedMB: (mem.heapUsed / 1024 / 1024).toFixed(1),
+            rssMB: (mem.rss / 1024 / 1024).toFixed(1),
+            uptimeSeconds: Math.round(process.uptime()),
+            nodeVersion: process.version,
+            serverVersion: serverVersion ?? 'unknown',
+          },
+          tools: {
+            active: 18,
+            disabled: 15,
+          },
+        };
+
+        // Preserve user-facing guidance when no index exists
+        if (notIndexed) {
           response._indexStatus = 'NOT_INDEXED';
           response._message = '⚠ No codebase has been indexed yet. Call mindmap_reindex to index the project.';
         } else {

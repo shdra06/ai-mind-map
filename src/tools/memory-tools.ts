@@ -102,14 +102,21 @@ function mcpText(result: ToolResult) {
   };
 }
 
+function mcpErrorText(result: ToolResult) {
+  return {
+    content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+    isError: true,
+  };
+}
+
 function ok(data: unknown, estimator: ITokenEstimator): ToolResult {
   const serialised = JSON.stringify(data);
   const tokens = estimator.estimate(serialised);
   return { success: true, data, tokenCount: tokens, tokensSaved: 0 };
 }
 
-function fail(message: string): ToolResult {
-  return { success: false, data: null, tokenCount: 0, tokensSaved: 0, message };
+function fail(message: string, recovery?: string): ToolResult {
+  return { success: false, data: null, tokenCount: 0, tokensSaved: 0, message, ...(recovery ? { recovery } : {}) };
 }
 
 // ============================================================
@@ -154,7 +161,7 @@ export function registerMemoryTools(
         return mcpText(ok(memories, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`Recall failed: ${msg}`));
+        return mcpErrorText(fail(`Recall failed: ${msg}`, 'Check if the project database is accessible'));
       }
     },
   );
@@ -201,7 +208,7 @@ export function registerMemoryTools(
         );
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`Remember failed: ${msg}`));
+        return mcpErrorText(fail(`Remember failed: ${msg}`, 'Check if the project database is accessible'));
       }
     },
   );
@@ -286,7 +293,7 @@ export function registerMemoryTools(
         );
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`Decide failed: ${msg}`));
+        return mcpErrorText(fail(`Decide failed: ${msg}`, 'Check if the project database is accessible'));
       }
     },
   );

@@ -29,12 +29,16 @@ function ok(data: unknown, estimator: ITokenEstimator): string {
   return JSON.stringify({ success: true, data, tokenCount: tokens });
 }
 
-function fail(message: string): string {
-  return JSON.stringify({ success: false, error: message });
+function fail(message: string, recovery?: string): string {
+  return JSON.stringify({ success: false, error: message, ...(recovery ? { recovery } : {}) });
 }
 
 function mcpText(text: string) {
   return { content: [{ type: 'text' as const, text }] };
+}
+
+function mcpErrorText(text: string) {
+  return { content: [{ type: 'text' as const, text }], isError: true };
 }
 
 // ============================================================
@@ -190,7 +194,7 @@ export function registerDigestTools(
 
         return mcpText(result);
       } catch (err: unknown) {
-        return mcpText(fail(`Failed to generate digest: ${err instanceof Error ? err.message : String(err)}`));
+        return mcpErrorText(fail(`Failed to generate digest: ${err instanceof Error ? err.message : String(err)}`, 'Ensure the project is indexed via mindmap_set_project'));
       }
     },
   );
@@ -224,12 +228,12 @@ export function registerDigestTools(
               return buildFileDigest(match, nodes, args.file);
             }
           }
-          return mcpText(fail(`File not found in index: ${args.file}`));
+          return mcpErrorText(fail(`File not found in index: ${args.file}`, 'Verify the file path exists and is within the project, then run mindmap_reindex'));
         }
 
         return buildFileDigest(filePath, fileNodes, args.file);
       } catch (err: unknown) {
-        return mcpText(fail(`Failed to get file digest: ${err instanceof Error ? err.message : String(err)}`));
+        return mcpErrorText(fail(`Failed to get file digest: ${err instanceof Error ? err.message : String(err)}`, 'Verify the file path exists and is within the project'));
       }
     },
   );
@@ -425,7 +429,7 @@ export function registerDigestTools(
         }
 
         if (fileNodes.length === 0) {
-          return mcpText(fail(`File not found in index: ${args.file}`));
+          return mcpErrorText(fail(`File not found in index: ${args.file}`, 'Verify the file path exists and is within the project, then run mindmap_reindex'));
         }
 
         const relPath = relative(config.projectRoot, filePath).replace(/\\/g, '/');
@@ -514,7 +518,7 @@ export function registerDigestTools(
           },
         }));
       } catch (err: unknown) {
-        return mcpText(fail(`Failed to get file skeleton: ${err instanceof Error ? err.message : String(err)}`));
+        return mcpErrorText(fail(`Failed to get file skeleton: ${err instanceof Error ? err.message : String(err)}`, 'Verify the file path exists and is within the project'));
       }
     },
   );

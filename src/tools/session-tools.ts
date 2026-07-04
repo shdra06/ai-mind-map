@@ -30,12 +30,16 @@ function ok(data: unknown, estimator: ITokenEstimator): string {
   return JSON.stringify({ success: true, data, tokenCount: tokens });
 }
 
-function fail(message: string): string {
-  return JSON.stringify({ success: false, error: message });
+function fail(message: string, recovery?: string): string {
+  return JSON.stringify({ success: false, error: message, ...(recovery ? { recovery } : {}) });
 }
 
 function mcpText(text: string) {
   return { content: [{ type: 'text' as const, text }] };
+}
+
+function mcpErrorText(text: string) {
+  return { content: [{ type: 'text' as const, text }], isError: true };
 }
 
 // ============================================================
@@ -71,7 +75,7 @@ export function registerSessionTools(
           tip: 'Call mindmap_session_end when done to save a summary for next time.',
         }, estimator));
       } catch (err: unknown) {
-        return mcpText(fail(`Failed to start session: ${err instanceof Error ? err.message : String(err)}`));
+        return mcpErrorText(fail(`Failed to start session: ${err instanceof Error ? err.message : String(err)}`, 'Start a new session with mindmap_session_resume'));
       }
     },
   );
@@ -198,7 +202,7 @@ export function registerSessionTools(
 
         return mcpText(ok(result, estimator));
       } catch (err: unknown) {
-        return mcpText(fail(`Failed to resume session: ${err instanceof Error ? err.message : String(err)}`));
+        return mcpErrorText(fail(`Failed to resume session: ${err instanceof Error ? err.message : String(err)}`, 'Check if the project database is accessible'));
       }
     },
   );
@@ -220,7 +224,7 @@ export function registerSessionTools(
       try {
         const currentSession = changelog.getCurrentSession();
         if (!currentSession) {
-          return mcpText(fail('No active session to end.'));
+          return mcpErrorText(fail('No active session to end.', 'Start a new session with mindmap_session_resume'));
         }
 
         // Get session changes for stats
@@ -256,7 +260,7 @@ export function registerSessionTools(
           entriesPruned: pruned,
         }, estimator));
       } catch (err: unknown) {
-        return mcpText(fail(`Failed to end session: ${err instanceof Error ? err.message : String(err)}`));
+        return mcpErrorText(fail(`Failed to end session: ${err instanceof Error ? err.message : String(err)}`, 'Start a new session with mindmap_session_resume'));
       }
     },
   );
@@ -315,7 +319,7 @@ export function registerSessionTools(
 
         return mcpText(ok(result, estimator));
       } catch (err: unknown) {
-        return mcpText(fail(`Failed to get changelog: ${err instanceof Error ? err.message : String(err)}`));
+        return mcpErrorText(fail(`Failed to get changelog: ${err instanceof Error ? err.message : String(err)}`, 'Check if the project database is accessible'));
       }
     },
   );
@@ -391,7 +395,7 @@ export function registerSessionTools(
           tip: 'No change history available. Showing most connected symbols by graph degree centrality instead.',
         }, estimator));
       } catch (err: unknown) {
-        return mcpText(fail(`Failed to get hotspots: ${err instanceof Error ? err.message : String(err)}`));
+        return mcpErrorText(fail(`Failed to get hotspots: ${err instanceof Error ? err.message : String(err)}`, 'Check if the project database is accessible'));
       }
     },
   );
@@ -527,7 +531,7 @@ export function registerSessionTools(
             : ` Verified ${files.length} file(s): no symbol-level changes detected.`,
         }, estimator));
       } catch (err: unknown) {
-        return mcpText(fail(`verify_changes failed: ${err instanceof Error ? err.message : String(err)}`));
+        return mcpErrorText(fail(`verify_changes failed: ${err instanceof Error ? err.message : String(err)}`, 'Verify the file paths exist and are within the project'));
       }
     },
   );

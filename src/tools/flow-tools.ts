@@ -38,14 +38,21 @@ function mcpText(result: ToolResult) {
   };
 }
 
+function mcpErrorText(result: ToolResult) {
+  return {
+    content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+    isError: true,
+  };
+}
+
 function ok(data: unknown, estimator: ITokenEstimator, saved = 0): ToolResult {
   const serialised = JSON.stringify(data);
   const tokens = estimator.estimate(serialised);
   return { success: true, data, tokenCount: tokens, tokensSaved: saved };
 }
 
-function fail(message: string): ToolResult {
-  return { success: false, data: null, tokenCount: 0, tokensSaved: 0, message };
+function fail(message: string, recovery?: string): ToolResult {
+  return { success: false, data: null, tokenCount: 0, tokensSaved: 0, message, ...(recovery ? { recovery } : {}) };
 }
 
 // ============================================================
@@ -86,7 +93,7 @@ export function registerFlowTools(
         const flow = analyzer.traceFlow(symbol, maxDepth);
 
         if (flow.steps.length === 0) {
-          return mcpText(fail(`Could not trace flow for "${symbol}" — symbol not found or has no call chain.`));
+          return mcpErrorText(fail(`Could not trace flow for "${symbol}" — symbol not found or has no call chain.`, 'Ensure the project is indexed via mindmap_set_project and verify the symbol name'));
         }
 
         // Build a visual pipeline string
@@ -114,7 +121,7 @@ export function registerFlowTools(
         }, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`trace_flow failed: ${msg}`));
+        return mcpErrorText(fail(`trace_flow failed: ${msg}`, 'Ensure the project is indexed via mindmap_set_project'));
       }
     },
   );

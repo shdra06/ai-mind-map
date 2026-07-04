@@ -44,6 +44,13 @@ function mcpText(result: ToolResult) {
   };
 }
 
+function mcpErrorText(result: ToolResult) {
+  return {
+    content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+    isError: true,
+  };
+}
+
 function ok(data: unknown, estimator: ITokenEstimator): ToolResult {
   const serialised = JSON.stringify(data);
   const tokens = estimator.estimate(serialised);
@@ -60,8 +67,8 @@ function okWithSavings(
   return { success: true, data, tokenCount: tokens, tokensSaved };
 }
 
-function fail(message: string): ToolResult {
-  return { success: false, data: null, tokenCount: 0, tokensSaved: 0, message };
+function fail(message: string, recovery?: string): ToolResult {
+  return { success: false, data: null, tokenCount: 0, tokensSaved: 0, message, ...(recovery ? { recovery } : {}) };
 }
 
 /**
@@ -128,7 +135,7 @@ export function registerSmartTools(
         }
 
         if (candidates.length === 0) {
-          return mcpText(fail(`Symbol not found: "${symbol}". Try mindmap_search for fuzzy matching.`));
+          return mcpErrorText(fail(`Symbol not found: "${symbol}". Try mindmap_search for fuzzy matching.`, 'Ensure the project is indexed via mindmap_set_project'));
         }
 
         const node = candidates[0]!;
@@ -265,7 +272,7 @@ export function registerSmartTools(
         return mcpText(okWithSavings(result, Math.max(0, tokensSaved), estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`explain failed: ${msg}`));
+        return mcpErrorText(fail(`explain failed: ${msg}`, 'Ensure the project is indexed via mindmap_set_project'));
       }
     },
   );
@@ -652,7 +659,7 @@ export function registerSmartTools(
         return mcpText(okWithSavings(response, Math.max(0, totalTokensSaved), estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        return mcpText(fail(`smart_search failed: ${msg}`));
+        return mcpErrorText(fail(`smart_search failed: ${msg}`, 'Ensure the project is indexed via mindmap_set_project'));
       }
     },
   );
