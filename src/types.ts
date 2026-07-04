@@ -281,7 +281,6 @@ export const DEFAULT_CONFIG: MindMapConfig = {
     '*.pdf', '*.zip', '*.tar', '*.gz',
     '*.exe', '*.dll', '*.so', '*.dylib',
     '*.pyc', '*.pyo', '*.class',
-    '.env', '.env.local', '.env.production',
   ],
   tokenBudgets: {
     graphResults: 10000,

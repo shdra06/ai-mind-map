@@ -47,9 +47,9 @@ describe('detectLanguage', () => {
   });
 
   it('returns null for unsupported extensions', () => {
-    assert.strictEqual(detectLanguage('readme.md'), null);
     assert.strictEqual(detectLanguage('data.csv'), null);
     assert.strictEqual(detectLanguage('image.png'), null);
+    assert.strictEqual(detectLanguage('archive.zip'), null);
   });
 });
 
@@ -95,8 +95,8 @@ describe('isSupportedFile', () => {
   });
 
   it('returns false for unsupported extensions', () => {
-    assert.strictEqual(isSupportedFile('readme.md'), false);
     assert.strictEqual(isSupportedFile('image.bmp'), false);
+    assert.strictEqual(isSupportedFile('data.csv'), false);
   });
 });
 

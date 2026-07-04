@@ -1250,6 +1250,36 @@ export class KnowledgeGraph {
   }
 
   /**
+   * Batch insert edges (for cross-file call detection).
+   * Uses INSERT OR IGNORE to skip duplicates.
+   */
+  batchInsertEdges(edges: Array<{ sourceId: string; targetId: string; type: string; metadata?: Record<string, string> }>): void {
+    const insert = this.db.prepare(
+      'INSERT OR IGNORE INTO edges (sourceId, targetId, type, metadata) VALUES (@sourceId, @targetId, @type, @metadata)'
+    );
+    const tx = this.db.transaction(() => {
+      for (const edge of edges) {
+        insert.run({
+          sourceId: edge.sourceId,
+          targetId: edge.targetId,
+          type: edge.type,
+          metadata: edge.metadata ? JSON.stringify(edge.metadata) : null,
+        });
+      }
+    });
+    tx();
+  }
+
+  /**
+   * Update an edge's target ID (for resolving symbolic edges).
+   */
+  updateEdgeTarget(sourceId: string, oldTargetId: string, type: string, newTargetId: string): void {
+    this.db.prepare(
+      'UPDATE edges SET targetId = @newTargetId WHERE sourceId = @sourceId AND targetId = @oldTargetId AND type = @type'
+    ).run({ sourceId, oldTargetId, type, newTargetId });
+  }
+
+  /**
    * Get nodes by a list of IDs (used by PageRank to return ranked results).
    */
   getNodesByIds(ids: string[]): GraphNode[] {

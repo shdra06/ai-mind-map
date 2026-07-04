@@ -257,6 +257,146 @@ export class Indexer {
   }
 
   /**
+   * Build cross-file call edges.
+   * 
+   * After all files are indexed, scans function bodies for references to
+   * symbols defined in OTHER files and creates 'calls' edges for them.
+   * This is what makes flow tracing work across file boundaries.
+   */
+  buildCrossReferences(): { edgesCreated: number } {
+    const startTime = Date.now();
+    let edgesCreated = 0;
+
+    // Phase 1: Build global symbol registry from the graph
+    //   Map<symbolName, Set<nodeId>> — all callable symbols
+    const symbolRegistry = new Map<string, Set<string>>();
+    const allNodes = this.graph.getAllNodes();
+    const callableTypes = new Set(['function', 'method', 'constructor', 'class', 'interface']);
+    
+    for (const node of allNodes) {
+      if (!callableTypes.has(node.type)) continue;
+      const existing = symbolRegistry.get(node.name);
+      if (existing) {
+        existing.add(node.id);
+      } else {
+        symbolRegistry.set(node.name, new Set([node.id]));
+      }
+    }
+
+    // Phase 2: For each function/method, read its body and look for cross-file calls
+    const existingEdges = new Set<string>();
+    // Pre-load all existing call edges to avoid duplicates
+    for (const node of allNodes) {
+      if (!callableTypes.has(node.type)) continue;
+      const outEdges = this.graph.getOutEdges(node.id);
+      for (const edge of outEdges) {
+        if (edge.type === 'calls') {
+          existingEdges.add(`${edge.sourceId}:${edge.targetId}`);
+        }
+      }
+    }
+
+    // Build regex from all function names (batched for performance)
+    const symbolNames = [...symbolRegistry.keys()].filter(name => 
+      name.length >= 3 && /^\w+$/.test(name) // Skip very short names and non-identifiers
+    );
+    
+    if (symbolNames.length === 0) return { edgesCreated: 0 };
+    
+    // Process nodes in batches to avoid reading too many files
+    const functionsToAnalyze = allNodes.filter(n => 
+      (n.type === 'function' || n.type === 'method') && n.endLine > n.startLine
+    );
+
+    // Build a pattern that matches function call syntax: name(
+    // Process in smaller chunks to avoid regex size limits
+    const CHUNK_SIZE = 500;
+    const newEdges: Array<{ sourceId: string; targetId: string; type: 'calls'; metadata?: Record<string, string> }> = [];
+
+    for (let chunkStart = 0; chunkStart < symbolNames.length; chunkStart += CHUNK_SIZE) {
+      const chunk = symbolNames.slice(chunkStart, chunkStart + CHUNK_SIZE);
+      const pattern = new RegExp(`\\b(${chunk.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\s*\\(`, 'g');
+
+      for (const sourceNode of functionsToAnalyze) {
+        try {
+          const content = readFileSync(sourceNode.filePath, 'utf-8');
+          const lines = content.split('\n');
+          const body = lines.slice(sourceNode.startLine - 1, sourceNode.endLine).join('\n');
+          
+          let match: RegExpExecArray | null;
+          pattern.lastIndex = 0;
+          while ((match = pattern.exec(body)) !== null) {
+            const calledName = match[1];
+            const targetIds = symbolRegistry.get(calledName);
+            if (!targetIds) continue;
+
+            for (const targetId of targetIds) {
+              // Skip self-calls and same-file calls (already have intra-file edges)
+              const targetNode = this.graph.getNode(targetId);
+              if (!targetNode) continue;
+              if (targetNode.filePath === sourceNode.filePath) continue; // Already handled by parser
+              if (targetId === sourceNode.id) continue; // Self-call
+
+              const edgeKey = `${sourceNode.id}:${targetId}`;
+              if (existingEdges.has(edgeKey)) continue;
+              existingEdges.add(edgeKey);
+
+              newEdges.push({
+                sourceId: sourceNode.id,
+                targetId,
+                type: 'calls',
+                metadata: { crossFile: 'true' },
+              });
+              edgesCreated++;
+            }
+          }
+        } catch {
+          // File might have been deleted or be unreadable
+        }
+      }
+    }
+
+    // Store cross-file edges in graph
+    if (newEdges.length > 0) {
+      this.graph.batchInsertEdges(newEdges);
+    }
+
+    process.stderr.write(`[ai-mind-map] Cross-file refs: ${edgesCreated} edges in ${Date.now() - startTime}ms (${functionsToAnalyze.length} functions analyzed)\n`);
+    return { edgesCreated };
+  }
+
+  /**
+   * Resolve unresolved edge targets (like inheritance/implementation edges
+   * where targetId is a name, not a node ID).
+   */
+  resolveSymbolicEdges(): { resolved: number } {
+    let resolved = 0;
+    const allEdges = this.graph.getAllEdges();
+    
+    for (const edge of allEdges) {
+      // Check if targetId looks like a symbol name (not a hash)
+      if (edge.targetId.length <= 20 && /^[A-Z]/.test(edge.targetId)) {
+        // Try to find the target node by name
+        const candidates = this.graph.search(edge.targetId, 5);
+        const target = candidates.find(n => 
+          n.name === edge.targetId && 
+          (n.type === 'class' || n.type === 'interface')
+        );
+        if (target) {
+          // Update edge to point to resolved node ID
+          this.graph.updateEdgeTarget(edge.sourceId, edge.targetId, edge.type, target.id);
+          resolved++;
+        }
+      }
+    }
+    
+    if (resolved > 0) {
+      process.stderr.write(`[ai-mind-map] Resolved ${resolved} symbolic edges\n`);
+    }
+    return { resolved };
+  }
+
+  /**
    * Scan the project directory for indexable source files.
    *
    * Respects .gitignore and custom ignore patterns.
@@ -275,14 +415,14 @@ export class Indexer {
         cwd: this.config.projectRoot,
         absolute: true,
         nodir: true,
-        dot: false,
+        dot: true,  // Allow dotfiles like .env, .eslintrc, .gitignore
         // Skip common heavy directories at glob level for performance.
         // Fine-grained ignore filtering is handled by ig.ignores() below.
         ignore: [
           '**/node_modules/**', '**/.git/**', '**/.svn/**', '**/.hg/**',
           // Python
           '**/__pycache__/**', '**/site-packages/**', '**/venv/**',
-          '**/.venv/**', '**/env/**', '**/.env/**',
+          '**/.venv/**', '**/env/**',
           '**/standalone-env/**', '**/python_embeded/**', '**/python_embedded/**',
           '**/.tox/**', '**/.mypy_cache/**', '**/.pytest_cache/**',
           // Build output
@@ -304,6 +444,24 @@ export class Indexer {
         ],
       });
       allFiles.push(...matches);
+    }
+
+    // ── Extensionless files (Dockerfile, Makefile, etc.) ──
+    const extensionlessFiles = ['Dockerfile', 'Makefile', 'Jenkinsfile', 'Vagrantfile', 'Procfile'];
+    for (const name of extensionlessFiles) {
+      try {
+        const matches = await glob(`**/${name}`, {
+          cwd: this.config.projectRoot,
+          absolute: true,
+          nodir: true,
+          dot: false,
+          ignore: [
+            '**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**',
+            '**/vendor/**', '**/target/**',
+          ],
+        });
+        allFiles.push(...matches);
+      } catch { /* ignore glob errors */ }
     }
 
     // De-duplicate
@@ -657,14 +815,29 @@ export class Indexer {
     //   // Non-critical cleanup
     // }
 
-    // Phase 4: Complete
+    // Phase 4: Cross-file reference analysis
+    onProgress?.({
+      phase: 'storing',
+      current: stats.filesParsed,
+      total: stats.filesScanned,
+      message: 'Building cross-file references...',
+    });
+    
+    // Resolve symbolic edges (inherits/implements where targetId is a class name)
+    const { resolved } = this.resolveSymbolicEdges();
+    
+    // Build cross-file call edges
+    const { edgesCreated: crossFileEdges } = this.buildCrossReferences();
+    stats.edgesCreated += crossFileEdges;
+
+    // Phase 5: Complete
     stats.durationMs = Date.now() - startTime;
 
     onProgress?.({
       phase: 'complete',
       current: stats.filesParsed,
       total: stats.filesScanned,
-      message: `Indexing complete: ${stats.filesParsed} files, ${stats.nodesCreated} nodes, ${stats.edgesCreated} edges in ${stats.durationMs}ms`,
+      message: `Indexing complete: ${stats.filesParsed} files, ${stats.nodesCreated} nodes, ${stats.edgesCreated} edges (${crossFileEdges} cross-file, ${resolved} resolved) in ${stats.durationMs}ms`,
     });
 
     return stats;

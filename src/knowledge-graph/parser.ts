@@ -99,6 +99,18 @@ const EXTENSION_MAP: Record<string, string> = {
   '.scss': 'css',
   '.less': 'css',
   '.sass': 'css',
+  // ── Config & project files (v1.18.0) ──
+  '.json': 'json',
+  '.env': 'env',
+  '.csproj': 'dotnet_project',
+  '.fsproj': 'dotnet_project',
+  '.sln': 'dotnet_project',
+  '.prisma': 'prisma',
+  '.tf': 'terraform',
+  '.hcl': 'terraform',
+  '.md': 'markdown',
+  '.mdx': 'markdown',
+  '.rst': 'markdown',
 };
 
 /** Maps language identifiers to tree-sitter grammar package names */
@@ -155,10 +167,21 @@ export function generateContentHash(content: string): string {
   return createHash('sha256').update(content).digest('hex').substring(0, 16);
 }
 
-/** Detect language from file extension */
+/** Detect language from file extension or basename */
 export function detectLanguage(filePath: string): string | null {
   const ext = extname(filePath).toLowerCase();
-  return EXTENSION_MAP[ext] ?? null;
+  if (ext) return EXTENSION_MAP[ext] ?? null;
+  
+  // Extensionless files — detect by basename
+  const name = basename(filePath);
+  const BASENAME_MAP: Record<string, string> = {
+    'Dockerfile': 'dockerfile',
+    'Makefile': 'makefile',
+    'Jenkinsfile': 'groovy',
+    'Vagrantfile': 'ruby',
+    'Procfile': 'yaml',
+  };
+  return BASENAME_MAP[name] ?? null;
 }
 
 /** Get all supported file extensions */
@@ -553,6 +576,14 @@ function extractFromTreeSitter(
     return gNode;
   }
 
+  /** Iterate over all named children of a tree-sitter node */
+  function* iterNamedChildren(node: any): Generator<any> {
+    for (let i = 0; i < node.namedChildCount; i++) {
+      const child = node.namedChild(i);
+      if (child) yield child;
+    }
+  }
+
   /** Recursively walk the AST and extract nodes */
   function walk(tsNode: any, parentClassName?: string): void {
     if (!tsNode) return;
@@ -583,6 +614,69 @@ function extractFromTreeSitter(
       const className = nameStr || `AnonymousClass_${tsNode.startPosition.row}`;
       const gNode = makeNode(tsNode, className, 'class');
       nodes.push(gNode);
+
+      // ── Extract inheritance/implementation edges ──
+      // Tree-sitter: superclass field (JS/TS/Java/Python)
+      const superclass = tsNode.childForFieldName('superclass');
+      if (superclass) {
+        const baseNames = nodeText(superclass).split(',').map((s: string) => s.trim()).filter(Boolean);
+        for (const baseName of baseNames) {
+          const cleanName = baseName.replace(/[<\[{(].*$/, '').trim();
+          if (cleanName) {
+            edges.push({
+              sourceId: gNode.id,
+              targetId: cleanName, // Resolved later against global symbol table
+              type: 'inherits',
+              metadata: { raw: baseName },
+            });
+          }
+        }
+      }
+
+      // C#/Java: base_list, superclass_list, implements_list
+      for (const child of iterNamedChildren(tsNode)) {
+        const ct = child.type;
+        if (ct === 'base_list' || ct === 'superclass' || ct === 'super_interfaces' ||
+            ct === 'superclass_list' || ct === 'implements_list' ||
+            ct === 'class_heritage' || ct === 'extends_clause' || ct === 'implements_clause') {
+          const baseText = nodeText(child);
+          // Split by comma and classify: first is typically base class, rest are interfaces
+          const parts = baseText.replace(/^[:\s]+/, '').split(',').map((s: string) => s.trim()).filter(Boolean);
+          for (const part of parts) {
+            const cleanName = part.replace(/[<\[{(].*$/, '').replace(/^\s*(:\s*)?/, '').trim();
+            if (!cleanName) continue;
+            // Heuristic: names starting with 'I' + uppercase in C# are interfaces
+            const isInterface = (language === 'csharp' && /^I[A-Z]/.test(cleanName)) ||
+                                ct === 'implements_clause' || ct === 'implements_list' || ct === 'super_interfaces';
+            edges.push({
+              sourceId: gNode.id,
+              targetId: cleanName,
+              type: isInterface ? 'implements' : 'inherits',
+              metadata: { raw: part },
+            });
+          }
+        }
+      }
+
+      // Python: argument_list contains base classes
+      if (language === 'python') {
+        const argList = tsNode.childForFieldName('argument_list') ?? tsNode.childForFieldName('superclasses');
+        if (argList) {
+          const baseText = nodeText(argList).replace(/^\(|\)$/g, '');
+          const bases = baseText.split(',').map((s: string) => s.trim()).filter(Boolean);
+          for (const base of bases) {
+            const cleanName = base.replace(/[<\[{(].*$/, '').trim();
+            if (cleanName && cleanName !== 'object' && cleanName !== 'ABC') {
+              edges.push({
+                sourceId: gNode.id,
+                targetId: cleanName,
+                type: 'inherits',
+                metadata: { raw: base },
+              });
+            }
+          }
+        }
+      }
 
       // Process class body for methods/properties
       const body = tsNode.childForFieldName('body');
@@ -950,6 +1044,16 @@ const REGEX_PATTERNS: Record<string, RegexPattern[]> = {
     { pattern: /(?:public|private|protected|internal)\s+(?:static\s+)?(?:virtual\s+)?(?:override\s+)?(?:async\s+)?[\w<>\[\],?\s]+\s+(\w+)\s*(\([^)]*\))/gm, type: 'method', nameGroup: 1, signatureGroup: 0 },
     { pattern: /(?:public|private|protected|internal)\s+(?:static\s+)?enum\s+(\w+)/gm, type: 'enum', nameGroup: 1, signatureGroup: 0 },
     { pattern: /^namespace\s+([\w.]+)/gm, type: 'namespace', nameGroup: 1, signatureGroup: 0 },
+    // C# records & structs
+    { pattern: /(?:public|private|protected|internal)\s+(?:readonly\s+)?(?:ref\s+)?record\s+(?:struct\s+)?(\w+)/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /(?:public|private|protected|internal)\s+(?:readonly\s+)?(?:ref\s+)?struct\s+(\w+)/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    // C# events
+    { pattern: /(?:public|private|protected|internal)\s+(?:static\s+)?event\s+[\w<>\[\],?\s]+\s+(\w+)/gm, type: 'property', nameGroup: 1, signatureGroup: 0 },
+    // C# delegates
+    { pattern: /(?:public|private|protected|internal)\s+delegate\s+[\w<>\[\],?\s]+\s+(\w+)\s*\(/gm, type: 'type_alias', nameGroup: 1, signatureGroup: 0 },
+    // C# HTTP route attributes → route nodes
+    { pattern: /\[Http(?:Get|Post|Put|Delete|Patch|Options|Head)\s*(?:\("([^"]*)")?\s*\]/gm, type: 'route', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /\[Route\s*\("([^"]+)"\)\s*\]/gm, type: 'route', nameGroup: 1, signatureGroup: 0 },
   ],
   ruby: [
     { pattern: /^\s*def\s+(?:self\.)?(\w+[?!]?)(?:\(([^)]*)\))?/gm, type: 'method', nameGroup: 1, signatureGroup: 0 },
@@ -1139,6 +1243,64 @@ const REGEX_PATTERNS: Record<string, RegexPattern[]> = {
     { pattern: /^\s*@media\s+([^{]+)/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
     { pattern: /^\s*@font-face\b/gm, type: 'class', nameGroup: 0, signatureGroup: 0 },
   ],
+  // ── Config & project files (v1.18.0) ──
+  json: [
+    // Top-level keys in JSON (name, version, scripts, dependencies)
+    { pattern: /^\s*"(name|version|description|main|scripts|dependencies|devDependencies|peerDependencies|compilerOptions|include|exclude|extends)"\s*:/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+    // Named scripts
+    { pattern: /^\s*"(build|dev|start|test|lint|format|deploy|preview|serve|watch|clean|generate)"\s*:/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+  ],
+  env: [
+    // Environment variable names only (NOT values for security)
+    { pattern: /^([A-Z][A-Z0-9_]+)\s*=/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+  ],
+  dotnet_project: [
+    // .csproj PackageReference
+    { pattern: /PackageReference\s+Include="([^"]+)"/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+    // ProjectReference
+    { pattern: /ProjectReference\s+Include="([^"]+)"/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+    // TargetFramework
+    { pattern: /<TargetFramework>([\w.]+)<\/TargetFramework>/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+    // OutputType
+    { pattern: /<OutputType>(\w+)<\/OutputType>/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+    // .sln Project entries
+    { pattern: /Project\("[^"]*"\)\s*=\s*"([^"]+)"/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+  ],
+  prisma: [
+    { pattern: /^model\s+(\w+)\s*\{/gm, type: 'class', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^enum\s+(\w+)\s*\{/gm, type: 'enum', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^datasource\s+(\w+)\s*\{/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^generator\s+(\w+)\s*\{/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+  ],
+  terraform: [
+    { pattern: /^resource\s+"([^"]+)"\s+"([^"]+)"/gm, type: 'config', nameGroup: 2, signatureGroup: 0 },
+    { pattern: /^data\s+"([^"]+)"\s+"([^"]+)"/gm, type: 'config', nameGroup: 2, signatureGroup: 0 },
+    { pattern: /^variable\s+"([^"]+)"/gm, type: 'variable', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^output\s+"([^"]+)"/gm, type: 'variable', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^module\s+"([^"]+)"/gm, type: 'module', nameGroup: 1, signatureGroup: 0 },
+  ],
+  markdown: [
+    // Capture headings for document structure awareness
+    { pattern: /^#\s+(.+)$/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^##\s+(.+)$/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^###\s+(.+)$/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+  ],
+  dockerfile: [
+    { pattern: /^FROM\s+(\S+)/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^EXPOSE\s+(\d+)/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^(?:CMD|ENTRYPOINT)\s+(.+)$/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^WORKDIR\s+(\S+)/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^ENV\s+(\w+)/gm, type: 'config', nameGroup: 1, signatureGroup: 0 },
+  ],
+  makefile: [
+    { pattern: /^([a-zA-Z_][\w-]*):/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^([A-Z_]+)\s*[:?]?=/gm, type: 'variable', nameGroup: 1, signatureGroup: 0 },
+  ],
+  groovy: [
+    // Jenkinsfile patterns
+    { pattern: /^\s*(?:def\s+)?(\w+)\s*\{/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
+    { pattern: /^\s*stage\s*\(\s*['"]([^'"]+)['"]/gm, type: 'function', nameGroup: 1, signatureGroup: 0 },
+  ],
 };
 
 /** Detect doc comment above a line index */
@@ -1265,6 +1427,68 @@ function parseWithRegex(
 
       nodes.push(gNode);
       edges.push({ sourceId: fileNode.id, targetId: gNode.id, type: 'contains' });
+
+      // ── Extract inheritance/implementation edges from regex matches ──
+      if (type === 'class' || type === 'interface') {
+        const sigText = matchText;
+        // TypeScript/Java/Kotlin: extends X implements Y, Z
+        const extendsMatch = sigText.match(/\bextends\s+([\w.]+)/);
+        if (extendsMatch) {
+          edges.push({
+            sourceId: gNode.id,
+            targetId: extendsMatch[1],
+            type: 'inherits',
+            metadata: { raw: extendsMatch[0] },
+          });
+        }
+        const implMatch = sigText.match(/\bimplements\s+([\w.,\s]+)/);
+        if (implMatch) {
+          const ifaces = implMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+          for (const iface of ifaces) {
+            edges.push({
+              sourceId: gNode.id,
+              targetId: iface.replace(/<.*$/, '').trim(),
+              type: 'implements',
+              metadata: { raw: iface },
+            });
+          }
+        }
+        // C#: class Foo : Bar, IFoo, IBaz
+        if (language === 'csharp') {
+          const baseMatch = sigText.match(/class\s+\w+\s*:\s*([\w.,\s<>]+)/);
+          if (baseMatch) {
+            const parts = baseMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+            for (const part of parts) {
+              const cleanName = part.replace(/<.*$/, '').trim();
+              if (!cleanName) continue;
+              const isIface = /^I[A-Z]/.test(cleanName);
+              edges.push({
+                sourceId: gNode.id,
+                targetId: cleanName,
+                type: isIface ? 'implements' : 'inherits',
+                metadata: { raw: part },
+              });
+            }
+          }
+        }
+        // Python: class Foo(Bar, Baz)
+        if (language === 'python') {
+          const pyMatch = sigText.match(/class\s+\w+\s*\(([^)]+)\)/);
+          if (pyMatch) {
+            const bases = pyMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+            for (const base of bases) {
+              if (base !== 'object' && base !== 'ABC') {
+                edges.push({
+                  sourceId: gNode.id,
+                  targetId: base.replace(/<.*$/, '').trim(),
+                  type: 'inherits',
+                  metadata: { raw: base },
+                });
+              }
+            }
+          }
+        }
+      }
     }
   }
 

@@ -95,6 +95,7 @@ import { registerExploreTools } from './tools/explore-tools.js';
 import { registerFilesystemTools } from './tools/filesystem-tools.js';
 import { registerQualityTools } from './tools/quality-tools.js';
 import { registerProjectMapTool } from './tools/project-map-tool.js';
+import { registerSmartContextTools } from './tools/smart-context-tool.js';
 
 
 // Read version from package.json dynamically
@@ -1427,6 +1428,9 @@ async function main(): Promise<void> {
 
   registerProjectMapTool(server, graph, config, tokenEstimator);
   log('debug', 'Registered project map tool (1)');
+
+  registerSmartContextTools(server, graph, changelogEngine, config, tokenEstimator);
+  log('debug', 'Registered smart context tools');
 
   // ── mindmap_set_project (instant project switch, no reindex) ──
   server.tool(
