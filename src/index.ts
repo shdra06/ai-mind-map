@@ -911,8 +911,12 @@ function createIndexerAdapter(
         totalMemories: memoryStats.totalMemories,
         totalDecisions: allDecisions.length,
         totalChangesTracked: changeStats.totalChanges,
-        lastIndexedAt: null, // Graph doesn't track this directly
-        lastChangeAt: null,
+        lastIndexedAt: changeStats.totalChanges > 0
+          ? (changeStats.mostActiveSessions?.[0]?.startedAt ?? null)
+          : null,
+        lastChangeAt: changeStats.totalChanges > 0
+          ? Date.now()
+          : null,
         dbSizeBytes: dbSize,
         languageBreakdown: graphStats.languageBreakdown,
         // L17: Conservative estimate — avg ~200 tokens per node (signatures + metadata)
@@ -1151,19 +1155,37 @@ async function main(): Promise<void> {
       log('debug', `File watcher detected ${events.length} changes`);
       for (const event of events) {
         try {
+          // Capture old symbols BEFORE indexing for diff
+          const oldSymbols = event.changeType !== 'deleted'
+            ? graph.getNodesForFile(event.filePath)
+                .filter(n => n.type !== 'file')
+                .map(n => n.name)
+            : [];
+
           if (event.changeType === 'deleted') {
             await indexer.removeFile(event.filePath);
           } else {
             await indexer.indexFile(event.filePath);
           }
+
+          // Capture new symbols AFTER indexing
+          const newSymbols = event.changeType !== 'deleted'
+            ? graph.getNodesForFile(event.filePath)
+                .filter(n => n.type !== 'file')
+                .map(n => n.name)
+            : [];
+
+          // Compute affected symbols (union of old and new, for adds/deletes/modifies)
+          const affectedSymbols = [...new Set([...oldSymbols, ...newSymbols])];
+
           const currentSessionId = sessionMemory.getCurrentSessionId() ?? 'no-session';
           changeLog.recordChange({
             filePath: event.filePath,
             changeType: event.changeType,
             summary: `File ${event.changeType}: ${path.basename(event.filePath)}`,
-            symbolsAffected: [],
-            linesAdded: 0,
-            linesRemoved: 0,
+            symbolsAffected: affectedSymbols,
+            linesAdded: Math.max(0, newSymbols.length - oldSymbols.length),
+            linesRemoved: Math.max(0, oldSymbols.length - newSymbols.length),
             timestamp: event.timestamp,
             sessionId: currentSessionId,
           });
@@ -1388,7 +1410,7 @@ async function main(): Promise<void> {
   log('debug', 'Registered semantic search tools (3)');
 
   // Session, Changelog & Digest tools (v1.4.0)
-  registerSessionTools(server, graph, changelogEngine, config, tokenEstimator);
+  registerSessionTools(server, graph, changelogEngine, config, tokenEstimator, persistentMemory);
   log('debug', 'Registered session tools (5)');
 
   registerDigestTools(server, graph, changelogEngine, config, tokenEstimator);

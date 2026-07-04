@@ -664,6 +664,12 @@ export function registerFilesystemTools(
       path: z.string().describe('Absolute or relative path to directory'),
       includeHidden: z.boolean().default(false).describe('Include hidden files/dirs (starting with .)'),
     },
+    {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     async ({ path: inputPath, includeHidden }) => {
       try {
         const resolved = resolvePath(inputPath, config.projectRoot, true);
@@ -697,6 +703,12 @@ export function registerFilesystemTools(
       startLine: z.number().int().min(1).default(1).describe('First line to read (1-indexed)'),
       endLine: z.number().int().min(1).optional().describe('Last line to read (1-indexed, inclusive). Omit to read 200 lines from startLine'),
       includeContext: z.boolean().default(true).describe('Include the containing symbol name from the graph if indexed'),
+    },
+    {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
     async ({ filePath: inputPath, startLine, endLine, includeContext }) => {
       try {

@@ -16,6 +16,7 @@ import type { KnowledgeGraph } from '../knowledge-graph/graph.js';
 import type { ChangelogEngine } from '../knowledge-graph/changelog.js';
 import type { MindMapConfig } from '../types.js';
 import type { ITokenEstimator } from './advanced-tools.js';
+import type { PersistentMemory } from '../memory/persistent-memory.js';
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -47,10 +48,9 @@ export function registerSessionTools(
   changelog: ChangelogEngine,
   config: MindMapConfig,
   estimator: ITokenEstimator = defaultEstimator,
+  persistentMemory?: PersistentMemory,
 ): void {
 
-  // CONSOLIDATED: Functionality available via other tools
-  /* if (false) {
   // ── mindmap_session_start ──────────────────────────────────
   server.tool(
     'mindmap_session_start',
@@ -77,7 +77,6 @@ export function registerSessionTools(
       }
     },
   );
-  } */
 
   // ── mindmap_session_resume ─────────────────────────────────
   server.tool(
@@ -87,6 +86,12 @@ export function registerSessionTools(
       'THIS IS THE FIRST TOOL AN AI AGENT SHOULD CALL to avoid re-reading the codebase.',
     {
       agent: z.string().optional().describe('Name of the AI agent resuming'),
+    },
+    {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
     },
     async (args) => {
       try {
@@ -169,6 +174,24 @@ export function registerSessionTools(
           }));
         }
 
+        // Include relevant memories for context
+        if (persistentMemory) {
+          try {
+            const memories = persistentMemory.queryMemories({
+              text: config.projectRoot,
+              limit: 5,
+              minImportance: 0.3,
+            });
+            if (memories && memories.length > 0) {
+              result.relevantMemories = memories.map(m => ({
+                category: m.category,
+                content: m.content,
+                importance: m.importance,
+              }));
+            }
+          } catch { /* non-fatal */ }
+        }
+
         // CRITICAL: If index is empty, tell the AI to index first
         if (stats.totalNodes === 0) {
           result._indexRequired = true;
@@ -192,6 +215,12 @@ export function registerSessionTools(
     {
       summary: z.string().optional().describe('Summary of what was accomplished in this session'),
     },
+    {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     async (args) => {
       try {
         const currentSession = changelog.getCurrentSession();
@@ -203,6 +232,20 @@ export function registerSessionTools(
         const changes = changelog.getSessionChanges(currentSession.id);
 
         changelog.endSession(currentSession.id, args.summary);
+
+        // Auto-create memories from significant session changes
+        if (persistentMemory && changes && changes.length > 0) {
+          try {
+            if (args.summary) {
+              persistentMemory.createMemory({
+                content: `Session: ${args.summary}. Files modified: ${currentSession.filesModified.length}`,
+                category: 'context',
+                importance: 0.6,
+                tags: ['auto-session', 'changes'],
+              });
+            }
+          } catch { /* non-fatal */ }
+        }
 
         // Prune old entries
         const pruned = changelog.pruneChangelog();
@@ -234,6 +277,12 @@ export function registerSessionTools(
         'ISO timestamp or relative: "1h", "30m", "1d", "last_session". Default: "last_session"'
       ),
       file: z.string().optional().describe('Filter to a specific file path (relative to project root)'),
+    },
+    {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
     async (args) => {
       try {
@@ -278,8 +327,7 @@ export function registerSessionTools(
     },
   );
 
-  // CONSOLIDATED: Functionality available via other tools
-  /* if (false) {
+
   // ── mindmap_hotspots ───────────────────────────────────────
   server.tool(
     'mindmap_hotspots',
@@ -355,10 +403,7 @@ export function registerSessionTools(
       }
     },
   );
-  } */
 
-  // CONSOLIDATED: Functionality available via other tools
-  /* if (false) {
   // ── mindmap_verify_changes ─────────────────────────────────
   server.tool(
     'mindmap_verify_changes',
@@ -498,5 +543,4 @@ export function registerSessionTools(
       }
     },
   );
-  } */
 }
