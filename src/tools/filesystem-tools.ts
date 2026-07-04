@@ -658,8 +658,7 @@ export function registerFilesystemTools(
   // ── mindmap_list_dir ──────────────────────────────────────────
   server.tool(
     'mindmap_list_dir',
-    'List directory contents without triggering indexing. Returns files and directories with sizes and child counts. ' +
-      'Directories are sorted first, then files, alphabetically.',
+    'List files and directories at a given path with size info.',
     {
       path: z.string().describe('Absolute or relative path to directory'),
       includeHidden: z.boolean().default(false).describe('Include hidden files/dirs (starting with .)'),
@@ -696,8 +695,7 @@ export function registerFilesystemTools(
   // ── mindmap_read_lines ────────────────────────────────────────
   server.tool(
     'mindmap_read_lines',
-    'Read specific lines from a file (1-indexed, inclusive). Optionally includes the containing symbol ' +
-      '(function/class) from the knowledge graph if indexed. Capped at 500 lines per request.',
+    'Read specific line ranges from a file efficiently.',
     {
       filePath: z.string().describe('Absolute or relative path to file'),
       startLine: z.number().int().min(1).default(1).describe('First line to read (1-indexed)'),
@@ -1239,8 +1237,7 @@ export function registerFilesystemTools(
   if (false as boolean) {
   server.tool(
     'mindmap_batch_read',
-    'Read multiple file regions in a single call. Eliminates per-call overhead when reading from several files. ' +
-      'Each file request specifies a path and optional line range. Returns all results at once.',
+    'Read specific line ranges from a file efficiently.',
     {
       files: z.array(
         z.object({

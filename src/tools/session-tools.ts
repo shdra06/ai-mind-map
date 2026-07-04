@@ -25,7 +25,7 @@ const defaultEstimator: ITokenEstimator = {
 };
 
 function ok(data: unknown, estimator: ITokenEstimator): string {
-  const json = JSON.stringify(data, null, 2);
+  const json = JSON.stringify(data);
   const tokens = estimator.estimate(json);
   return JSON.stringify({ success: true, data, tokenCount: tokens });
 }
@@ -54,9 +54,7 @@ export function registerSessionTools(
   // ── mindmap_session_start ──────────────────────────────────
   server.tool(
     'mindmap_session_start',
-    'Start a new AI coding session. Records the agent name and task ' +
-      'for session tracking. Changes made during this session will be ' +
-      'attributed to it. Returns the session ID.',
+    'Start a new AI coding session with context.',
     {
       agent: z.string().optional().describe('Name of the AI agent (e.g., "cursor", "claude", "copilot")'),
       task: z.string().optional().describe('Brief description of what you\'re working on'),
@@ -81,9 +79,7 @@ export function registerSessionTools(
   // ── mindmap_session_resume ─────────────────────────────────
   server.tool(
     'mindmap_session_resume',
-    'Resume from the last AI coding session. Returns what was worked on, ' +
-      'what files changed since then, and relevant memories. ' +
-      'THIS IS THE FIRST TOOL AN AI AGENT SHOULD CALL to avoid re-reading the codebase.',
+    'Resume from the last session with changes and project context.',
     {
       agent: z.string().optional().describe('Name of the AI agent resuming'),
     },
@@ -210,8 +206,7 @@ export function registerSessionTools(
   // ── mindmap_session_end ────────────────────────────────────
   server.tool(
     'mindmap_session_end',
-    'End the current AI coding session with a summary. ' +
-      'The summary will be shown to the next AI agent that calls mindmap_session_resume.',
+    'End the current session and save a summary.',
     {
       summary: z.string().optional().describe('Summary of what was accomplished in this session'),
     },
@@ -269,9 +264,7 @@ export function registerSessionTools(
   // ── mindmap_changelog ──────────────────────────────────────
   server.tool(
     'mindmap_changelog',
-    'Get a detailed changelog of what symbols (functions, classes, methods) ' +
-      'were added, modified, or deleted since a given time. ' +
-      'Use this instead of re-reading files to see what changed.',
+    'Get symbol-level changelog since a given time.',
     {
       since: z.string().optional().describe(
         'ISO timestamp or relative: "1h", "30m", "1d", "last_session". Default: "last_session"'
@@ -331,8 +324,7 @@ export function registerSessionTools(
   // ── mindmap_hotspots ───────────────────────────────────────
   server.tool(
     'mindmap_hotspots',
-    'Get the most frequently changed files and symbols in the codebase. ' +
-      'Hot files are more likely to have bugs and benefit from closer review.',
+    'Get the most frequently changed files and symbols.',
     {
       limit: z.number().optional().describe('Number of hotspots to return (default: 15)'),
     },
@@ -407,11 +399,7 @@ export function registerSessionTools(
   // ── mindmap_verify_changes ─────────────────────────────────
   server.tool(
     'mindmap_verify_changes',
-    'Verify what actually changed in files after editing them. ' +
-      'Re-parses the specified files and compares with the stored index to show ' +
-      'exactly which functions/classes were added, modified, or deleted. ' +
-      'Use this INSTEAD of re-reading files to verify your edits took effect. ' +
-      'Also updates the index with the new file state.',
+    'Re-parse files to verify edits and update the index.',
     {
       files: z.array(z.string()).describe(
         'List of file paths (absolute or relative to project root) to verify'

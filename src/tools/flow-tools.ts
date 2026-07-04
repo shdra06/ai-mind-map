@@ -66,11 +66,7 @@ export function registerFlowTools(
   // ── mindmap_trace_flow ────────────────────────────────────
   server.tool(
     'mindmap_trace_flow',
-    ` Trace the FULL PIPELINE from a function/button/event to its final effect.
-Example: "What happens when createNote() is called?" → shows the complete chain:
-  createNote() → validateInput() → notesService.save() → db.insert() → emitEvent()
-Each step shows: which layer (UI/controller/service/DB), which file, which function.
-The AI doesn't need to read any code to understand the flow.`,
+    'Trace the full call pipeline from a function to its effects.',
     {
       symbol: z
         .string()

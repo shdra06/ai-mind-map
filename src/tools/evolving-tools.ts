@@ -62,19 +62,7 @@ export function registerEvolvingTools(
   // ── mindmap_teach ────────────────────────────────────────────
   server.tool(
     'mindmap_teach',
-    'Teach the AI Mind Map a new rule that persists on this machine. ' +
-      'The rule is saved in the project database and automatically applied ' +
-      'in future sessions. Use this when:\n' +
-      '- A file/pattern is misclassified → teach a classification rule\n' +
-      '- You keep searching for synonyms → teach a search alias\n' +
-      '- You notice a project convention → teach a convention\n' +
-      '- You spot a code pattern → teach a code pattern\n\n' +
-      'Examples:\n' +
-      '  Classification: { type: "classification", name: "bloc_files", layer: "state_update", ' +
-        'source: "path", patterns: ["\\\\.bloc\\\\.dart$"], weight: 3 }\n' +
-      '  Search alias: { type: "search_alias", name: "auth_aliases", term: "auth", ' +
-        'aliases: ["login", "authentication", "session", "jwt"] }\n' +
-      '  Convention: { type: "convention", name: "api_naming", description: "All API methods end with Async" }',
+    'Teach a persistent project-specific rule or convention.',
     {
       type: z.enum(['classification', 'search_alias', 'code_pattern', 'convention'])
         .describe('Type of rule to teach'),
@@ -179,9 +167,7 @@ export function registerEvolvingTools(
   // ── mindmap_get_learned ──────────────────────────────────────
   server.tool(
     'mindmap_get_learned',
-    'View all rules the AI has taught this project. Shows classification rules, ' +
-      'search aliases, code patterns, and conventions — sorted by usage count. ' +
-      'Use this at the start of a session to see what the system has already learned.',
+    'View all learned rules for this project.',
     {
       type: z.enum(['classification', 'search_alias', 'code_pattern', 'convention', 'all'])
         .default('all')

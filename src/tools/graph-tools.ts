@@ -94,6 +94,23 @@ const defaultEstimator: ITokenEstimator = {
 // ============================================================
 
 /**
+ * Return a slim representation of a GraphNode for search results.
+ * Strips internal fields (hash, language, updatedAt, etc.) to save tokens.
+ */
+function slimNode(node: GraphNode): Record<string, unknown> {
+  return {
+    name: node.name,
+    type: node.type,
+    file: node.filePath,
+    line: node.startLine,
+    endLine: node.endLine,
+    signature: node.signature,
+    ...(node.docComment ? { doc: node.docComment } : {}),
+    ...(node.isExported ? { exported: true } : {}),
+  };
+}
+
+/**
  * Wrap a ToolResult in the MCP text-content format.
  */
 function mcpText(result: ToolResult) {
@@ -147,7 +164,7 @@ export function registerGraphTools(
   // ── mindmap_search ──────────────────────────────────────────
   server.tool(
     'mindmap_search',
-    'Search the codebase by symbol name, type, or free-text query. Returns matching nodes with their signatures.',
+    'Search symbols by name, type, or keyword.',
     {
       query: z.string().describe('Search query (name, keyword, or free text)'),
       type: z.enum(NODE_TYPES).optional().describe('Optional node-type filter'),
@@ -156,7 +173,7 @@ export function registerGraphTools(
     async ({ query, type, limit }) => {
       try {
         const nodes = graph.search(query, type, limit);
-        return mcpText(ok(nodes, estimator));
+        return mcpText(ok(nodes.map(slimNode), estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         return mcpText(fail(`Search failed: ${msg}`));
@@ -195,8 +212,8 @@ export function registerGraphTools(
     'mindmap_trace_dependencies',
     'Trace the dependency chain of a symbol — who calls it, what it calls, or both.',
     {
-      symbolName: z.string().optional().describe('Qualified or simple symbol name (alias: symbol)'),
-      symbol: z.string().optional().describe('Qualified or simple symbol name (preferred alias for symbolName)'),
+      symbol: z.string().optional().describe('Qualified or simple symbol name'),
+      symbolName: z.string().optional().describe('(Deprecated) Alias for symbol — use symbol instead'),
       direction: z
         .enum(['callers', 'callees', 'both'])
         .default('both')
@@ -209,14 +226,18 @@ export function registerGraphTools(
         .default(3)
         .describe('Max depth of traversal'),
     },
-    async ({ symbolName, symbol, direction, depth }) => {
+    async ({ symbol, symbolName, direction, depth }) => {
       try {
         const name = symbol ?? symbolName;
         if (!name) {
           return mcpText(fail('Either symbol or symbolName must be provided'));
         }
         const result = graph.traceDependencies(name, direction, depth);
-        return mcpText(ok(result, estimator));
+        const slimResult = {
+          ...result,
+          nodes: result.nodes.map(slimNode),
+        };
+        return mcpText(ok(slimResult, estimator));
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         return mcpText(fail(`Trace dependencies failed: ${msg}`));
@@ -259,7 +280,7 @@ export function registerGraphTools(
   // ── mindmap_find_references ─────────────────────────────────
   server.tool(
     'mindmap_find_references',
-    'Find every location where a symbol is referenced across the codebase.',
+    'Find all references to a symbol across the codebase.',
     {
       symbolName: z.string().optional().describe('Name of the symbol to find references for (alias: symbol)'),
       symbol: z.string().optional().describe('Name of the symbol to find references for (preferred alias for symbolName)'),
@@ -282,7 +303,7 @@ export function registerGraphTools(
   // ── mindmap_get_file_map ────────────────────────────────────
   server.tool(
     'mindmap_get_file_map',
-    'Get the structural map of a specific file — all symbols with their signatures, visibility, and line ranges.',
+    'Get all symbols and signatures in a specific file.',
     {
       filePath: z.string().describe('Relative or absolute path to the file'),
     },

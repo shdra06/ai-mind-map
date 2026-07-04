@@ -31,7 +31,7 @@ const defaultEstimator: ITokenEstimator = {
 };
 
 function ok(data: unknown, estimator: ITokenEstimator): string {
-  const json = JSON.stringify(data, null, 2);
+  const json = JSON.stringify(data);
   const tokens = estimator.estimate(json);
   return JSON.stringify({ success: true, data, tokenCount: tokens });
 }
@@ -153,10 +153,7 @@ export function registerProjectMapTool(
 
   server.tool(
     'mindmap_project_map',
-    'Get a COMPLETE mental model of the entire project in ONE call. ' +
-      'Returns the full architecture map: tech stack, modules, inter-module dependencies, ' +
-      'entry points, key abstractions, data flow, conventions, and an AI-optimized quick-reference card. ' +
-      'USE THIS FIRST before any other tool — it saves thousands of tokens vs reading files individually.',
+    'Get a compact project map with file tree and key symbols.',
     {
       projectPath: z.string().optional().describe('Project root path (defaults to configured root)'),
       detail: z.enum(['quick', 'standard', 'deep']).default('standard')

@@ -133,7 +133,7 @@ export function registerMemoryTools(
   // ── mindmap_recall ──────────────────────────────────────────
   server.tool(
     'mindmap_recall',
-    'Retrieve relevant memories for the current task, ranked by importance.',
+    'Retrieve relevant memories ranked by importance.',
     {
       query: z.string().describe('Describe what you need to recall'),
       category: z
@@ -162,7 +162,7 @@ export function registerMemoryTools(
   // ── mindmap_remember ────────────────────────────────────────
   server.tool(
     'mindmap_remember',
-    'Store an important fact, decision, or convention for future reference.',
+    'Store a fact or convention for future sessions.',
     {
       content: z.string().min(1).describe('The fact or insight to remember'),
       category: z.enum(MEMORY_CATEGORIES).describe('Memory category'),
@@ -237,7 +237,7 @@ export function registerMemoryTools(
   // ── mindmap_decide ──────────────────────────────────────────
   server.tool(
     'mindmap_decide',
-    'Record a new architectural or technical decision with rationale, alternatives, and consequences.',
+    'Record an architectural decision with rationale and alternatives.',
     {
       title: z.string().min(1).describe('Short title for the decision'),
       description: z.string().min(1).describe('Detailed description'),

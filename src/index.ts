@@ -953,6 +953,7 @@ class SessionTokenTracker {
   totalOutputTokens = 0;
   totalInputTokens = 0;
   totalTokensSaved = 0;
+  firstResponseSent = false;
   private startTime = Date.now();
 
   /** Record a tool call with its input and output token counts. */
@@ -1033,11 +1034,16 @@ function enrichToolResponse(
     const tokensSaved = result.tokensSaved ?? 0;
     tracker.record(inputTokens, outputTokens, tokensSaved);
 
-    // Always add project metadata
     const projectInfo = getProjectInfo();
-    result._project = projectInfo;
 
-    // Tell the agent to set project if no real project is indexed
+    // Only include _project and _sessionTokens on the FIRST response
+    if (!tracker.firstResponseSent) {
+      result._project = projectInfo;
+      result._sessionTokens = tracker.getSummary();
+      tracker.firstResponseSent = true;
+    }
+
+    // Tell the agent to set project if no real project is indexed (always check)
     const nodeCount = graphNodeCount();
     const rootIsBlocked = isBlockedDirectory(projectInfo.root);
 
@@ -1049,9 +1055,6 @@ function enrichToolResponse(
         'The current root "' + projectInfo.root + '" is NOT a user project. ' +
         'Use the workspace/project directory that the user has open in their editor.';
     }
-
-    // Always add session token metadata
-    result._sessionTokens = tracker.getSummary();
 
     response.content[textIdx].text = JSON.stringify(result);
   } catch (err) {
@@ -1253,65 +1256,31 @@ async function main(): Promise<void> {
     },
     {
       instructions: [
-        '# AI Mind Map — Code Memory Engine',
+        '# AI Mind Map - Code Memory Engine',
         '',
-        '## ⚠ CRITICAL: FIRST STEP IN EVERY CONVERSATION',
-        'Before calling ANY other tool, you MUST ensure a project is indexed:',
-        '1. Check if `_indexRequired: true` appears in any response — if so, the index is empty or pointing at an IDE directory.',
-        '2. Call `mindmap_reindex({ projectPath: "<WORKSPACE>" })` where <WORKSPACE> is the user project directory from their open editor.',
-        '3. NEVER use paths containing: .gemini, antigravity, .cursor, .vscode, AppData, Program Files — these are IDE directories, NOT projects.',
-        '4. Example: `mindmap_reindex({ projectPath: "E:\\myproject" })`',
+        '## FIRST: Set project',
+        'Call mindmap_set_project with the user project directory.',
+        'If it returns NEEDS_INDEX, call mindmap_reindex.',
+        'NEVER use paths containing .gemini, .cursor, .vscode, AppData, or Program Files.',
         '',
-        '## After Indexing - Resume Session:',
-        'Call `mindmap_session_resume`. It returns:',
-        '- What the previous AI worked on',
-        '- What code changed since then (function-level diffs)',
-        '- Project structure + tech stack',
-        '- Hot files (most frequently changed)',
+        '## THEN: Resume session',
+        'Call mindmap_session_resume - returns previous session context, recent changes, and project overview.',
         '',
-        '## Token Tracking:',
-        'Every response includes `_sessionTokens` with cumulative usage.',
+        '## Key Tools',
+        '- mindmap_smart_search - Find symbols by name or concept',
+        '- mindmap_explain - Deep-dive: signature, callers, callees, blast radius',
+        '- mindmap_file_skeleton - Understand a file WITHOUT reading it (signatures + docs)',
+        '- mindmap_read_lines - Read actual source code when needed',
+        '- mindmap_trace_flow - Trace execution flow across files',
+        '- mindmap_project_map - Full project architecture overview',
+        '- mindmap_verify_changes - Verify edits WITHOUT re-reading files',
+        '- mindmap_remember / mindmap_recall - Persist and retrieve knowledge',
+        '- mindmap_session_end - Save context for next session',
         '',
-        '##  Tool Selection Guide:',
-        '',
-        '### When you need to UNDERSTAND the project:',
-        '- `mindmap_digest` → Full project summary in <2000 tokens',
-        '- `mindmap_architecture` → Layers, patterns, component overview',
-        '- `mindmap_file_digest` → Understand a file WITHOUT reading it',
-        '',
-        '### When you need to FIND code:',
-        '- `mindmap_smart_search` → Search by name/concept (best for most lookups)',
-        '- `mindmap_semantic_search` → Search by meaning ("authentication", "error handling")',
-        '- `mindmap_search_code` → Grep-like text search in code bodies',
-        '- `mindmap_trace_dependencies` → Who calls X? What does X call?',
-        '',
-        '### When you need to READ code:',
-        '- `mindmap_get_code_snippet` â†’ Read actual source code for a function/class',
-        '- `mindmap_get_file_map` â†’ All symbols in a file with signatures + line ranges',
-        '',
-        '### When you need to know WHAT CHANGED:',
-        '- `mindmap_changelog` â†’ Symbol-level diffs (added/modified/deleted functions)',
-        '- `mindmap_git_changes` â†’ Git-aware changes with symbol mapping',
-        '- `mindmap_verify` â†’ Check if your cached knowledge is still valid',
-        '- `mindmap_hotspots` â†’ Most frequently changed files + symbols',
-        '',
-        '### When you need to REMEMBER:',
-        '- `mindmap_remember` â†’ Save a fact/convention for future sessions',
-        '- `mindmap_recall` â†’ Retrieve relevant memories for current task',
-        '- `mindmap_decide` â†’ Record architectural decisions with rationale',
-        '',
-        '### When you finish work:',
-        '- `mindmap_session_end` â†’ Save summary so next AI can resume instantly',
-        '',
-        '### After editing code:',
-        '- `mindmap_verify_changes` â†’ Verify your edits at the symbol level WITHOUT re-reading files',
-        '',
-        '## âš¡ Token-Saving Rules:',
-        '1. ALWAYS call `mindmap_session_resume` first â€” never start blind',
-        '2. Use `mindmap_file_digest` BEFORE reading a full file â€” you may not need the full file',
-        '3. Use `mindmap_verify_changes` after editing to verify changes â€” do NOT re-read whole files',
-        '4. Use `mindmap_changelog` instead of re-reading files to see what changed',
-        '5. Call `mindmap_session_end` when done â€” save context for next session',
+        '## Token-Saving Rules',
+        '1. Use mindmap_file_skeleton BEFORE reading files - you may not need the full content',
+        '2. Use mindmap_verify_changes after editing - do NOT re-read whole files',
+        '3. Call mindmap_session_end when done - saves context for next AI',
       ].join('\n'),
     },
   );
@@ -1401,14 +1370,14 @@ async function main(): Promise<void> {
   registerSmartTools(server, graph, config, tokenEstimator, semanticEngine);
   log('debug', 'Registered smart tools (3)');
 
-  registerEvolvingTools(server, graph, config, tokenEstimator);
-  log('debug', 'Registered evolving tools (3)');
+  // CONSOLIDATED v1.19.0: evolving tools (teach/get_learned) disabled — niche, saves ~200 schema tokens
+  // registerEvolvingTools(server, graph, config, tokenEstimator);
 
   registerAdvancedTools(server, graph, config, tokenEstimator, semanticEngine);
   log('debug', 'Registered advanced tools (7)');
 
-  registerSemanticTools(server, graph, semanticEngine, config, tokenEstimator);
-  log('debug', 'Registered semantic search tools (3)');
+  // CONSOLIDATED v1.19.0: semantic tools (semantic_search/synonyms/stats) disabled — covered by smart_search hybrid mode
+  // registerSemanticTools(server, graph, semanticEngine, config, tokenEstimator);
 
   // Session, Changelog & Digest tools (v1.4.0)
   registerSessionTools(server, graph, changelogEngine, config, tokenEstimator, persistentMemory);
@@ -1423,23 +1392,19 @@ async function main(): Promise<void> {
   registerFilesystemTools(server, graph, config, tokenEstimator);
   log('debug', 'Registered filesystem tools (3)');
 
-  registerQualityTools(server, graph, config, tokenEstimator);
-  log('debug', 'Registered quality tools (3)');
+  // CONSOLIDATED v1.19.0: quality tools (code_metrics/security_scan/code_duplication) disabled — niche, saves ~300 schema tokens
+  // registerQualityTools(server, graph, config, tokenEstimator);
 
   registerProjectMapTool(server, graph, config, tokenEstimator);
   log('debug', 'Registered project map tool (1)');
 
-  registerSmartContextTools(server, graph, changelogEngine, config, tokenEstimator);
-  log('debug', 'Registered smart context tools');
+  // CONSOLIDATED v1.19.0: smart context tool disabled — replaced by mindmap_explain + mindmap_file_skeleton
+  // registerSmartContextTools(server, graph, changelogEngine, config, tokenEstimator);
 
   // ── mindmap_set_project (instant project switch, no reindex) ──
   server.tool(
     'mindmap_set_project',
-    'FAST: Switch to a project directory INSTANTLY using existing indexed data from the database. ' +
-      'Call this FIRST before any other tool when working on a project. ' +
-      'If the project was previously indexed, all tools work immediately (0 seconds). ' +
-      'If the project has NEVER been indexed, this returns a hint to call mindmap_reindex. ' +
-      'ALWAYS prefer this over mindmap_reindex — reindex is only needed for first-time indexing or to refresh stale data.',
+    'Switch to a project directory instantly using existing indexed data.',
     {
       projectPath: z.string().describe(
         'Absolute path to the project directory (e.g. "E:\\\\exeapps\\\\FlyShelf" or "/home/user/project")'
@@ -1552,20 +1517,18 @@ async function main(): Promise<void> {
   );
   */
 
-  log('info', 'MCP tools registered (~25 active, reduced from 63):');
+  log('info', 'MCP tools registered (~18 active, v1.19.0):');
   log('info', '  Graph:    mindmap_search, mindmap_trace_dependencies, mindmap_find_references, mindmap_get_file_map');
-  log('info', '  Changes:  mindmap_impact_analysis');
-  log('info', '  Memory:   mindmap_recall, mindmap_remember, mindmap_decide');
-  log('info', '  Context:  mindmap_set_project, mindmap_reindex, mindmap_status');
+  log('info', '  Smart:    mindmap_explain, mindmap_smart_search');
   log('info', '  Flow:     mindmap_trace_flow');
   log('info', '  Advanced: mindmap_dead_code, mindmap_architecture, mindmap_get_code_snippet, mindmap_search_code');
-  log('info', '  Smart:    mindmap_explain, mindmap_smart_search');
-  log('info', '  Evolving: mindmap_teach, mindmap_get_learned');
-  log('info', '  Semantic: mindmap_semantic_search');
-  log('info', '  Session:  mindmap_session_resume, mindmap_session_end, mindmap_changelog');
-  log('info', '  Digest:   mindmap_digest, mindmap_file_digest');
+  log('info', '  Session:  mindmap_session_start, mindmap_session_resume, mindmap_session_end, mindmap_changelog, mindmap_hotspots, mindmap_verify_changes');
+  log('info', '  Memory:   mindmap_recall, mindmap_remember, mindmap_decide');
+  log('info', '  Context:  mindmap_set_project, mindmap_reindex, mindmap_status');
+  log('info', '  Digest:   mindmap_digest, mindmap_file_digest, mindmap_file_skeleton');
   log('info', '  Filesys:  mindmap_read_lines, mindmap_list_dir');
-  log('info', '  Quality:  mindmap_code_metrics, mindmap_security_scan, mindmap_code_duplication');
+  log('info', '  Changes:  mindmap_impact_analysis');
+  log('info', '  Project:  mindmap_project_map');
 
 
   log('info', 'ðŸ”§ All MCP tools registered:');

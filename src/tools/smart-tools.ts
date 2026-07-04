@@ -96,9 +96,7 @@ export function registerSmartTools(
   // ── mindmap_explain ──────────────────────────────────────────
   server.tool(
     'mindmap_explain',
-    'Get EVERYTHING about a symbol in one call: signature, doc, callers, callees, ' +
-      'layer classification, blast radius, related symbols, and recent git changes. ' +
-      'This replaces the need to call search → get_signature → trace_dependencies → read file.',
+    'Get full details about a symbol: signature, callers, callees, and layer.',
     {
       symbol: z.string().describe('Symbol name to explain (function, class, method, etc.)'),
       filePath: z.string().optional().describe('Optional file path to disambiguate'),
@@ -466,10 +464,7 @@ export function registerSmartTools(
   // ── mindmap_smart_search ─────────────────────────────────────
   server.tool(
     'mindmap_smart_search',
-    'Rich contextual search that returns EVERYTHING about each result so you ' +
-      'NEVER need to read the file afterwards. Each result includes: signature, ' +
-      'doc comment, callers, callees, layer classification, and file context. ' +
-      'This replaces: search → get_signature → trace_dependencies → read file.',
+    'Rich contextual search returning full details for each result.',
     {
       query: z.string().describe('Search query (name, keyword, or free text)'),
       limit: z.number().int().min(1).max(20).default(5).describe('Max results (default 5, keep small for rich data)'),

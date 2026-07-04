@@ -476,9 +476,7 @@ export function registerQualityTools(
   // ── mindmap_code_metrics ──────────────────────────────────────
   server.tool(
     'mindmap_code_metrics',
-    'Calculate code complexity and health scoring for files/functions. ' +
-      'Returns cyclomatic complexity, cognitive complexity, LOC, parameter count, ' +
-      'nesting depth, health score (1-10), and risk level for each function.',
+    'Compute complexity and maintainability metrics for files or symbols.',
     {
       filePath: z
         .string()
@@ -578,9 +576,7 @@ export function registerQualityTools(
   // ── mindmap_security_scan ─────────────────────────────────────
   server.tool(
     'mindmap_security_scan',
-    'Pattern-based vulnerability detection (SAST lite). ' +
-      'Scans files for hardcoded secrets, injection vulnerabilities, weak crypto, ' +
-      'and other security issues. Returns findings with severity, location, and remediation.',
+    'Scan code for common security vulnerabilities and risks.',
     {
       filePath: z
         .string()
@@ -706,9 +702,7 @@ export function registerQualityTools(
   // ── mindmap_code_duplication ───────────────────────────────────
   server.tool(
     'mindmap_code_duplication',
-    'Detect duplicated code blocks across the codebase. ' +
-      'Uses sliding-window hashing to find exact code clones (Type 1). ' +
-      'Returns clone groups sorted by size with file locations.',
+    'Detect duplicate or near-duplicate code blocks in the project.',
     {
       minLines: z
         .number()

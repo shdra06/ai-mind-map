@@ -240,15 +240,7 @@ export function registerContextTools(
   // ── mindmap_reindex ─────────────────────────────────────────
   server.tool(
     'mindmap_reindex',
-    'Index or re-index a codebase. CRITICAL: If you see empty results or _hint about ' +
-      '"No codebase index found", call this with the PROJECT PATH of the code you are working on. ' +
-      'Pass the projectPath parameter -- this is the root directory of the user\'s project ' +
-      '(e.g. "E:\\\\myproject" or "/home/user/project"). Without projectPath, it re-indexes the current project. ' +
-      'This creates a knowledge graph of all functions, classes, types, and relationships. ' +
-      'FIRST-TIME indexing takes ~30-90 seconds (subsequent re-indexes are much faster). ' +
-      'IMPORTANT: Before calling this tool for the first time on a new project, tell the user: ' +
-      '"Building the knowledge graph for the first time -- this takes about a minute. After that, all queries are instant." ' +
-      'After indexing, all other tools return real data.',
+    'Index or re-index a codebase to build the knowledge graph.',
     {
       projectPath: z.string().optional().describe(
         'Absolute path to the project directory to index. ALWAYS provide this when indexing a new project.'
@@ -284,7 +276,7 @@ export function registerContextTools(
   // ── mindmap_status ──────────────────────────────────────────
   server.tool(
     'mindmap_status',
-    'Show current Mind Map index statistics, memory usage, and token savings estimate.',
+    'Show current index statistics and system status.',
     {},
     async () => {
       try {

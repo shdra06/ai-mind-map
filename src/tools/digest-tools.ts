@@ -24,7 +24,7 @@ const defaultEstimator: ITokenEstimator = {
 };
 
 function ok(data: unknown, estimator: ITokenEstimator): string {
-  const json = JSON.stringify(data, null, 2);
+  const json = JSON.stringify(data);
   const tokens = estimator.estimate(json);
   return JSON.stringify({ success: true, data, tokenCount: tokens });
 }
@@ -52,10 +52,7 @@ export function registerDigestTools(
   // ── mindmap_digest ─────────────────────────────────────────
   server.tool(
     'mindmap_digest',
-    'Get a compressed codebase summary in under 2000 tokens. ' +
-      'Includes: file tree, tech stack, architecture layers, key symbols, ' +
-      'and recent changes. USE THIS instead of reading multiple files to ' +
-      'understand a project.',
+    'Get a compressed project summary in under 2000 tokens.',
     {
       includeChanges: z.boolean().optional().describe('Include recent changes in digest (default: true)'),
       maxTokens: z.number().optional().describe('Max tokens for digest (default: 2000)'),
@@ -201,9 +198,7 @@ export function registerDigestTools(
   // ── mindmap_file_digest ────────────────────────────────────
   server.tool(
     'mindmap_file_digest',
-    'Get a compressed summary of a single file WITHOUT reading the full file. ' +
-      'Returns: exports, key functions with signatures, dependencies, and recent changes. ' +
-      'Use this to understand a file before deciding whether to read it fully.',
+    'Get a compressed summary of a file without reading it fully.',
     {
       file: z.string().describe('File path (relative to project root or absolute)'),
     },
@@ -399,4 +394,128 @@ export function registerDigestTools(
     },
   );
   } // end CONSOLIDATED mindmap_verify
+
+  // ── mindmap_file_skeleton ───────────────────────────────────
+  server.tool(
+    'mindmap_file_skeleton',
+    'Get file structure as compact text: signatures, doc comments, and line ranges. Use BEFORE reading a full file.',
+    {
+      file: z.string().describe('File path (relative or absolute)'),
+      includePrivate: z.boolean().default(false).describe('Include private/internal symbols'),
+    },
+    async (args) => {
+      try {
+        // Resolve file path
+        let filePath = args.file;
+        if (!filePath.includes(':') && !filePath.startsWith('/')) {
+          filePath = resolve(config.projectRoot, filePath);
+        }
+
+        // Get all nodes for this file
+        let fileNodes = graph.getFileStructure(filePath);
+        if (fileNodes.length === 0) {
+          const allFiles = graph.getIndexedFiles();
+          const match = allFiles.find(f =>
+            relative(config.projectRoot, f).replace(/\\/g, '/') === args.file.replace(/\\/g, '/')
+          );
+          if (match) {
+            fileNodes = graph.getFileStructure(match);
+            filePath = match;
+          }
+        }
+
+        if (fileNodes.length === 0) {
+          return mcpText(fail(`File not found in index: ${args.file}`));
+        }
+
+        const relPath = relative(config.projectRoot, filePath).replace(/\\/g, '/');
+        const symbols = fileNodes.filter((n: any) => n.type !== 'file');
+        
+        // Filter private if not requested
+        const filtered = args.includePrivate 
+          ? symbols 
+          : symbols.filter((n: any) => n.visibility !== 'private');
+
+        // Get file info
+        const fileNode = fileNodes.find((n: any) => n.type === 'file');
+        const totalLines = fileNode?.endLine || Math.max(...symbols.map((n: any) => n.endLine || 0));
+        const lang = fileNode?.language || symbols[0]?.language || 'unknown';
+
+        // Build compact text skeleton
+        const lines: string[] = [];
+        lines.push(`# ${relPath} (${totalLines} lines, ${lang})`);
+        lines.push('');
+
+        // Group by class/interface
+        const classes = filtered.filter((n: any) => n.type === 'class' || n.type === 'interface');
+        const topLevel = filtered.filter((n: any) => 
+          !['class', 'interface'].includes(n.type) && 
+          !n.qualifiedName?.includes('.')
+        );
+        const classMembers = filtered.filter((n: any) =>
+          !['class', 'interface'].includes(n.type) &&
+          n.qualifiedName?.includes('.')
+        );
+
+        // Render top-level symbols
+        for (const sym of topLevel) {
+          const exp = sym.isExported ? 'export ' : '';
+          const doc = sym.docComment 
+            ? ` // ${sym.docComment.split('\n')[0].replace(/^[\s*\/]+/, '').trim().substring(0, 60)}`
+            : '';
+          lines.push(`${exp}${sym.signature || `${sym.type} ${sym.name}`}  // L${sym.startLine}-${sym.endLine}${doc}`);
+        }
+
+        // Render classes with their members
+        for (const cls of classes) {
+          lines.push('');
+          const exp = cls.isExported ? 'export ' : '';
+          const doc = cls.docComment
+            ? ` // ${cls.docComment.split('\n')[0].replace(/^[\s*\/]+/, '').trim().substring(0, 60)}`
+            : '';
+          lines.push(`${exp}${cls.signature || `${cls.type} ${cls.name}`}  // L${cls.startLine}-${cls.endLine}${doc}`);
+          
+          // Find members of this class
+          const members = classMembers.filter((m: any) =>
+            m.qualifiedName?.startsWith(cls.name + '.') ||
+            (m.startLine >= cls.startLine && m.endLine <= cls.endLine)
+          );
+          
+          for (const mem of members) {
+            const vis = mem.visibility === 'private' ? '- ' : mem.visibility === 'protected' ? '# ' : '+ ';
+            const sig = mem.signature || `${mem.type} ${mem.name}`;
+            // Shorten signature to essential parts
+            const shortSig = sig.length > 80 ? sig.substring(0, 77) + '...' : sig;
+            const memDoc = mem.docComment
+              ? ` // ${mem.docComment.split('\n')[0].replace(/^[\s*\/]+/, '').trim().substring(0, 50)}`
+              : '';
+            lines.push(`  ${vis}${shortSig}  // L${mem.startLine}${memDoc}`);
+          }
+        }
+
+        const skeleton = lines.join('\n');
+        
+        // Get recent changes for this file
+        const changes = changelog.getFileChanges(filePath, 5);
+        let changeInfo = '';
+        if (changes && changes.length > 0) {
+          changeInfo = '\n\n## Recent Changes\n' + changes.slice(0, 5).map((c: any) => 
+            `  ${c.type || 'modified'}: ${c.symbolName || c.name || 'unknown'}`
+          ).join('\n');
+        }
+
+        return mcpText(JSON.stringify({
+          success: true,
+          data: {
+            skeleton: skeleton + changeInfo,
+            symbolCount: filtered.length,
+            totalLines,
+            tokensSaved: `~${Math.round(totalLines * 25)} tokens saved vs reading full file`,
+          },
+        }));
+      } catch (err: unknown) {
+        return mcpText(fail(`Failed to get file skeleton: ${err instanceof Error ? err.message : String(err)}`));
+      }
+    },
+  );
 }

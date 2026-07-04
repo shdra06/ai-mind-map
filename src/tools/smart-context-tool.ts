@@ -59,11 +59,7 @@ export function registerSmartContextTools(
 
   server.tool(
     'mindmap_get_context',
-    'Get ALL context needed to work on a task in ONE call. ' +
-      'Instead of reading multiple files and searching, this returns: ' +
-      'relevant code snippets, call chains, related types (base classes, interfaces), ' +
-      'recent changes, and configuration — everything the AI needs to start coding immediately. ' +
-      'USE THIS instead of reading files one by one.',
+    'Get targeted context for a task combining relevant symbols and memories.',
     {
       symbols: z.array(z.string()).min(1).describe(
         'Symbol names to get context for (function names, class names, variable names)',

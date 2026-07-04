@@ -65,11 +65,7 @@ export function registerSemanticTools(
   // ── mindmap_semantic_search ─────────────────────────────────
   server.tool(
     'mindmap_semantic_search',
-    'Concept-level semantic search that finds code by MEANING, not just name. ' +
-      'Search "save user preferences" to find persistSettings(). ' +
-      'Search "authentication" to find login(), signin(), verifyCredentials(). ' +
-      'Uses TF-IDF + synonym expansion for intelligent matching. ' +
-      'Returns similarity scores and which synonyms were activated.',
+    'Search code by meaning using TF-IDF and synonym expansion.',
     {
       query: z.string().describe(
         'Natural language query describing what you\'re looking for. ' +

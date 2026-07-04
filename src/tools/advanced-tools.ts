@@ -170,8 +170,7 @@ export function registerAdvancedTools(
   // ── mindmap_dead_code ───────────────────────────────────────
   server.tool(
     'mindmap_dead_code',
-    'Detect potentially dead (uncalled) functions and methods in the codebase. ' +
-      'Returns a list of symbols with no incoming call edges, ranked by confidence.',
+    'Detect potentially dead or uncalled functions in the codebase.',
     {
       filePath: z
         .string()
@@ -199,9 +198,7 @@ export function registerAdvancedTools(
   // ── mindmap_architecture ────────────────────────────────────
   server.tool(
     'mindmap_architecture',
-    'Get a comprehensive architecture overview of the project. ' +
-      'Returns detected languages, entry points, layers, routes, ' +
-      'complexity hotspots, and dependency clusters.',
+    'Get project architecture overview with layers and entry points.',
     {
       projectPath: z
         .string()
@@ -224,10 +221,7 @@ export function registerAdvancedTools(
   // ── mindmap_get_code_snippet ────────────────────────────────
   server.tool(
     'mindmap_get_code_snippet',
-    'Read the actual source code for a specific function, class, or method by name. ' +
-      'Looks up the symbol in the knowledge graph to find its file and line range, ' +
-      'then reads exactly those lines (plus 3 lines of context above and below). ' +
-      'This is much cheaper than reading an entire file.',
+    'Read source code for a symbol by name from the graph.',
     {
       symbolName: z
         .string()
@@ -334,9 +328,7 @@ export function registerAdvancedTools(
   // ── mindmap_search_code ─────────────────────────────────────
   server.tool(
     'mindmap_search_code',
-    'Grep-like text search within indexed project files only (respects .gitignore and index scope). ' +
-      'Returns matches with file path, line number, line content, and surrounding context lines. ' +
-      'Supports optional regex mode for advanced pattern matching.',
+    'Grep-like text search within indexed project files.',
     {
       pattern: z
         .string()

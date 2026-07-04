@@ -165,7 +165,7 @@ export function registerChangeTools(
   // ── mindmap_impact_analysis ─────────────────────────────────
   server.tool(
     'mindmap_impact_analysis',
-    'Analyse the blast radius of changes to a file or symbol — what else is affected.',
+    'Analyse the blast radius of changes to a file or symbol.',
     {
       filePath: z
         .string()
