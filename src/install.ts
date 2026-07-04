@@ -658,17 +658,23 @@ function mergeMcpConfig(
 
   const runConfig = getServerRunConfig();
 
-  if (runConfig.mode === 'npx') {
+  if (runConfig.mode === 'global') {
+    // Global install: use the bin command directly (most reliable for native modules)
+    servers['ai-mind-map'] = {
+      command: NPM_PACKAGE_NAME,
+      args: [],
+    };
+  } else if (runConfig.mode === 'npx') {
+    // npx: downloads from npm (can have native module issues)
     servers['ai-mind-map'] = {
       command: 'npx',
       args: ['-y', NPM_PACKAGE_NAME],
-      env: {},
     };
   } else {
+    // Local clone: use absolute path
     servers['ai-mind-map'] = {
       command: 'node',
       args: [serverEntry],
-      env: {},
     };
   }
 

@@ -90,16 +90,7 @@ This project combines proven techniques from:
 
 ## 🚀 Quick Start
 
-### Method 1: npx (Fastest — Zero Install)
-
-```bash
-# Run directly without installing anything
-npx ai-mind-map install
-
-# That's it. It auto-detects Claude, Cursor, VS Code, Windsurf, Antigravity, Zed, Continue.dev
-```
-
-### Method 2: Global Install
+### Method 1: Global Install (Recommended — Most Reliable)
 
 ```bash
 npm install -g ai-mind-map
@@ -109,6 +100,15 @@ ai-mind-map install
 
 # Check everything is working
 ai-mind-map doctor
+```
+
+### Method 2: npx (Quick — No Install)
+
+```bash
+# Run directly without installing anything
+npx ai-mind-map install
+
+# ⚠️ If you get "bindings.js" errors, use Method 1 instead (npx cache can corrupt native modules)
 ```
 
 ### Method 3: Clone (For Development)
@@ -151,7 +151,8 @@ Output:
 ### Automatic (Recommended)
 
 ```bash
-npx ai-mind-map install
+npm install -g ai-mind-map
+ai-mind-map install
 ```
 
 This auto-detects **all 7 agents** and writes the config for you. Done.
@@ -164,14 +165,14 @@ After running `install`, each agent's config file contains:
 {
   "mcpServers": {
     "ai-mind-map": {
-      "command": "npx",
-      "args": ["-y", "ai-mind-map"]
+      "command": "ai-mind-map",
+      "args": []
     }
   }
 }
 ```
 
-This tells the agent: *"When you need MCP tools, run `npx ai-mind-map`"*. It downloads from npm on first use, then uses cache.
+> **💡 Note:** If you installed globally, the command is `ai-mind-map`. If using npx, it writes `"command": "npx", "args": ["-y", "ai-mind-map"]`. Both work, but global is more reliable for native dependencies.
 
 ### Manual Setup (If You Prefer)
 
