@@ -1433,7 +1433,17 @@ async function main(): Promise<void> {
     async ({ projectPath }: { projectPath: string }) => {
       try {
         const resolvedPath = path.resolve(projectPath);
-        const nodeCount = graph.getProjectNodeCount(resolvedPath);
+        
+        // Per-project database: each project gets its own .mindmap/mindmap.db
+        const projectDbPath = path.join(resolvedPath, '.mindmap', 'mindmap.db');
+        if (config.dbPath !== projectDbPath) {
+          log('info', `🔄 Switching DB: ${config.dbPath} → ${projectDbPath}`);
+          graph.switchDatabase(projectDbPath);
+          config.dbPath = projectDbPath;
+          log('info', `✅ DB switched to per-project: ${projectDbPath}`);
+        }
+
+        const nodeCount = graph.getStats().totalNodes;
 
         // Switch config to this project
         indexer.setProjectRoot(resolvedPath);

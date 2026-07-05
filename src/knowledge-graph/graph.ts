@@ -1762,6 +1762,75 @@ export class KnowledgeGraph {
   }
 
   /**
+   * Switch to a different database file (for per-project DB support).
+   * Closes the current DB, opens the new one, and re-initializes schema.
+   * All cached prepared statements are invalidated.
+   *
+   * @param newDbPath - Path to the new SQLite database file
+   */
+  switchDatabase(newDbPath: string): void {
+    // 1. Checkpoint WAL before closing
+    try { this.db.pragma('wal_checkpoint(TRUNCATE)'); } catch (_) { /* ignore */ }
+    
+    // 2. Close current DB
+    try { this.db.close(); } catch (_) { /* ignore */ }
+    
+    // 3. Clear all caches
+    this._stmtCache.clear();
+    this.adjOut.clear();
+    this.adjIn.clear();
+    this.adjDirty = true;
+    this._statsCache = null;
+    
+    // 4. Ensure directory exists
+    const fs = require('node:fs') as typeof import('node:fs');
+    const dirPath = require('node:path').dirname(newDbPath);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+    
+    // 5. Open new DB with same pragmas as constructor
+    try {
+      this.db = new Database(newDbPath);
+      
+      // Integrity check for non-memory databases
+      if (newDbPath !== ':memory:') {
+        const integrityResult = this.db.pragma('integrity_check') as { integrity_check: string }[];
+        if (!integrityResult || integrityResult.length === 0 || integrityResult[0]?.integrity_check !== 'ok') {
+          throw new Error(`Database integrity check failed: ${JSON.stringify(integrityResult)}`);
+        }
+      }
+      
+      this.db.pragma('journal_mode = WAL');
+      this.db.pragma('wal_autocheckpoint = 0');
+      this.db.pragma('synchronous = NORMAL');
+      this.db.pragma('foreign_keys = ON');
+      this.db.pragma('busy_timeout = 30000');
+      this.db.pragma('page_size = 8192');
+      this.db.pragma('cache_size = -64000');
+      this.initializeSchema();
+    } catch (err) {
+      // Corruption recovery — delete and recreate
+      process.stderr.write(`[ai-mind-map] switchDatabase: DB corrupt, recreating: ${err}\n`);
+      try { this.db.close(); } catch (_) { /* ignore */ }
+      if (newDbPath !== ':memory:') {
+        try { fs.unlinkSync(newDbPath); } catch (_) { /* ignore */ }
+        try { fs.unlinkSync(newDbPath + '-wal'); } catch (_) { /* ignore */ }
+        try { fs.unlinkSync(newDbPath + '-shm'); } catch (_) { /* ignore */ }
+      }
+      this.db = new Database(newDbPath);
+      this.db.pragma('journal_mode = WAL');
+      this.db.pragma('wal_autocheckpoint = 0');
+      this.db.pragma('synchronous = NORMAL');
+      this.db.pragma('foreign_keys = ON');
+      this.db.pragma('busy_timeout = 30000');
+      this.db.pragma('page_size = 8192');
+      this.db.pragma('cache_size = -64000');
+      this.initializeSchema();
+    }
+  }
+
+  /**
    * Close the database connection.
    */
   close(): void {
