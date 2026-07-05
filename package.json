@@ -1,6 +1,6 @@
 {
   "name": "ai-mind-map",
-  "version": "1.20.0",
+  "version": "1.20.1",
   "description": "AI Mind Map — MCP server that reduces AI coding agent token usage by 80-99% through persistent codebase memory, knowledge graphs, and intelligent context management",
   "type": "module",
   "main": "dist/index.js",

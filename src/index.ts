@@ -1281,13 +1281,10 @@ async function main(): Promise<void> {
       instructions: [
         '# AI Mind Map - Code Memory Engine',
         '',
-        '## FIRST: Set project',
-        'Call mindmap_set_project with the user project directory.',
-        'If it returns NEEDS_INDEX, call mindmap_reindex.',
+        '## FIRST: Call mindmap_set_project with the user project directory.',
+        'This ONE call does everything: switches project, auto-reindexes if needed, returns session context.',
+        'Do NOT call mindmap_reindex separately. Do NOT call mindmap_session_resume separately.',
         'NEVER use paths containing .gemini, .cursor, .vscode, AppData, or Program Files.',
-        '',
-        '## THEN: Resume session',
-        'Call mindmap_session_resume - returns previous session context, recent changes, and project overview.',
         '',
         '## Key Tools',
         '- mindmap_smart_search - Find symbols by name or concept',
@@ -1424,10 +1421,10 @@ async function main(): Promise<void> {
   // CONSOLIDATED v1.19.0: smart context tool disabled — replaced by mindmap_explain + mindmap_file_skeleton
   // registerSmartContextTools(server, graph, changelogEngine, config, tokenEstimator);
 
-  // ── mindmap_set_project (instant project switch, no reindex) ──
+  // ── mindmap_set_project (instant project switch + auto-reindex + session context) ──
   server.tool(
     'mindmap_set_project',
-    'Switch to a project directory instantly using existing indexed data.',
+    'Switch project, auto-reindex if needed, returns session context. One call does it all.',
     {
       projectPath: z.string().describe(
         'Absolute path to the project directory (e.g. "E:\\\\exeapps\\\\FlyShelf" or "/home/user/project")'
@@ -1443,7 +1440,23 @@ async function main(): Promise<void> {
         config.projectRoot = resolvedPath;
 
         if (nodeCount > 0) {
+          // Project is already indexed — return READY + session context
           const stats = graph.getStats();
+          
+          // Include session context (replaces separate mindmap_session_resume call)
+          let sessionContext: Record<string, unknown> = {};
+          try {
+            const memories = persistentMemory.queryMemories({ limit: 5 });
+            const decisions = decisionLog.queryDecisions({ limit: 3 });
+            const oneDayAgo = Date.now() - 86400000;
+            const recentChanges = changelogEngine.getChangesSince(oneDayAgo);
+            sessionContext = {
+              memories: memories.map((m: Memory) => ({ content: m.content, category: m.category })),
+              decisions: decisions.map((d: Decision) => ({ title: d.title, rationale: d.rationale })),
+              recentChanges: Object.keys(recentChanges.files || {}).slice(0, 5),
+            };
+          } catch (_) { /* session context is optional */ }
+
           return {
             content: [{
               type: 'text' as const,
@@ -1455,15 +1468,27 @@ async function main(): Promise<void> {
                   totalNodes: stats.totalNodes,
                   totalEdges: stats.totalEdges,
                   totalFiles: stats.totalFiles,
+                  languages: stats.languageBreakdown,
                   status: 'READY',
-                  message: `Switched to ${path.basename(resolvedPath)}. Found ${nodeCount} existing indexed symbols. All tools are ready — no reindex needed.`,
+                  message: `Switched to ${path.basename(resolvedPath)}. ${nodeCount} symbols indexed. All tools ready.`,
+                  session: sessionContext,
                 },
-                tokenCount: 80,
+                tokenCount: 120,
                 tokensSaved: 0,
               }),
             }],
           };
         } else {
+          // Project not indexed — auto-start background reindex
+          log('info', `📁 Auto-reindexing ${path.basename(resolvedPath)} in background...`);
+          
+          // Fire-and-forget background reindex
+          indexer.fullIndex().then((result) => {
+            log('info', `✅ Background reindex complete: ${result.filesScanned} files, ${result.nodesCreated} nodes, ${result.edgesCreated} edges in ${result.durationMs}ms`);
+          }).catch((err: unknown) => {
+            log('error', `Background reindex failed: ${err instanceof Error ? err.message : String(err)}`);
+          });
+
           return {
             content: [{
               type: 'text' as const,
@@ -1472,9 +1497,8 @@ async function main(): Promise<void> {
                 data: {
                   projectRoot: resolvedPath,
                   existingNodes: 0,
-                  status: 'NEEDS_INDEX',
-                  message: `Project ${path.basename(resolvedPath)} has no existing index. Call mindmap_reindex({ projectPath: "${resolvedPath}" }) to build the knowledge graph.`,
-                  _action: `Call mindmap_reindex({ projectPath: "${resolvedPath}" }) to index this project for the first time.`,
+                  status: 'INDEXING',
+                  message: `Project ${path.basename(resolvedPath)} is being indexed in the background. You can start working immediately — search tools will return results as indexing progresses. No need to call mindmap_reindex separately.`,
                 },
                 tokenCount: 80,
                 tokensSaved: 0,
@@ -1490,10 +1514,12 @@ async function main(): Promise<void> {
             text: JSON.stringify({
               success: false,
               message: `set_project failed: ${msg}`,
+              recovery: 'Verify the project path exists and is accessible.',
               tokenCount: 0,
               tokensSaved: 0,
             }),
           }],
+          isError: true,
         };
       }
     },
