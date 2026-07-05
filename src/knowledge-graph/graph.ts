@@ -9,6 +9,7 @@
  */
 
 import fs from 'node:fs';
+import path from 'node:path';
 import Database from 'better-sqlite3';
 import type {
   GraphNode,
@@ -1783,8 +1784,7 @@ export class KnowledgeGraph {
     this._statsCache = null;
     
     // 4. Ensure directory exists
-    const fs = require('node:fs') as typeof import('node:fs');
-    const dirPath = require('node:path').dirname(newDbPath);
+    const dirPath = path.dirname(newDbPath);
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });
     }
