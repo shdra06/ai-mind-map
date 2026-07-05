@@ -1146,8 +1146,18 @@ async function main(): Promise<void> {
   const pagerank = new PageRankEngine(graph);
 
   // Changelog Engine â€” node-level change tracking (v1.4.0)
-  // C-2 FIX: Use graph's single DB connection for ALL subsystems
-  sharedDb = graph.getDb();
+  // C-2 FIX: Use a Proxy so all subsystems always see the CURRENT graph DB.
+  // When graph.switchDatabase() is called, this proxy auto-delegates to the new DB.
+  sharedDb = new Proxy({} as Database.Database, {
+    get(_target, prop, _receiver) {
+      const realDb = graph.getDb();
+      const value = (realDb as any)[prop];
+      if (typeof value === 'function') {
+        return value.bind(realDb);
+      }
+      return value;
+    },
+  });
   const changelogEngine = new ChangelogEngine(sharedDb);
   indexer.setChangelog(changelogEngine);
   log('info', 'âœ… Knowledge Graph initialized (with changelog engine)');
