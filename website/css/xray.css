@@ -3,45 +3,45 @@
    ============================================================ */
 
 .xray-section {
-  padding: 5rem 0 3rem;
+  padding: 6rem 0 4rem;
   background: var(--bg-primary, #FAF6F1);
 }
 
 /* --- Hero Layout --- */
 .xray-hero {
   display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 3rem;
+  grid-template-columns: 1fr 360px;
+  gap: 4rem;
   align-items: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 3rem;
 }
 
 /* --- Left Content --- */
 .xray-label {
   display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.76rem;
+  font-weight: 700;
   color: var(--accent-primary, #E8611A);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 0.6rem;
+  letter-spacing: 0.12em;
+  margin-bottom: 1rem;
 }
 
 .xray-title {
-  font-size: 2.6rem;
-  font-weight: 700;
+  font-size: 4rem;
+  font-weight: 800;
   color: var(--text-primary, #2C2520);
-  line-height: 1.15;
-  margin-bottom: 0.8rem;
-  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-bottom: 1.2rem;
+  letter-spacing: -0.03em;
 }
 
 .xray-desc {
-  font-size: 0.92rem;
+  font-size: 1rem;
   color: var(--text-secondary, #6B6560);
-  line-height: 1.6;
-  margin-bottom: 1.5rem;
-  max-width: 460px;
+  line-height: 1.65;
+  margin-bottom: 2rem;
+  max-width: 500px;
 }
 
 /* --- Input Row --- */
@@ -213,7 +213,7 @@
     display: none;
   }
   .xray-title {
-    font-size: 2rem;
+    font-size: 2.4rem;
   }
 }
 
