@@ -328,156 +328,157 @@
       </p>
     </div>
 
-    <!-- Brain container -->
-    <div id="brain-container" style="
-      display: flex;
-      height: 80vh;
-      min-height: 600px;
-      max-height: 900px;
-      border-top: 1px solid rgba(26,22,18,0.12);
-      border-bottom: 1px solid rgba(26,22,18,0.12);
-      background: #F0EBE3;
-      position: relative;
-      overflow: hidden;
-    ">
-      <!-- Ambient glow behind graph -->
-      <div style="position:absolute;inset:0;pointer-events:none;z-index:0;
-        background: radial-gradient(ellipse at 60% 50%, rgba(232,97,26,0.04) 0%, transparent 60%),
-                    radial-gradient(ellipse at 20% 80%, rgba(212,144,31,0.02) 0%, transparent 50%);">
-      </div>
-      <!-- Dot grid overlay -->
-      <div style="position:absolute;inset:0;pointer-events:none;z-index:0;
-        background-image: radial-gradient(circle, rgba(26,22,18,0.06) 1px, transparent 1px);
-        background-size: 24px 24px;"></div>
-
-      <!-- LEFT PANEL -->
-      <div id="brain-panel" style="
-        width: 280px;
-        min-width: 280px;
-        height: 100%;
-        background: rgba(247,244,240,0.98);
-        border-right: 1px solid rgba(26,22,18,0.1);
-        display: flex;
-        flex-direction: column;
-        z-index: 10;
+    <!-- Boxed Demo Wrapper -->
+    <div class="container-lg reveal">
+      <div style="
+        border: 1px solid rgba(26, 22, 18, 0.12);
+        border-radius: 16px;
+        box-shadow: 0 12px 40px rgba(26, 22, 18, 0.05), 0 1px 3px rgba(26, 22, 18, 0.02);
         overflow: hidden;
+        background: #F0EBE3;
+        position: relative;
       ">
-        <!-- Panel header -->
-        <div style="padding:1rem 1.25rem;border-bottom:1px solid rgba(245,166,35,0.08);">
-          <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:#E8611A;margin-bottom:0.75rem;">🧠 Codebase Explorer</div>
-          <!-- Search -->
-          <div style="position:relative;">
-            <span style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);color:#5C5048;font-size:0.85rem;">⌕</span>
-            <input id="brain-search" type="search" name="brain-search"
-              role="searchbox" aria-label="Search knowledge graph nodes and files"
-              placeholder="Search nodes, files..." autocomplete="off"
-              style="width:100%;box-sizing:border-box;background:#FFFFFF;border:1px solid rgba(26,22,18,0.15);
-              border-radius:8px;padding:0.55rem 0.75rem 0.55rem 2rem;color:#1A1614;font-size:0.82rem;
-              font-family:'Geist Mono',monospace;outline:none;transition:border-color 0.2s;"
-              onfocus="this.style.borderColor='rgba(232,97,26,0.5)'"
-              onblur="this.style.borderColor='rgba(26,22,18,0.15)'">
+        <!-- Brain container -->
+        <div id="brain-container" style="
+          display: flex;
+          height: 75vh;
+          min-height: 550px;
+          max-height: 800px;
+          position: relative;
+          overflow: hidden;
+        ">
+          <!-- Ambient glow behind graph -->
+          <div style="position:absolute;inset:0;pointer-events:none;z-index:0;
+            background: radial-gradient(ellipse at 60% 50%, rgba(232,97,26,0.04) 0%, transparent 60%),
+                        radial-gradient(ellipse at 20% 80%, rgba(212,144,31,0.02) 0%, transparent 50%);">
+          </div>
+          <!-- Dot grid overlay -->
+          <div style="position:absolute;inset:0;pointer-events:none;z-index:0;
+            background-image: radial-gradient(circle, rgba(26,22,18,0.06) 1px, transparent 1px);
+            background-size: 24px 24px;"></div>
+
+          <!-- LEFT PANEL -->
+          <div id="brain-panel" style="
+            width: 280px;
+            min-width: 280px;
+            height: 100%;
+            background: rgba(247,244,240,0.98);
+            border-right: 1px solid rgba(26,22,18,0.1);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            overflow: hidden;
+          ">
+            <!-- Panel header -->
+            <div style="padding:1rem 1.25rem;border-bottom:1px solid rgba(245,166,35,0.08);">
+              <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:#E8611A;margin-bottom:0.75rem;">🧠 Codebase Explorer</div>
+              <!-- Search -->
+              <div style="position:relative;">
+                <span style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);color:#5C5048;font-size:0.85rem;">⌕</span>
+                <input id="brain-search" type="search" name="brain-search"
+                  role="searchbox" aria-label="Search knowledge graph nodes and files"
+                  placeholder="Search nodes, files..." autocomplete="off"
+                  style="width:100%;box-sizing:border-box;background:#FFFFFF;border:1px solid rgba(26,22,18,0.15);
+                  border-radius:8px;padding:0.55rem 0.75rem 0.55rem 2rem;color:#1A1614;font-size:0.82rem;
+                  font-family:'Geist Mono',monospace;outline:none;transition:border-color 0.2s;"
+                  onfocus="this.style.borderColor='rgba(232,97,26,0.5)'"
+                  onblur="this.style.borderColor='rgba(26,22,18,0.15)'">
+              </div>
+            </div>
+
+            <!-- Stats bar -->
+            <div style="padding:0.6rem 1.25rem;border-bottom:1px solid rgba(245,166,35,0.06);display:flex;gap:1rem;">
+              <span id="brain-node-count" style="font-size:0.72rem;color:#E8611A;font-family:'Geist Mono',monospace;">120 nodes</span>
+              <span style="color:#8C8278;font-size:0.72rem;">·</span>
+              <span id="brain-edge-count" style="font-size:0.72rem;color:#1A7F37;font-family:'Geist Mono',monospace;">300 edges</span>
+              <span style="color:#8C8278;font-size:0.72rem;">·</span>
+              <span id="brain-selected-label" style="font-size:0.72rem;color:#8C8278;font-family:'Geist Mono',monospace;">none selected</span>
+            </div>
+
+            <!-- Tabs -->
+            <div style="display:flex;border-bottom:1px solid rgba(245,166,35,0.08);">
+              <button class="brain-tab active" data-tab="files" style="flex:1;padding:0.6rem;background:none;border:none;color:#E8611A;font-size:0.75rem;cursor:pointer;border-bottom:2px solid #E8611A;font-family:'Geist',sans-serif;font-weight:600;">Files</button>
+              <button class="brain-tab" data-tab="types" style="flex:1;padding:0.6rem;background:none;border:none;color:#8C8278;font-size:0.75rem;cursor:pointer;border-bottom:2px solid transparent;font-family:'Geist',sans-serif;font-weight:600;">Types</button>
+              <button class="brain-tab" data-tab="hot" style="flex:1;padding:0.6rem;background:none;border:none;color:#8C8278;font-size:0.75rem;cursor:pointer;border-bottom:2px solid transparent;font-family:'Geist',sans-serif;font-weight:600;">🔥 Hot</button>
+            </div>
+
+            <!-- Tab content area -->
+            <div id="brain-tab-content" style="flex:1;overflow-y:auto;padding:0.75rem 0;scrollbar-width:thin;scrollbar-color:rgba(232,97,26,0.3) transparent;">
+              <!-- Filled by JS -->
+            </div>
+
+            <!-- Node detail panel (shows on click) -->
+            <div id="brain-node-detail" style="
+              border-top:1px solid rgba(26,22,18,0.1);
+              padding:1rem 1.25rem;
+              display:none;
+              flex-direction:column;
+              gap:0.6rem;
+              background:rgba(237,233,227,0.98);
+              max-height:45%;
+              overflow-y:auto;
+            ">
+              <!-- Filled by JS -->
+            </div>
+          </div>
+
+          <!-- GRAPH AREA -->
+          <div id="brain-graph-area" style="flex:1;position:relative;z-index:1;">
+            <!-- Top right real-data badge -->
+            <div style="position:absolute;top:14px;right:14px;z-index:20;display:flex;align-items:center;gap:0.5rem;
+              padding:0.4rem 0.9rem;background:rgba(0,184,148,0.08);border:1px solid rgba(0,184,148,0.2);
+              border-radius:99px;font-size:0.7rem;color:#34d399;font-family:'JetBrains Mono',monospace;">
+              <span style="width:6px;height:6px;background:#34d399;border-radius:50%;box-shadow:0 0 6px #34d399;animation:pulse-glow 2s infinite;"></span>
+              Real ai-mind-map data · v1.21.2
+            </div>
+
+            <!-- Graph controls top-left -->
+            <div style="position:absolute;top:14px;left:14px;z-index:20;display:flex;gap:0.5rem;flex-wrap:wrap;">
+              <button id="brain-btn-reset" title="Reset zoom"
+                style="padding:0.35rem 0.75rem;background:rgba(255,255,255,0.9);border:1px solid rgba(232,97,26,0.2);
+                border-radius:8px;color:#5C5248;font-size:0.72rem;cursor:pointer;font-family:'Geist Mono',monospace;
+                transition:all 0.2s;" onmouseover="this.style.borderColor='#E8611A'" onmouseout="this.style.borderColor='rgba(232,97,26,0.2)'">⌖ Reset</button>
+              <button id="brain-btn-hotspots" title="Highlight most connected"
+                style="padding:0.35rem 0.75rem;background:rgba(255,255,255,0.9);border:1px solid rgba(232,97,26,0.2);
+                border-radius:8px;color:#5C5248;font-size:0.72rem;cursor:pointer;font-family:'Geist Mono',monospace;
+                transition:all 0.2s;" onmouseover="this.style.borderColor='#E8611A'" onmouseout="this.style.borderColor='rgba(232,97,26,0.2)'">🔥 Hotspots</button>
+              <button id="brain-btn-clear" title="Clear selection"
+                style="padding:0.35rem 0.75rem;background:rgba(255,255,255,0.9);border:1px solid rgba(232,97,26,0.2);
+                border-radius:8px;color:#5C5248;font-size:0.72rem;cursor:pointer;font-family:'Geist Mono',monospace;
+                transition:all 0.2s;" onmouseover="this.style.borderColor='#E8611A'" onmouseout="this.style.borderColor='rgba(232,97,26,0.2)'">✕ Clear</button>
+            </div>
+
+            <!-- Hover tooltip -->
+            <div id="brain-tooltip" style="
+              position:absolute;z-index:30;pointer-events:none;display:none;
+              background:rgba(255,255,255,0.97);border:1px solid rgba(26,22,18,0.15);
+              border-radius:10px;padding:0.65rem 0.9rem;max-width:240px;
+              box-shadow:0 8px 32px rgba(26,22,18,0.12),0 0 12px rgba(232,97,26,0.06);
+            "></div>
+
+            <!-- SVG graph -->
+            <svg id="brain-svg" style="width:100%;height:100%;display:block;"></svg>
           </div>
         </div>
 
-        <!-- Stats bar -->
-        <div style="padding:0.6rem 1.25rem;border-bottom:1px solid rgba(245,166,35,0.06);display:flex;gap:1rem;">
-          <span id="brain-node-count" style="font-size:0.72rem;color:#E8611A;font-family:'Geist Mono',monospace;">120 nodes</span>
-          <span style="color:#8C8278;font-size:0.72rem;">·</span>
-          <span id="brain-edge-count" style="font-size:0.72rem;color:#1A7F37;font-family:'Geist Mono',monospace;">300 edges</span>
-          <span style="color:#8C8278;font-size:0.72rem;">·</span>
-          <span id="brain-selected-label" style="font-size:0.72rem;color:#8C8278;font-family:'Geist Mono',monospace;">none selected</span>
+        <!-- Bottom legend strip -->
+        <div style="background:rgba(247,244,240,0.98);border-top:1px solid rgba(26,22,18,0.1);padding:0.75rem 2rem;display:flex;gap:1.5rem;overflow-x:auto;align-items:center;flex-wrap:wrap;">
+          <span style="font-size:0.7rem;color:#8C8278;text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap;">Node types:</span>
+          <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#E8611A;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">class</span></span>
+          <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#D4901F;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">method</span></span>
+          <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#39D353;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">function</span></span>
+          <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#F0A835;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">interface</span></span>
+          <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#FFB347;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">enum</span></span>
+          <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#FF7A35;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">constructor</span></span>
+          <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#C8B8A8;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">property</span></span>
+          <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#9C8E82;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">constant</span></span>
+          <div style="margin-left:auto;display:flex;gap:1rem;">
+            <span style="display:flex;align-items:center;gap:0.4rem;"><span style="width:20px;height:2px;background:#E8611A;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">calls</span></span>
+            <span style="display:flex;align-items:center;gap:0.4rem;"><span style="width:20px;height:1px;background:#D4901F;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">imports</span></span>
+            <span style="display:flex;align-items:center;gap:0.4rem;"><span style="width:20px;height:1px;background:#39D353;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">inherits</span></span>
+            <span style="display:flex;align-items:center;gap:0.4rem;"><span style="width:20px;height:1px;border-top:1px dashed #FFB347;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">uses</span></span>
+          </div>
         </div>
-
-        <!-- Tabs -->
-        <div style="display:flex;border-bottom:1px solid rgba(245,166,35,0.08);">
-          <button class="brain-tab active" data-tab="files" style="flex:1;padding:0.6rem;background:none;border:none;color:#E8611A;font-size:0.75rem;cursor:pointer;border-bottom:2px solid #E8611A;font-family:'Geist',sans-serif;font-weight:600;">Files</button>
-          <button class="brain-tab" data-tab="types" style="flex:1;padding:0.6rem;background:none;border:none;color:#8C8278;font-size:0.75rem;cursor:pointer;border-bottom:2px solid transparent;font-family:'Geist',sans-serif;font-weight:600;">Types</button>
-          <button class="brain-tab" data-tab="hot" style="flex:1;padding:0.6rem;background:none;border:none;color:#8C8278;font-size:0.75rem;cursor:pointer;border-bottom:2px solid transparent;font-family:'Geist',sans-serif;font-weight:600;">🔥 Hot</button>
-        </div>
-
-        <!-- Tab content area -->
-        <div id="brain-tab-content" style="flex:1;overflow-y:auto;padding:0.75rem 0;scrollbar-width:thin;scrollbar-color:rgba(232,97,26,0.3) transparent;">
-          <!-- Filled by JS -->
-        </div>
-
-        <!-- Node detail panel (shows on click) -->
-        <div id="brain-node-detail" style="
-          border-top:1px solid rgba(26,22,18,0.1);
-          padding:1rem 1.25rem;
-          display:none;
-          flex-direction:column;
-          gap:0.6rem;
-          background:rgba(237,233,227,0.98);
-          max-height:45%;
-          overflow-y:auto;
-        ">
-          <!-- Filled by JS -->
-        </div>
-      </div>
-
-      <!-- GRAPH AREA -->
-      <div id="brain-graph-area" style="flex:1;position:relative;z-index:1;">
-        <!-- Top right real-data badge -->
-        <div style="position:absolute;top:14px;right:14px;z-index:20;display:flex;align-items:center;gap:0.5rem;
-          padding:0.4rem 0.9rem;background:rgba(0,184,148,0.08);border:1px solid rgba(0,184,148,0.2);
-          border-radius:99px;font-size:0.7rem;color:#34d399;font-family:'JetBrains Mono',monospace;">
-          <span style="width:6px;height:6px;background:#34d399;border-radius:50%;box-shadow:0 0 6px #34d399;animation:pulse-glow 2s infinite;"></span>
-          Real ai-mind-map data · v1.21.2
-        </div>
-
-        <!-- Graph controls top-left -->
-        <div style="position:absolute;top:14px;left:14px;z-index:20;display:flex;gap:0.5rem;flex-wrap:wrap;">
-          <button id="brain-btn-reset" title="Reset zoom"
-            style="padding:0.35rem 0.75rem;background:rgba(255,255,255,0.9);border:1px solid rgba(232,97,26,0.2);
-            border-radius:8px;color:#5C5248;font-size:0.72rem;cursor:pointer;font-family:'Geist Mono',monospace;
-            transition:all 0.2s;" onmouseover="this.style.borderColor='#E8611A'" onmouseout="this.style.borderColor='rgba(232,97,26,0.2)'">⌖ Reset</button>
-          <button id="brain-btn-zoomin" title="Zoom In"
-            style="padding:0.35rem 0.75rem;background:rgba(255,255,255,0.9);border:1px solid rgba(232,97,26,0.2);
-            border-radius:8px;color:#5C5248;font-size:0.72rem;cursor:pointer;font-family:'Geist Mono',monospace;
-            transition:all 0.2s;" onmouseover="this.style.borderColor='#E8611A'" onmouseout="this.style.borderColor='rgba(232,97,26,0.2)'">＋ In</button>
-          <button id="brain-btn-zoomout" title="Zoom Out"
-            style="padding:0.35rem 0.75rem;background:rgba(255,255,255,0.9);border:1px solid rgba(232,97,26,0.2);
-            border-radius:8px;color:#5C5248;font-size:0.72rem;cursor:pointer;font-family:'Geist Mono',monospace;
-            transition:all 0.2s;" onmouseover="this.style.borderColor='#E8611A'" onmouseout="this.style.borderColor='rgba(232,97,26,0.2)'">－ Out</button>
-          <button id="brain-btn-hotspots" title="Highlight most connected"
-            style="padding:0.35rem 0.75rem;background:rgba(255,255,255,0.9);border:1px solid rgba(232,97,26,0.2);
-            border-radius:8px;color:#5C5248;font-size:0.72rem;cursor:pointer;font-family:'Geist Mono',monospace;
-            transition:all 0.2s;" onmouseover="this.style.borderColor='#E8611A'" onmouseout="this.style.borderColor='rgba(232,97,26,0.2)'">🔥 Hotspots</button>
-          <button id="brain-btn-clear" title="Clear selection"
-            style="padding:0.35rem 0.75rem;background:rgba(255,255,255,0.9);border:1px solid rgba(232,97,26,0.2);
-            border-radius:8px;color:#5C5248;font-size:0.72rem;cursor:pointer;font-family:'Geist Mono',monospace;
-            transition:all 0.2s;" onmouseover="this.style.borderColor='#E8611A'" onmouseout="this.style.borderColor='rgba(232,97,26,0.2)'">✕ Clear</button>
-        </div>
-
-        <!-- Hover tooltip -->
-        <div id="brain-tooltip" style="
-          position:absolute;z-index:30;pointer-events:none;display:none;
-          background:rgba(255,255,255,0.97);border:1px solid rgba(26,22,18,0.15);
-          border-radius:10px;padding:0.65rem 0.9rem;max-width:240px;
-          box-shadow:0 8px 32px rgba(26,22,18,0.12),0 0 12px rgba(232,97,26,0.06);
-        "></div>
-
-        <!-- SVG graph -->
-        <svg id="brain-svg" style="width:100%;height:100%;display:block;"></svg>
-      </div>
-    </div>
-
-    <!-- Bottom legend strip -->
-    <div style="background:rgba(247,244,240,0.95);border-bottom:1px solid rgba(26,22,18,0.1);padding:0.75rem 2rem;display:flex;gap:1.5rem;overflow-x:auto;align-items:center;flex-wrap:wrap;">
-      <span style="font-size:0.7rem;color:#8C8278;text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap;">Node types:</span>
-      <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#E8611A;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">class</span></span>
-      <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#D4901F;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">method</span></span>
-      <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#39D353;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">function</span></span>
-      <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#F0A835;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">interface</span></span>
-      <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#FFB347;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">enum</span></span>
-      <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#FF7A35;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">constructor</span></span>
-      <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#C8B8A8;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">property</span></span>
-      <span style="display:flex;align-items:center;gap:0.4rem;white-space:nowrap;"><span style="width:10px;height:10px;border-radius:50%;background:#9C8E82;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">constant</span></span>
-      <div style="margin-left:auto;display:flex;gap:1rem;">
-        <span style="display:flex;align-items:center;gap:0.4rem;"><span style="width:20px;height:2px;background:#E8611A;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">calls</span></span>
-        <span style="display:flex;align-items:center;gap:0.4rem;"><span style="width:20px;height:1px;background:#D4901F;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">imports</span></span>
-        <span style="display:flex;align-items:center;gap:0.4rem;"><span style="width:20px;height:1px;background:#39D353;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">inherits</span></span>
-        <span style="display:flex;align-items:center;gap:0.4rem;"><span style="width:20px;height:1px;border-top:1px dashed #FFB347;display:inline-block;"></span><span style="font-size:0.72rem;color:#5C5248;">uses</span></span>
       </div>
     </div>
   </section>
@@ -908,10 +909,6 @@
 
       zoom = d3.zoom()
         .scaleExtent([0.15, 4])
-        .filter(event => {
-          if (event.type === 'wheel') return event.ctrlKey;
-          return !event.ctrlKey && !event.button;
-        })
         .on('zoom', e => svgG.attr('transform', e.transform));
       svgEl.call(zoom);
       svgG = svgEl.append('g');
@@ -1338,12 +1335,6 @@
     function setupButtons() {
       document.getElementById('brain-btn-reset').addEventListener('click', () => {
         svgEl.transition().duration(600).call(zoom.transform, d3.zoomIdentity);
-      });
-      document.getElementById('brain-btn-zoomin').addEventListener('click', () => {
-        svgEl.transition().duration(300).call(zoom.scaleBy, 1.3);
-      });
-      document.getElementById('brain-btn-zoomout').addEventListener('click', () => {
-        svgEl.transition().duration(300).call(zoom.scaleBy, 1 / 1.3);
       });
       document.getElementById('brain-btn-clear').addEventListener('click', clearBrainSelection);
       document.getElementById('brain-btn-hotspots').addEventListener('click', () => {
