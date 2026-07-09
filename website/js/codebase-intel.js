@@ -183,9 +183,21 @@
     const apiCalls = detectAPICalls(files);
     const dbQueries = detectDBQueries(files);
     
-    // Start with existing nodes/edges
-    const nodes = [...existingNodes];
-    const edges = [...existingEdges];
+    // Start with existing nodes/edges (shallow copy nodes/edges to prevent D3 object reference mutation leakage)
+    const nodes = existingNodes.map(n => {
+      const copy = { ...n };
+      delete copy.index;
+      delete copy.vx;
+      delete copy.vy;
+      if (copy.x !== undefined && !isFinite(copy.x)) delete copy.x;
+      if (copy.y !== undefined && !isFinite(copy.y)) delete copy.y;
+      return copy;
+    });
+    const edges = existingEdges.map(e => ({
+      ...e,
+      source: typeof e.source === 'object' ? e.source.id : e.source,
+      target: typeof e.target === 'object' ? e.target.id : e.target
+    }));
     const nodeIds = new Set(nodes.map(n => n.id));
     
     // Add route nodes

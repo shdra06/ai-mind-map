@@ -320,6 +320,31 @@
     return { nodes: kept, edges: filteredEdges };
   }
 
+  function cleanGraphData(nodes, edges) {
+    const cleanNodes = nodes.map(n => {
+      const copy = Object.assign({}, n);
+      delete copy.index;
+      delete copy.vx;
+      delete copy.vy;
+      if (copy.x !== undefined && !isFinite(copy.x)) delete copy.x;
+      if (copy.y !== undefined && !isFinite(copy.y)) delete copy.y;
+      return copy;
+    });
+
+    const cleanEdges = edges.map(e => {
+      const copy = Object.assign({}, e);
+      if (typeof copy.source === 'object' && copy.source !== null) {
+        copy.source = copy.source.id;
+      }
+      if (typeof copy.target === 'object' && copy.target !== null) {
+        copy.target = copy.target.id;
+      }
+      return copy;
+    });
+
+    return { nodes: cleanNodes, edges: cleanEdges };
+  }
+
   function init(containerEl, data) {
     if (_svg) destroy(); // cleanup previous
     _destroyed = false;
@@ -327,10 +352,9 @@
     injectStyles();
     _container = containerEl;
 
-    // Select most important nodes if too many
-    const allNodes = (data.nodes || []).map(n => Object.assign({}, n));
-    const allEdges = (data.edges || []).map(e => Object.assign({}, e));
-    const selected = selectImportantNodes(allNodes, allEdges, MAX_NODES);
+    // Clean graph data to prevent sharing mutated D3 references from previous runs
+    const clean = cleanGraphData(data.nodes || [], data.edges || []);
+    const selected = selectImportantNodes(clean.nodes, clean.edges, MAX_NODES);
 
     _nodes  = selected.nodes;
     _edges  = selected.edges;
