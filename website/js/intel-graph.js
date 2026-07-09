@@ -385,6 +385,10 @@
     // zoom
     _zoom = d3.zoom()
       .scaleExtent([0.1, 6])
+      .filter(ev => {
+        if (ev.type === 'wheel') return ev.ctrlKey;
+        return !ev.ctrlKey && !ev.button;
+      })
       .on('zoom', (ev) => _g.attr('transform', ev.transform));
     _svg.call(_zoom);
 

@@ -431,6 +431,14 @@
             style="padding:0.35rem 0.75rem;background:rgba(255,255,255,0.9);border:1px solid rgba(232,97,26,0.2);
             border-radius:8px;color:#5C5248;font-size:0.72rem;cursor:pointer;font-family:'Geist Mono',monospace;
             transition:all 0.2s;" onmouseover="this.style.borderColor='#E8611A'" onmouseout="this.style.borderColor='rgba(232,97,26,0.2)'">⌖ Reset</button>
+          <button id="brain-btn-zoomin" title="Zoom In"
+            style="padding:0.35rem 0.75rem;background:rgba(255,255,255,0.9);border:1px solid rgba(232,97,26,0.2);
+            border-radius:8px;color:#5C5248;font-size:0.72rem;cursor:pointer;font-family:'Geist Mono',monospace;
+            transition:all 0.2s;" onmouseover="this.style.borderColor='#E8611A'" onmouseout="this.style.borderColor='rgba(232,97,26,0.2)'">＋ In</button>
+          <button id="brain-btn-zoomout" title="Zoom Out"
+            style="padding:0.35rem 0.75rem;background:rgba(255,255,255,0.9);border:1px solid rgba(232,97,26,0.2);
+            border-radius:8px;color:#5C5248;font-size:0.72rem;cursor:pointer;font-family:'Geist Mono',monospace;
+            transition:all 0.2s;" onmouseover="this.style.borderColor='#E8611A'" onmouseout="this.style.borderColor='rgba(232,97,26,0.2)'">－ Out</button>
           <button id="brain-btn-hotspots" title="Highlight most connected"
             style="padding:0.35rem 0.75rem;background:rgba(255,255,255,0.9);border:1px solid rgba(232,97,26,0.2);
             border-radius:8px;color:#5C5248;font-size:0.72rem;cursor:pointer;font-family:'Geist Mono',monospace;
@@ -900,6 +908,10 @@
 
       zoom = d3.zoom()
         .scaleExtent([0.15, 4])
+        .filter(event => {
+          if (event.type === 'wheel') return event.ctrlKey;
+          return !event.ctrlKey && !event.button;
+        })
         .on('zoom', e => svgG.attr('transform', e.transform));
       svgEl.call(zoom);
       svgG = svgEl.append('g');
@@ -1326,6 +1338,12 @@
     function setupButtons() {
       document.getElementById('brain-btn-reset').addEventListener('click', () => {
         svgEl.transition().duration(600).call(zoom.transform, d3.zoomIdentity);
+      });
+      document.getElementById('brain-btn-zoomin').addEventListener('click', () => {
+        svgEl.transition().duration(300).call(zoom.scaleBy, 1.3);
+      });
+      document.getElementById('brain-btn-zoomout').addEventListener('click', () => {
+        svgEl.transition().duration(300).call(zoom.scaleBy, 1 / 1.3);
       });
       document.getElementById('brain-btn-clear').addEventListener('click', clearBrainSelection);
       document.getElementById('brain-btn-hotspots').addEventListener('click', () => {

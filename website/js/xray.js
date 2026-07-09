@@ -554,7 +554,14 @@
       .attr('viewBox', `0 0 ${width} ${height}`);
 
     const g = svg.append('g');
-    svg.call(d3.zoom().scaleExtent([0.2, 4]).on('zoom', e => g.attr('transform', e.transform)));
+    const zoomBehavior = d3.zoom()
+       .scaleExtent([0.2, 4])
+       .filter(e => {
+         if (e.type === 'wheel') return e.ctrlKey;
+         return !e.ctrlKey && !e.button;
+       })
+       .on('zoom', e => g.attr('transform', e.transform));
+     svg.call(zoomBehavior);
 
     // Links
     const link = g.append('g').selectAll('line').data(visEdges).enter().append('line')
