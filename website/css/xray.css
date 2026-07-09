@@ -1,89 +1,335 @@
 /* ============================================================
-   X-RAY — Codebase Health Report Styles
+   X-RAY — HERO FEATURE STYLES
    ============================================================ */
 
 .xray-section {
-  padding: 4rem 0 3rem;
-  background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  padding: 0 0 3rem;
+  background: var(--bg-primary);
 }
 
-.xray-header {
-  text-align: center;
-  margin-bottom: 2rem;
+/* --- Hero Background --- */
+.xray-hero-bg {
+  background: linear-gradient(135deg, #1a0a02 0%, #2d1508 30%, #1e0e05 60%, #0f0a06 100%);
+  padding: 3.5rem 0 3rem;
+  position: relative;
+  overflow: hidden;
 }
 
-.section-badge {
-  display: inline-block;
-  padding: 0.35rem 0.9rem;
-  background: rgba(232, 97, 26, 0.1);
-  color: var(--accent-primary);
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
+.xray-hero-bg::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: radial-gradient(circle at 30% 50%, rgba(232,97,26,0.08) 0%, transparent 50%),
+              radial-gradient(circle at 70% 30%, rgba(255,122,51,0.06) 0%, transparent 40%);
+  animation: heroFloat 8s ease-in-out infinite;
+}
+
+@keyframes heroFloat {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-2%, 1%); }
+}
+
+/* --- Two-column layout --- */
+.xray-hero-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 2.5rem;
+  align-items: start;
+  position: relative;
+  z-index: 1;
+}
+
+/* --- Left Content --- */
+.xray-hero-content {
+  padding-top: 0.5rem;
+}
+
+.xray-hero-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
   margin-bottom: 1rem;
 }
 
-.xray-header .section-title {
-  font-size: 2.2rem;
+.xray-hero-badge {
+  padding: 0.3rem 0.7rem;
+  border-radius: 20px;
+  font-size: 0.68rem;
   font-weight: 700;
-  margin-bottom: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.xray-header .section-subtitle {
-  max-width: 600px;
-  margin: 0 auto;
-  color: var(--text-secondary);
-  line-height: 1.6;
+.xray-badge-new {
+  background: rgba(232, 97, 26, 0.2);
+  color: #FF8C42;
+  border: 1px solid rgba(232, 97, 26, 0.3);
 }
 
-/* --- Input Row --- */
+.xray-badge-ai {
+  background: rgba(108, 92, 231, 0.15);
+  color: #a29bfe;
+  border: 1px solid rgba(108, 92, 231, 0.25);
+}
+
+.xray-badge-free {
+  background: rgba(0, 184, 148, 0.15);
+  color: #55efc4;
+  border: 1px solid rgba(0, 184, 148, 0.25);
+}
+
+.xray-hero-title {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #F5F0EB;
+  line-height: 1.1;
+  margin-bottom: 0.8rem;
+  letter-spacing: -0.02em;
+}
+
+.xray-hero-gradient {
+  background: linear-gradient(135deg, #E8611A, #FF7A33, #fdcb6e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.xray-hero-subtitle {
+  font-size: 0.95rem;
+  color: rgba(245,240,235,0.65);
+  line-height: 1.65;
+  margin-bottom: 1.2rem;
+  max-width: 520px;
+}
+
+/* --- Feature Pills --- */
+.xray-feature-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+}
+
+.xray-pill {
+  padding: 0.3rem 0.6rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  font-size: 0.68rem;
+  color: rgba(245,240,235,0.7);
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.xray-pill:hover {
+  background: rgba(232, 97, 26, 0.12);
+  border-color: rgba(232, 97, 26, 0.3);
+  color: #FF8C42;
+}
+
+/* --- Input Row (dark theme) --- */
 .xray-input-row {
   display: flex;
   gap: 0.5rem;
-  max-width: 650px;
-  margin: 0 auto 1.5rem;
+  max-width: 560px;
+  margin-bottom: 0.8rem;
+}
+
+.xray-input-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.xray-input-icon {
+  position: absolute;
+  left: 0.9rem;
+  font-size: 0.9rem;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .xray-input-row input {
-  flex: 1;
-  padding: 0.85rem 1.2rem;
-  border: 2px solid var(--border-soft);
-  border-radius: var(--radius-md, 10px);
-  font-size: 0.95rem;
-  font-family: 'Geist', 'Inter', sans-serif;
-  background: #fff;
+  width: 100%;
+  padding: 0.8rem 1rem 0.8rem 2.4rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-family: 'Geist Mono', monospace;
+  background: rgba(255,255,255,0.06);
+  color: #F5F0EB;
   transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.xray-input-row input::placeholder {
+  color: rgba(245,240,235,0.35);
 }
 
 .xray-input-row input:focus {
   border-color: var(--accent-primary);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(232, 97, 26, 0.1);
+  box-shadow: 0 0 0 3px rgba(232, 97, 26, 0.2);
 }
 
-.xray-input-row button {
-  background: var(--accent-primary);
+.xray-btn-glow {
+  background: linear-gradient(135deg, #E8611A, #FF7A33);
   color: #fff;
   border: none;
-  padding: 0.85rem 1.5rem;
-  border-radius: var(--radius-md, 10px);
-  font-weight: 600;
-  font-size: 0.95rem;
+  padding: 0.8rem 1.4rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.88rem;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.2s, transform 0.15s;
+  transition: all 0.2s;
+  box-shadow: 0 4px 20px rgba(232, 97, 26, 0.3);
 }
 
-.xray-input-row button:hover {
-  background: var(--accent-hover, #C44D0F);
-  transform: translateY(-1px);
+.xray-btn-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(232, 97, 26, 0.45);
 }
 
-.xray-input-row button:disabled {
+.xray-btn-glow:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
+}
+
+/* --- Trust Row --- */
+.xray-trust-row {
+  display: flex;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+}
+
+.xray-trust {
+  font-size: 0.68rem;
+  color: rgba(245,240,235,0.4);
+}
+
+/* --- Chat Guide (Right Panel) --- */
+.xray-chat-guide {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.xray-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1rem;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.xray-chat-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E8611A, #FF7A33);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.9rem;
+}
+
+.xray-chat-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #F5F0EB;
+}
+
+.xray-chat-status {
+  font-size: 0.62rem;
+  color: rgba(245,240,235,0.5);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.xray-chat-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #00b894;
+  display: inline-block;
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.xray-chat-messages {
+  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.xray-chat-msg {
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px 10px 10px 2px;
+  padding: 0.6rem 0.8rem;
+  opacity: 0;
+  animation: chatFadeIn 0.5s ease forwards;
+}
+
+.xray-chat-delay-1 { animation-delay: 0.8s; }
+.xray-chat-delay-2 { animation-delay: 1.6s; }
+.xray-chat-delay-3 { animation-delay: 2.4s; }
+
+@keyframes chatFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.xray-chat-msg p {
+  font-size: 0.75rem;
+  color: rgba(245,240,235,0.8);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.xray-chat-msg strong {
+  color: #FF8C42;
+}
+
+.xray-chat-msg ul {
+  margin: 0.3rem 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.xray-chat-msg li {
+  font-size: 0.7rem;
+  color: rgba(245,240,235,0.6);
+  padding: 0.15rem 0;
+  font-family: 'Geist Mono', monospace;
+}
+
+.xray-chat-msg li::before {
+  content: '→ ';
+  color: #FF8C42;
+}
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+  .xray-hero-layout {
+    grid-template-columns: 1fr;
+  }
+  .xray-chat-guide {
+    display: none;
+  }
+  .xray-hero-title {
+    font-size: 2.2rem;
+  }
 }
 
 /* --- Progress --- */
