@@ -1,0 +1,14 @@
+{
+  "planSteps": [
+    {"type":"action","description":"Navigate to the AI Mind Map homepage"},
+    {"type":"assertion","description":"Verify the homepage loads with a visible navigation bar containing links and the hero section is present"},
+    {"type":"action","description":"Click the 'Tools' navigation link"},
+    {"type":"assertion","description":"Verify the Tools page loads and shows a heading about MCP tools and multiple tool cards are visible"},
+    {"type":"action","description":"Click the 'Calculator' navigation link"},
+    {"type":"assertion","description":"Verify the Calculator page loads and shows a token savings calculator with at least one interactive slider"},
+    {"type":"action","description":"Click the 'Install' navigation link"},
+    {"type":"assertion","description":"Verify the Install page loads and shows agent selection buttons and an install command code block"},
+    {"type":"action","description":"Click the logo or 'Home' navigation link to return to the homepage"},
+    {"type":"assertion","description":"Verify the homepage loads again with the hero headline and install command box visible, confirming full navigation cycle works correctly"}
+  ]
+}

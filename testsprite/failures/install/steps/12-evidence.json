@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "snapshot",
+    "stepIndex": 12,
+    "summary": "Step 12 'Expected the Cursor agent button to be visible.' failed. Error: TEST FAILURE\n\nThe install command copy button did not show any visible confirmation after being clicked multiple times.\n\nObservations:\n- The install page displayed the install command and a 'Copy' button next to it.\n- Clicking the install 'Copy' button repeatedly produced no visible 'Copied' confirmation, text change, or checkmark on the page.\n- Agent selection (Claude, Cursor) and the agent-specific configuration snippets are present and switching between them worked as expected.",
+    "path": "steps/12-snapshot.html"
+  }
+]

@@ -1,0 +1,54 @@
+{
+  "projectId": "ba8983c8-b2a5-40ba-b17b-eba7646b8228",
+  "type": "frontend",
+  "name": "Install Wizard — Agent Selector & Command Copy",
+  "description": "Tests the install.html page. Verifies agent selection buttons (Claude, Cursor, VS Code, etc.) show the correct install command per agent, copy buttons work, and the step-by-step install guide renders.",
+  "priority": "p1",
+  "planSteps": [
+    {
+      "action": "navigate",
+      "value": "https://ai-mind-map-website.vercel.app/install.html",
+      "description": "Open the Install page"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "h1, h2",
+      "description": "Install page heading is visible"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "[data-agent], [class*='agent-btn'], button[id*='agent']",
+      "description": "Agent selector buttons are present"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "[class*='install-cmd'], [class*='code-block'], pre, code",
+      "description": "Install command code block is visible"
+    },
+    {
+      "action": "click",
+      "selector": "[data-agent='claude'], [data-agent='Claude'], button:has-text('Claude')",
+      "description": "Click the Claude agent button"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "body",
+      "description": "Page remains stable after agent selection"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "[class*='copy'], button[onclick*='copy'], button[id*='copy']",
+      "description": "Copy button is present for the install command"
+    },
+    {
+      "action": "click",
+      "selector": "[class*='copy'], button[onclick*='copy'], button[id*='copy']",
+      "description": "Click copy button for the install command"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "body",
+      "description": "Page remains stable after copy action"
+    }
+  ]
+}

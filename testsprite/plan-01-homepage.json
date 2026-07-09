@@ -1,0 +1,86 @@
+{
+  "projectId": "ba8983c8-b2a5-40ba-b17b-eba7646b8228",
+  "type": "frontend",
+  "name": "Homepage — Hero, Nav & Core Content",
+  "description": "Verifies the landing page loads correctly: navigation, hero section, install command, agent pills, problem comparison cards, stats counters, and CTA sections all render and function.",
+  "priority": "p0",
+  "planSteps": [
+    {
+      "action": "navigate",
+      "value": "https://ai-mind-map-website.vercel.app",
+      "description": "Open the AI Mind Map landing page"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "nav",
+      "description": "Navigation bar is visible"
+    },
+    {
+      "action": "assertVisible",
+      "selector": ".nav-logo",
+      "description": "Logo '🧠 AI Mind Map' is shown in the navbar"
+    },
+    {
+      "action": "assertText",
+      "selector": ".hero-badge",
+      "value": "v1.21.2",
+      "description": "Hero badge shows version number"
+    },
+    {
+      "action": "assertVisible",
+      "selector": ".hero h1",
+      "description": "Main headline is visible"
+    },
+    {
+      "action": "assertVisible",
+      "selector": ".install-box",
+      "description": "Install command box is displayed"
+    },
+    {
+      "action": "assertText",
+      "selector": ".install-box",
+      "value": "npx ai-mind-map install",
+      "description": "Install command shows the correct npx command"
+    },
+    {
+      "action": "click",
+      "selector": ".install-copy-btn",
+      "description": "Click the copy button on the install box"
+    },
+    {
+      "action": "assertVisible",
+      "selector": ".agents-strip",
+      "description": "Agent pills strip (Claude, Cursor, etc.) is visible"
+    },
+    {
+      "action": "assertVisible",
+      "selector": ".problem-card.bad",
+      "description": "Before card showing token waste is visible"
+    },
+    {
+      "action": "assertVisible",
+      "selector": ".problem-card.good",
+      "description": "After card showing token savings is visible"
+    },
+    {
+      "action": "scroll",
+      "value": "500",
+      "description": "Scroll down to trigger reveal animations"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "#live-brain",
+      "description": "Live brain section is present on the page"
+    },
+    {
+      "action": "scroll",
+      "value": "2000",
+      "description": "Scroll further to stats section"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "footer",
+      "description": "Footer is visible at bottom of page"
+    }
+  ]
+}

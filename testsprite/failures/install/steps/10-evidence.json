@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "snapshot",
+    "stepIndex": 10,
+    "summary": "Step 10 'Click the 'Copy' button next to the 'npx ai-mind-map install' command and verify the UI shows a visible 'Copied' confirmation or that the button text changes to indicate success' passed.",
+    "path": "steps/10-snapshot.html"
+  }
+]

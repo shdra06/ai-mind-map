@@ -1,0 +1,103 @@
+{
+  "projectId": "ba8983c8-b2a5-40ba-b17b-eba7646b8228",
+  "type": "frontend",
+  "name": "Live Brain Graph — Interactive Knowledge Explorer",
+  "description": "Tests the embedded D3.js force-directed knowledge graph on the landing page. Verifies graph renders with real data (120 nodes, 300 edges), tabs work (Files/Types/Hot), search filters nodes, and node selection shows detail panel.",
+  "priority": "p0",
+  "planSteps": [
+    {
+      "action": "navigate",
+      "value": "https://ai-mind-map-website.vercel.app",
+      "description": "Open the landing page"
+    },
+    {
+      "action": "scroll",
+      "value": "600",
+      "description": "Scroll to the Live Brain section"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "#brain-container",
+      "description": "Brain container is present"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "#brain-svg",
+      "description": "SVG graph canvas is rendered"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "#brain-svg circle",
+      "timeout": 8000,
+      "description": "Wait for D3 force simulation to render nodes"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "#brain-node-count",
+      "description": "Node count badge is visible"
+    },
+    {
+      "action": "assertText",
+      "selector": "#brain-node-count",
+      "value": "120 nodes",
+      "description": "Shows correct node count of 120"
+    },
+    {
+      "action": "assertText",
+      "selector": "#brain-edge-count",
+      "value": "300 edges",
+      "description": "Shows correct edge count of 300"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "#brain-search",
+      "description": "Search input is visible"
+    },
+    {
+      "action": "type",
+      "selector": "#brain-search",
+      "value": "Knowledge",
+      "description": "Search for KnowledgeGraph node"
+    },
+    {
+      "action": "assertVisible",
+      "selector": ".brain-tab[data-tab='types']",
+      "description": "Types tab button exists"
+    },
+    {
+      "action": "click",
+      "selector": ".brain-tab[data-tab='types']",
+      "description": "Switch to Types tab"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "#brain-tab-content .brain-type-item",
+      "description": "Type filter items are listed"
+    },
+    {
+      "action": "click",
+      "selector": ".brain-tab[data-tab='hot']",
+      "description": "Switch to Hot (most connected) tab"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "#brain-tab-content",
+      "description": "Hot tab content is populated with top nodes"
+    },
+    {
+      "action": "click",
+      "selector": "#brain-btn-hotspots",
+      "description": "Click Hotspots button to highlight top 20 nodes"
+    },
+    {
+      "action": "click",
+      "selector": "#brain-btn-reset",
+      "description": "Reset zoom to default"
+    },
+    {
+      "action": "click",
+      "selector": "#brain-btn-clear",
+      "description": "Clear selection"
+    }
+  ]
+}

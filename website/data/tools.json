@@ -1,0 +1,614 @@
+[
+  {
+    "name": "mindmap_session_resume",
+    "category": "Session",
+    "icon": "⚡",
+    "description": "Resume from last session — returns what the previous AI agent worked on, symbol-level diffs, project structure, and hot files. The single most important first call.",
+    "tokenSavings": "15–30K tokens/session",
+    "recommended": true,
+    "params": [
+      {"name": "projectPath", "type": "string", "description": "Path to project root (auto-detected if omitted)", "required": false}
+    ],
+    "example": "mindmap_session_resume\n→ Session #14 | Last: 2h ago\n→ Changed: auth.ts (authenticate modified, refreshToken added)\n→ Hot files: task.ts (12 edits), auth.ts (8 edits)"
+  },
+  {
+    "name": "mindmap_session_start",
+    "category": "Session",
+    "icon": "🚀",
+    "description": "Start tracking a new development session. Records a label and timestamp for change tracking and session summaries.",
+    "tokenSavings": "N/A",
+    "recommended": true,
+    "params": [
+      {"name": "label", "type": "string", "description": "Human-readable session label, e.g. 'Add OAuth2 support'", "required": false},
+      {"name": "projectPath", "type": "string", "description": "Path to project root", "required": false}
+    ],
+    "example": "mindmap_session_start { label: 'Implement task filtering' }\n→ Session #15 started at 14:32:01"
+  },
+  {
+    "name": "mindmap_session_end",
+    "category": "Session",
+    "icon": "🏁",
+    "description": "End the current session and persist a summary for future agents. Records what was accomplished, what changed, and any open items.",
+    "tokenSavings": "Saves next session 5–10K tokens",
+    "recommended": true,
+    "params": [
+      {"name": "summary", "type": "string", "description": "Optional manual summary of what was accomplished", "required": false}
+    ],
+    "example": "mindmap_session_end { summary: 'Added task priority filtering and sort' }\n→ Session #15 ended. 4 files changed, 3 functions added."
+  },
+  {
+    "name": "mindmap_session_summary",
+    "category": "Session",
+    "icon": "📋",
+    "description": "Get a summary of a past session by number or the current session. Shows label, duration, files changed, and functions added/modified.",
+    "tokenSavings": "2–5K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "sessionId", "type": "number", "description": "Session number to retrieve (latest if omitted)", "required": false}
+    ],
+    "example": "mindmap_session_summary { sessionId: 12 }\n→ Session #12 'Fix auth bugs' | 45 min | 3 files | 2 fn modified"
+  },
+  {
+    "name": "mindmap_session_diff",
+    "category": "Session",
+    "icon": "📊",
+    "description": "Get symbol-level diffs since the last session ended. Shows exactly which functions/classes were added, modified, or deleted.",
+    "tokenSavings": "5–15K tokens vs reading files",
+    "recommended": true,
+    "params": [
+      {"name": "since", "type": "string", "description": "ISO timestamp or 'last-session' (default)", "required": false}
+    ],
+    "example": "mindmap_session_diff\n→ Added: refreshToken (auth.ts:52)\n→ Modified: authenticate (auth.ts:12) — signature changed\n→ Deleted: legacyLogin (auth.ts:80)"
+  },
+  {
+    "name": "mindmap_set_project",
+    "category": "Session",
+    "icon": "📁",
+    "description": "Set or switch the active project directory for all subsequent Mind Map operations.",
+    "tokenSavings": "N/A",
+    "recommended": false,
+    "params": [
+      {"name": "projectPath", "type": "string", "description": "Absolute path to project root", "required": true}
+    ],
+    "example": "mindmap_set_project { projectPath: '/home/user/my-app' }\n→ Project set to my-app (TypeScript, 142 files)"
+  },
+  {
+    "name": "mindmap_status",
+    "category": "Session",
+    "icon": "💡",
+    "description": "Check the health and status of the Mind Map system — index freshness, node/edge counts, memory usage, and last reindex time.",
+    "tokenSavings": "N/A",
+    "recommended": false,
+    "params": [],
+    "example": "mindmap_status\n→ Index: fresh (2m ago) | 847 nodes, 2341 edges | Memory: 12MB"
+  },
+  {
+    "name": "mindmap_reindex",
+    "category": "Session",
+    "icon": "🔄",
+    "description": "Force a full re-index of the project. Use when results seem stale or after major refactors like branch switches.",
+    "tokenSavings": "N/A",
+    "recommended": false,
+    "params": [
+      {"name": "force", "type": "boolean", "description": "Force full reindex even if cache is fresh", "required": false}
+    ],
+    "example": "mindmap_reindex { force: true }\n→ Reindexed 142 files in 3.2s | 847 nodes, 2341 edges"
+  },
+  {
+    "name": "mindmap_smart_search",
+    "category": "Search",
+    "icon": "🔍",
+    "description": "Search for symbols by name with full context — returns signature, file, line number, callers, and callees in a single call. Preferred over basic search.",
+    "tokenSavings": "3–8K tokens vs manual lookup",
+    "recommended": true,
+    "params": [
+      {"name": "query", "type": "string", "description": "Symbol name or partial match", "required": true},
+      {"name": "type", "type": "string", "description": "Filter by type: function, class, method, interface", "required": false},
+      {"name": "limit", "type": "number", "description": "Max results (default: 10)", "required": false}
+    ],
+    "example": "mindmap_smart_search { query: 'authenticate' }\n→ AuthService.authenticate (auth.ts:12)\n  Callers: LoginForm, AuthMiddleware\n  Calls: validateToken, hashPassword, findByEmail"
+  },
+  {
+    "name": "mindmap_search",
+    "category": "Search",
+    "icon": "🔎",
+    "description": "Basic symbol search by name. Returns matching node IDs and basic info. Use mindmap_smart_search for richer results.",
+    "tokenSavings": "1–3K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "query", "type": "string", "description": "Search query (name or pattern)", "required": true},
+      {"name": "type", "type": "string", "description": "Filter by symbol type", "required": false}
+    ],
+    "example": "mindmap_search { query: 'Task', type: 'interface' }\n→ Task (types/task.ts:1), TaskFilter (types/task.ts:18)"
+  },
+  {
+    "name": "mindmap_search_code",
+    "category": "Search",
+    "icon": "📝",
+    "description": "Grep-style text search across source code. Returns matching lines with context. Useful for finding string literals, comments, or patterns.",
+    "tokenSavings": "2–5K tokens vs manual grep",
+    "recommended": false,
+    "params": [
+      {"name": "pattern", "type": "string", "description": "Text or regex pattern to search for", "required": true},
+      {"name": "includes", "type": "string", "description": "Glob pattern for files to include, e.g. '*.ts'", "required": false},
+      {"name": "maxResults", "type": "number", "description": "Maximum number of results", "required": false}
+    ],
+    "example": "mindmap_search_code { pattern: 'TODO:', includes: '*.ts' }\n→ task.ts:45: // TODO: add pagination\n→ auth.ts:67: // TODO: rate limiting"
+  },
+  {
+    "name": "mindmap_trace_dependencies",
+    "category": "Search",
+    "icon": "🔗",
+    "description": "Trace all dependencies of a symbol — what it depends on and what depends on it. Shows the full dependency chain up to a configurable depth.",
+    "tokenSavings": "5–15K tokens",
+    "recommended": true,
+    "params": [
+      {"name": "symbol", "type": "string", "description": "Symbol name to trace", "required": true},
+      {"name": "depth", "type": "number", "description": "Max depth to trace (default: 3)", "required": false},
+      {"name": "direction", "type": "string", "description": "'upstream', 'downstream', or 'both' (default)", "required": false}
+    ],
+    "example": "mindmap_trace_dependencies { symbol: 'createTask', depth: 2 }\n→ createTask ← handleCreate ← Router.setupRoutes\n→ createTask → db.query, logger.log, Task (type)"
+  },
+  {
+    "name": "mindmap_find_references",
+    "category": "Search",
+    "icon": "📌",
+    "description": "Find all references to a symbol across the codebase. Shows every file and line where the symbol is used, imported, or referenced.",
+    "tokenSavings": "3–10K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "symbol", "type": "string", "description": "Symbol name to find references for", "required": true},
+      {"name": "includeTests", "type": "boolean", "description": "Include test files in results", "required": false}
+    ],
+    "example": "mindmap_find_references { symbol: 'Task' }\n→ 12 references in 8 files\n→ task.ts:1 (definition), task.ts:15 (createTask return), ..."
+  },
+  {
+    "name": "mindmap_semantic_search",
+    "category": "Search",
+    "icon": "🧠",
+    "description": "Search by concept or description rather than exact name. Uses embeddings to find code related to a natural language query.",
+    "tokenSavings": "5–15K tokens",
+    "recommended": true,
+    "params": [
+      {"name": "query", "type": "string", "description": "Natural language description, e.g. 'error handling logic'", "required": true},
+      {"name": "limit", "type": "number", "description": "Max results (default: 5)", "required": false}
+    ],
+    "example": "mindmap_semantic_search { query: 'authentication and login flow' }\n→ authenticate (auth.ts:12) — 0.94 relevance\n→ LoginForm (LoginForm.tsx:6) — 0.89 relevance\n→ verifyJWT (auth.ts:12) — 0.85 relevance"
+  },
+  {
+    "name": "mindmap_interaction_map",
+    "category": "Search",
+    "icon": "🗺️",
+    "description": "Get all routes, event handlers, API endpoints, or component interactions in the project. A high-level interaction overview.",
+    "tokenSavings": "5–10K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "type", "type": "string", "description": "Filter: 'routes', 'events', 'components', 'all'", "required": false}
+    ],
+    "example": "mindmap_interaction_map { type: 'routes' }\n→ POST /api/tasks → TaskController.handleCreate\n→ GET /api/tasks → TaskController.handleList\n→ ..."
+  },
+  {
+    "name": "mindmap_explain",
+    "category": "Read",
+    "icon": "📖",
+    "description": "Get everything about a symbol in one call — signature, parameters, return type, callers, callees, documentation, and file location. The most token-efficient way to understand code.",
+    "tokenSavings": "5–20K tokens vs reading file",
+    "recommended": true,
+    "params": [
+      {"name": "symbol", "type": "string", "description": "Symbol name to explain", "required": true},
+      {"name": "includeSource", "type": "boolean", "description": "Include actual source code (default: false)", "required": false}
+    ],
+    "example": "mindmap_explain { symbol: 'authenticate' }\n→ AuthService.authenticate(email, password): Promise<AuthToken>\n→ File: src/services/auth.ts:12-32\n→ Callers: LoginForm.onSubmit, AuthMiddleware.verifyJWT\n→ Calls: validateToken, hashPassword, findByEmail\n→ Doc: Authenticates user with email/password, returns JWT token"
+  },
+  {
+    "name": "mindmap_get_code_snippet",
+    "category": "Read",
+    "icon": "✂️",
+    "description": "Read the actual source code of a specific symbol — just the function/class body, not the whole file. Minimizes token usage when you need to see implementation.",
+    "tokenSavings": "3–10K tokens vs reading full file",
+    "recommended": true,
+    "params": [
+      {"name": "symbol", "type": "string", "description": "Symbol name to get code for", "required": true},
+      {"name": "context", "type": "number", "description": "Lines of context before/after (default: 2)", "required": false}
+    ],
+    "example": "mindmap_get_code_snippet { symbol: 'hashPassword' }\n→ private async hashPassword(password: string, salt?: string): Promise<string> {\n    const s = salt || await bcrypt.genSalt(12);\n    return bcrypt.hash(password, s);\n  }"
+  },
+  {
+    "name": "mindmap_file_digest",
+    "category": "Read",
+    "icon": "📄",
+    "description": "Get a structured summary of a file without reading it — all exports, classes, functions, imports, and their relationships. Saves 3–10K tokens per file.",
+    "tokenSavings": "3–10K tokens/file",
+    "recommended": true,
+    "params": [
+      {"name": "file", "type": "string", "description": "Relative or absolute file path", "required": true}
+    ],
+    "example": "mindmap_file_digest { file: 'src/services/auth.ts' }\n→ AuthService (class, exported)\n  ├─ authenticate (async method, 20 lines)\n  ├─ validateToken (method, 18 lines)\n  ├─ refreshToken (async method, 15 lines)\n  └─ hashPassword (private async method, 5 lines)\n→ Imports: Database, UserRepository, Logger"
+  },
+  {
+    "name": "mindmap_file_skeleton",
+    "category": "Read",
+    "icon": "🦴",
+    "description": "Get just the structural skeleton of a file — signatures only, no implementation. Even cheaper than file_digest for quick orientation.",
+    "tokenSavings": "5–15K tokens/file",
+    "recommended": false,
+    "params": [
+      {"name": "file", "type": "string", "description": "File path", "required": true}
+    ],
+    "example": "mindmap_file_skeleton { file: 'src/services/task.ts' }\n→ class TaskService\n    createTask(title, priority): Promise<Task>\n    deleteTask(id): Promise<void>\n    updateTask(id, data): Promise<Task>\n    getTasks(filter?): Promise<Task[]>"
+  },
+  {
+    "name": "mindmap_get_file_map",
+    "category": "Read",
+    "icon": "🗂️",
+    "description": "List all symbols defined in a file with their types, line numbers, and export status. Quick inventory of a file's contents.",
+    "tokenSavings": "2–8K tokens/file",
+    "recommended": false,
+    "params": [
+      {"name": "file", "type": "string", "description": "File path", "required": true}
+    ],
+    "example": "mindmap_get_file_map { file: 'src/db/database.ts' }\n→ Database (class, L4, exported)\n→ query (method, L18)\n→ transaction (method, L35)\n→ migrate (method, L58)"
+  },
+  {
+    "name": "mindmap_get_signature",
+    "category": "Read",
+    "icon": "✍️",
+    "description": "Get just the type signature of a symbol — the cheapest possible read. No callers, no body, just the declaration.",
+    "tokenSavings": "1–3K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "symbol", "type": "string", "description": "Symbol name", "required": true}
+    ],
+    "example": "mindmap_get_signature { symbol: 'createTask' }\n→ async createTask(title: string, priority: Priority): Promise<Task>"
+  },
+  {
+    "name": "mindmap_read_lines",
+    "category": "Read",
+    "icon": "📏",
+    "description": "Read specific line ranges from a file. More efficient than reading the whole file when you know exactly where to look.",
+    "tokenSavings": "Variable",
+    "recommended": false,
+    "params": [
+      {"name": "file", "type": "string", "description": "File path", "required": true},
+      {"name": "startLine", "type": "number", "description": "First line to read", "required": true},
+      {"name": "endLine", "type": "number", "description": "Last line to read", "required": true}
+    ],
+    "example": "mindmap_read_lines { file: 'src/services/auth.ts', startLine: 12, endLine: 32 }\n→ (returns 20 lines of the authenticate method)"
+  },
+  {
+    "name": "mindmap_list_dir",
+    "category": "Read",
+    "icon": "📂",
+    "description": "List directory contents with file types, sizes, and symbol counts. Tree-view of project structure.",
+    "tokenSavings": "1–3K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "path", "type": "string", "description": "Directory path (default: project root)", "required": false},
+      {"name": "depth", "type": "number", "description": "Max depth (default: 2)", "required": false}
+    ],
+    "example": "mindmap_list_dir { path: 'src', depth: 1 }\n→ src/\n  ├─ services/ (3 files, 12 symbols)\n  ├─ controllers/ (2 files, 8 symbols)\n  ├─ components/ (4 files, 4 symbols)\n  └─ App.tsx (1 symbol)"
+  },
+  {
+    "name": "mindmap_digest",
+    "category": "Project",
+    "icon": "🏗️",
+    "description": "Full project summary in under 2000 tokens — tech stack, file count, key modules, architecture layers, and recent activity. The cheapest way to understand a project.",
+    "tokenSavings": "20–50K tokens vs exploring manually",
+    "recommended": true,
+    "params": [],
+    "example": "mindmap_digest\n→ TaskFlow (TypeScript + React + Express)\n→ 142 files | 847 symbols | 4 layers\n→ Key modules: auth, tasks, users, database\n→ Last change: 2h ago (auth.ts)"
+  },
+  {
+    "name": "mindmap_architecture",
+    "category": "Project",
+    "icon": "🏛️",
+    "description": "Get the architectural overview — layers, module boundaries, dependency direction, and coupling metrics. Understand how the project is organized.",
+    "tokenSavings": "10–30K tokens",
+    "recommended": true,
+    "params": [
+      {"name": "format", "type": "string", "description": "'text', 'json', or 'mermaid'", "required": false}
+    ],
+    "example": "mindmap_architecture { format: 'text' }\n→ Presentation: App, TaskList, TaskCard, LoginForm\n→ Controllers: TaskController\n→ Services: TaskService, AuthService\n→ Data: UserRepository, Database"
+  },
+  {
+    "name": "mindmap_project_map",
+    "category": "Project",
+    "icon": "🗺️",
+    "description": "Complete project map — every file, module, and their relationships. More detailed than digest, shows full dependency graph.",
+    "tokenSavings": "10–20K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "depth", "type": "number", "description": "Directory depth to show", "required": false}
+    ],
+    "example": "mindmap_project_map\n→ (full project tree with symbol counts and dependencies)"
+  },
+  {
+    "name": "mindmap_layer_overview",
+    "category": "Project",
+    "icon": "📊",
+    "description": "See how code is organized into architectural layers (presentation, business, data, infrastructure) with metrics for each layer.",
+    "tokenSavings": "5–10K tokens",
+    "recommended": false,
+    "params": [],
+    "example": "mindmap_layer_overview\n→ Presentation: 4 components (TaskList, TaskCard, LoginForm, App)\n→ Business: 2 services, 1 controller (32 methods)\n→ Data: 1 repository, 1 database class\n→ Infrastructure: Logger, Config, Router"
+  },
+  {
+    "name": "mindmap_changelog",
+    "category": "Change Tracking",
+    "icon": "📝",
+    "description": "Symbol-level changelog — which functions/classes were added, modified, or deleted since a given point. Much richer than git log.",
+    "tokenSavings": "5–20K tokens vs reading diffs",
+    "recommended": true,
+    "params": [
+      {"name": "since", "type": "string", "description": "ISO timestamp, commit hash, or 'last-session'", "required": false},
+      {"name": "file", "type": "string", "description": "Filter to specific file", "required": false}
+    ],
+    "example": "mindmap_changelog { since: 'last-session' }\n→ ADDED: refreshToken (auth.ts:52)\n→ MODIFIED: authenticate (auth.ts:12) — added rate limiting\n→ DELETED: legacyLogin (auth.ts:80)"
+  },
+  {
+    "name": "mindmap_verify_changes",
+    "category": "Change Tracking",
+    "icon": "✅",
+    "description": "Verify if cached/known code is still valid by checking content hashes. Avoids re-reading files that haven't changed.",
+    "tokenSavings": "3–15K tokens per check",
+    "recommended": true,
+    "params": [
+      {"name": "symbols", "type": "string[]", "description": "List of symbol names to verify", "required": true}
+    ],
+    "example": "mindmap_verify_changes { symbols: ['authenticate', 'createTask'] }\n→ authenticate: CHANGED (hash mismatch)\n→ createTask: VALID (unchanged)"
+  },
+  {
+    "name": "mindmap_git_changes",
+    "category": "Change Tracking",
+    "icon": "🔀",
+    "description": "Map git diffs to symbols — shows which functions/classes were affected by recent commits. Richer than raw git diff.",
+    "tokenSavings": "5–20K tokens vs reading diffs",
+    "recommended": true,
+    "params": [
+      {"name": "since", "type": "string", "description": "Git ref, commit hash, or 'HEAD~5'", "required": false},
+      {"name": "staged", "type": "boolean", "description": "Show only staged changes", "required": false}
+    ],
+    "example": "mindmap_git_changes { since: 'HEAD~3' }\n→ Commit abc123: Modified authenticate (auth.ts), Added refreshToken (auth.ts)\n→ Commit def456: Modified TaskList (TaskList.tsx) — added sort prop"
+  },
+  {
+    "name": "mindmap_hotspots",
+    "category": "Change Tracking",
+    "icon": "🔥",
+    "description": "Find the most frequently modified files and functions. Identifies code that changes often and might need refactoring.",
+    "tokenSavings": "2–5K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "limit", "type": "number", "description": "Number of results (default: 10)", "required": false},
+      {"name": "since", "type": "string", "description": "Time range, e.g. '7d', '30d'", "required": false}
+    ],
+    "example": "mindmap_hotspots { limit: 5 }\n→ 1. task.ts (12 edits) — createTask, updateTask\n→ 2. auth.ts (8 edits) — authenticate\n→ 3. TaskList.tsx (6 edits)"
+  },
+  {
+    "name": "mindmap_what_changed",
+    "category": "Change Tracking",
+    "icon": "❓",
+    "description": "Quick overview of what changed recently — files modified, symbols affected, and whether the changes are breaking.",
+    "tokenSavings": "3–8K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "since", "type": "string", "description": "Time range: '1h', '24h', 'yesterday'", "required": false}
+    ],
+    "example": "mindmap_what_changed { since: '24h' }\n→ 3 files changed, 2 functions modified, 1 added\n→ No breaking changes detected"
+  },
+  {
+    "name": "mindmap_file_history",
+    "category": "Change Tracking",
+    "icon": "📜",
+    "description": "Get the commit history for a specific file with symbol-level annotations showing what changed in each commit.",
+    "tokenSavings": "3–10K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "file", "type": "string", "description": "File path", "required": true},
+      {"name": "limit", "type": "number", "description": "Number of commits to show", "required": false}
+    ],
+    "example": "mindmap_file_history { file: 'src/services/auth.ts', limit: 5 }\n→ abc123 (2h ago): Modified authenticate — added rate limiting\n→ def456 (1d ago): Added refreshToken method\n→ ..."
+  },
+  {
+    "name": "mindmap_remember",
+    "category": "Memory",
+    "icon": "🧠",
+    "description": "Store a fact or learning that persists across sessions. Future AI agents will have access to this knowledge without re-discovering it.",
+    "tokenSavings": "Saves future sessions 2–10K tokens",
+    "recommended": true,
+    "params": [
+      {"name": "fact", "type": "string", "description": "The fact to remember", "required": true},
+      {"name": "tags", "type": "string[]", "description": "Tags for categorization", "required": false}
+    ],
+    "example": "mindmap_remember { fact: 'The auth service uses bcrypt with 12 rounds for password hashing', tags: ['auth', 'security'] }\n→ Remembered (memory #42)"
+  },
+  {
+    "name": "mindmap_recall",
+    "category": "Memory",
+    "icon": "💭",
+    "description": "Recall previously stored facts and learnings. Search by keyword or tag to find relevant memories from past sessions.",
+    "tokenSavings": "2–10K tokens",
+    "recommended": true,
+    "params": [
+      {"name": "query", "type": "string", "description": "Keyword or topic to recall", "required": false},
+      {"name": "tags", "type": "string[]", "description": "Filter by tags", "required": false},
+      {"name": "limit", "type": "number", "description": "Max memories to return", "required": false}
+    ],
+    "example": "mindmap_recall { query: 'authentication' }\n→ #42: The auth service uses bcrypt with 12 rounds\n→ #38: JWT tokens expire after 1 hour, refresh tokens after 7 days\n→ #35: Rate limiting is set to 5 attempts per minute"
+  },
+  {
+    "name": "mindmap_decide",
+    "category": "Memory",
+    "icon": "⚖️",
+    "description": "Record an architectural or design decision with rationale. Creates a persistent decision log that future agents can reference.",
+    "tokenSavings": "Saves future sessions 3–10K tokens",
+    "recommended": true,
+    "params": [
+      {"name": "decision", "type": "string", "description": "The decision made", "required": true},
+      {"name": "rationale", "type": "string", "description": "Why this decision was made", "required": false},
+      {"name": "alternatives", "type": "string[]", "description": "Alternatives that were considered", "required": false}
+    ],
+    "example": "mindmap_decide {\n  decision: 'Use PostgreSQL over MongoDB for task storage',\n  rationale: 'Tasks have relational data (assignees, projects). Need ACID transactions.',\n  alternatives: ['MongoDB', 'SQLite']\n}\n→ Decision #12 recorded"
+  },
+  {
+    "name": "mindmap_get_decisions",
+    "category": "Memory",
+    "icon": "📕",
+    "description": "View all recorded architectural decisions. Filter by topic or date range.",
+    "tokenSavings": "2–5K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "topic", "type": "string", "description": "Filter by topic keyword", "required": false}
+    ],
+    "example": "mindmap_get_decisions { topic: 'database' }\n→ #12: Use PostgreSQL over MongoDB (rationale: ACID transactions)\n→ #8: Use connection pooling with max 20 connections"
+  },
+  {
+    "name": "mindmap_compress",
+    "category": "Memory",
+    "icon": "🗜️",
+    "description": "Compress verbose output (logs, errors, stack traces) into a concise summary. Reduces token usage for large outputs.",
+    "tokenSavings": "50–90% of input tokens",
+    "recommended": false,
+    "params": [
+      {"name": "content", "type": "string", "description": "The content to compress", "required": true},
+      {"name": "maxTokens", "type": "number", "description": "Target token budget", "required": false}
+    ],
+    "example": "mindmap_compress { content: '(500 lines of stack trace)', maxTokens: 200 }\n→ TypeError in authenticate (auth.ts:25): Cannot read 'email' of undefined\n  Called from: LoginForm.onSubmit → AuthService.authenticate\n  Root cause: Missing null check on user lookup result"
+  },
+  {
+    "name": "mindmap_impact_analysis",
+    "category": "Analysis",
+    "icon": "💥",
+    "description": "Analyze the blast radius of changing a symbol — what would break, what tests cover it, what downstream consumers are affected.",
+    "tokenSavings": "10–30K tokens vs manual tracing",
+    "recommended": true,
+    "params": [
+      {"name": "symbol", "type": "string", "description": "Symbol to analyze", "required": true},
+      {"name": "changeType", "type": "string", "description": "'signature', 'behavior', 'delete'", "required": false}
+    ],
+    "example": "mindmap_impact_analysis { symbol: 'Task', changeType: 'signature' }\n→ HIGH IMPACT: 12 direct consumers, 23 transitive\n→ Affected: createTask, updateTask, getTasks, TaskCard, TaskList\n→ Tests: TaskService.test (3 tests), integration.test (2 tests)\n→ Risk: MEDIUM — no external API consumers"
+  },
+  {
+    "name": "mindmap_dead_code",
+    "category": "Analysis",
+    "icon": "💀",
+    "description": "Find unreachable or unused code — functions that are never called, exports that are never imported, dead branches.",
+    "tokenSavings": "2–5K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "file", "type": "string", "description": "Scope to specific file (optional)", "required": false},
+      {"name": "includeTests", "type": "boolean", "description": "Consider test usage (default: true)", "required": false}
+    ],
+    "example": "mindmap_dead_code\n→ legacyLogin (auth.ts:80) — 0 callers\n→ formatDate (utils.ts:12) — 0 callers\n→ UNUSED EXPORT: DebugPanel (DebugPanel.tsx)"
+  },
+  {
+    "name": "mindmap_classify_file",
+    "category": "Analysis",
+    "icon": "🏷️",
+    "description": "Classify which architectural layer a file belongs to — presentation, controller, service, repository, utility, or configuration.",
+    "tokenSavings": "1–2K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "file", "type": "string", "description": "File path to classify", "required": true}
+    ],
+    "example": "mindmap_classify_file { file: 'src/services/auth.ts' }\n→ Layer: Business Logic (Service)\n→ Depends on: Data layer (UserRepository, Database)\n→ Consumed by: Controller layer (AuthMiddleware)"
+  },
+  {
+    "name": "mindmap_health",
+    "category": "Analysis",
+    "icon": "🏥",
+    "description": "Run health checks on the Mind Map system — index integrity, stale nodes, orphan edges, and performance metrics.",
+    "tokenSavings": "N/A",
+    "recommended": false,
+    "params": [],
+    "example": "mindmap_health\n→ Index: HEALTHY\n→ 847 nodes (0 stale), 2341 edges (0 orphan)\n→ Avg query time: 12ms | Memory: 14MB\n→ Last full reindex: 45m ago"
+  },
+  {
+    "name": "mindmap_query_graph",
+    "category": "Analysis",
+    "icon": "🔬",
+    "description": "Run a raw Cypher query against the knowledge graph for advanced analysis. Power-user tool for custom graph queries.",
+    "tokenSavings": "Variable",
+    "recommended": false,
+    "params": [
+      {"name": "query", "type": "string", "description": "Cypher query string", "required": true},
+      {"name": "params", "type": "object", "description": "Query parameters", "required": false}
+    ],
+    "example": "mindmap_query_graph { query: 'MATCH (n)-[r:CALLS]->(m) WHERE n.async = true RETURN n.name, m.name' }\n→ createTask → query, log\n→ authenticate → validateToken, hashPassword, findByEmail"
+  },
+  {
+    "name": "mindmap_trace_flow",
+    "category": "Flow",
+    "icon": "🔀",
+    "description": "Trace a feature flow end-to-end — from UI action through controllers, services, and data layer. Shows the complete execution path.",
+    "tokenSavings": "10–25K tokens vs manual tracing",
+    "recommended": true,
+    "params": [
+      {"name": "entry", "type": "string", "description": "Starting symbol or endpoint", "required": true},
+      {"name": "depth", "type": "number", "description": "Max depth to trace", "required": false}
+    ],
+    "example": "mindmap_trace_flow { entry: 'handleCreate' }\n→ Router.setupRoutes (POST /tasks)\n  → AuthMiddleware.verifyJWT\n    → AuthService.validateToken\n  → TaskController.handleCreate\n    → TaskService.createTask\n      → Database.query (INSERT)\n      → Logger.log"
+  },
+  {
+    "name": "mindmap_debug_changes",
+    "category": "Debug",
+    "icon": "🐛",
+    "description": "When something broke — shows actual git diffs mapped to symbols, highlighting what changed and what might have caused the issue.",
+    "tokenSavings": "5–15K tokens vs manual debugging",
+    "recommended": true,
+    "params": [
+      {"name": "since", "type": "string", "description": "Git ref or 'last-working'", "required": false},
+      {"name": "symptom", "type": "string", "description": "Description of the bug or error", "required": false}
+    ],
+    "example": "mindmap_debug_changes { symptom: 'Login returns 401' }\n→ Recent changes to auth flow:\n  authenticate (auth.ts:12): Added rate limiting check at line 18\n  validateToken (auth.ts:34): Changed token expiry from 1h to 15m\n→ Likely cause: Token expiry change (validateToken)"
+  },
+  {
+    "name": "mindmap_file_before",
+    "category": "Debug",
+    "icon": "⏪",
+    "description": "Get the content of a file before recent changes — see what it looked like at a previous commit or point in time.",
+    "tokenSavings": "Variable",
+    "recommended": false,
+    "params": [
+      {"name": "file", "type": "string", "description": "File path", "required": true},
+      {"name": "ref", "type": "string", "description": "Git ref, commit hash, or 'HEAD~1'", "required": false}
+    ],
+    "example": "mindmap_file_before { file: 'src/services/auth.ts', ref: 'HEAD~1' }\n→ (returns file content from previous commit)"
+  },
+  {
+    "name": "mindmap_teach",
+    "category": "Self-Evolving",
+    "icon": "🎓",
+    "description": "Teach the system a new pattern or rule specific to this project. Persists across sessions and helps future agents follow project conventions.",
+    "tokenSavings": "Saves future sessions 2–5K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "rule", "type": "string", "description": "The pattern or rule to teach", "required": true},
+      {"name": "scope", "type": "string", "description": "Where it applies: 'global', 'file:path', 'type:class'", "required": false}
+    ],
+    "example": "mindmap_teach {\n  rule: 'All service methods must log before returning. Use Logger.log for success, Logger.error for failures.',\n  scope: 'type:service'\n}\n→ Rule learned (#7) — applies to service methods"
+  },
+  {
+    "name": "mindmap_get_learned",
+    "category": "Self-Evolving",
+    "icon": "📚",
+    "description": "View all learned patterns and rules for this project. See what conventions and patterns the system has been taught.",
+    "tokenSavings": "1–3K tokens",
+    "recommended": false,
+    "params": [
+      {"name": "scope", "type": "string", "description": "Filter by scope", "required": false}
+    ],
+    "example": "mindmap_get_learned\n→ #7: All service methods must log before returning (scope: service)\n→ #5: Use zod for request validation in controllers (scope: controller)\n→ #3: Prefix private methods with underscore (scope: global)"
+  },
+  {
+    "name": "mindmap_forget",
+    "category": "Self-Evolving",
+    "icon": "🗑️",
+    "description": "Remove a previously taught rule or pattern. Use when a convention changes or a rule is no longer applicable.",
+    "tokenSavings": "N/A",
+    "recommended": false,
+    "params": [
+      {"name": "ruleId", "type": "number", "description": "ID of the rule to remove", "required": true}
+    ],
+    "example": "mindmap_forget { ruleId: 3 }\n→ Rule #3 removed (was: 'Prefix private methods with underscore')"
+  }
+]

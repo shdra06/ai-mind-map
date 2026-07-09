@@ -1,0 +1,8 @@
+[
+  { "type": "action",    "description": "Navigate to the homepage at the target URL" },
+  { "type": "assertion", "description": "Verify the hero section heading is visible containing text about AI Agent or Permanent Brain" },
+  { "type": "assertion", "description": "Verify the hero section contains an install command box showing 'npx ai-mind-map install' with a Copy button labeled 'Copy hero install command' next to it" },
+  { "type": "action",    "description": "Click the button with aria-label 'Copy hero install command' in the hero section" },
+  { "type": "action",    "description": "Scroll down the page until the two token comparison cards are visible" },
+  { "type": "assertion", "description": "Verify two comparison cards are visible — left card labeled 'WITHOUT AI MIND MAP' showing 23,000 tokens total, and right card labeled 'WITH AI MIND MAP' showing 300 tokens total" }
+]

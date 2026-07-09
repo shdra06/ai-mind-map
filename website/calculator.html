@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Token Savings Calculator — AI Mind Map</title>
+  <meta name="description" content="Calculate how much your AI coding agent wastes on tokens and see how AI Mind Map saves 80-99% with persistent codebase memory.">
+  <link rel="stylesheet" href="css/globals.css">
+  <link rel="stylesheet" href="css/calculator.css">
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- ═══ Navigation ═══ -->
+  <nav class="nav" role="navigation">
+    <a href="index.html" class="nav__logo">
+      <span class="nav__logo-icon">🧠</span>
+      <span>AI Mind Map</span>
+    </a>
+    <ul class="nav__links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="tools.html">Tools</a></li>
+      <li><a href="architecture.html">Architecture</a></li>
+      <li><a href="calculator.html" class="active">Calculator</a></li>
+      <li><a href="install.html">Install</a></li>
+      <li><a href="explorer.html">Explorer</a></li>
+      <li><a href="https://github.com/shdra06/ai-mind-map" target="_blank" class="nav__cta">GitHub ↗</a></li>
+    </ul>
+    <button class="nav__hamburger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- ═══ Hero ═══ -->
+  <header class="hero container">
+    <h1 class="hero__title reveal">How Much Are You Wasting?</h1>
+    <p class="hero__subtitle reveal">Calculate your AI agent's token waste and see how much AI Mind Map saves</p>
+  </header>
+
+  <!-- ═══ Calculator ═══ -->
+  <section class="section container">
+    <div class="calculator-grid reveal">
+      <!-- Left: Inputs -->
+      <div class="glass-card calc-inputs">
+        <h2 class="calc-inputs__title">Configure Your Codebase</h2>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <label for="slider-files">Files in your codebase</label>
+            <span class="badge" id="val-files">150</span>
+          </div>
+          <input type="range" id="slider-files" min="10" max="1000" value="150" step="10" class="slider">
+          <div class="slider-ticks"><span>10</span><span>500</span><span>1,000</span></div>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <label for="slider-lines">Average lines per file</label>
+            <span class="badge badge--cyan" id="val-lines">200</span>
+          </div>
+          <input type="range" id="slider-lines" min="50" max="500" value="200" step="25" class="slider">
+          <div class="slider-ticks"><span>50</span><span>275</span><span>500</span></div>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <label for="slider-sessions">AI sessions per day</label>
+            <span class="badge badge--pink" id="val-sessions">8</span>
+          </div>
+          <input type="range" id="slider-sessions" min="1" max="20" value="8" step="1" class="slider">
+          <div class="slider-ticks"><span>1</span><span>10</span><span>20</span></div>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <label for="select-model">AI Model</label>
+          </div>
+          <select id="select-model" class="model-select">
+            <option value="gpt4">GPT-4 — $30 / 1M tokens</option>
+            <option value="claude" selected>Claude — $15 / 1M tokens</option>
+            <option value="gpt4omini">GPT-4o-mini — $0.15 / 1M tokens</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Right: Results -->
+      <div class="glass-card calc-results">
+        <h2 class="calc-results__title">Your Token Savings</h2>
+        <div class="chart-container">
+          <canvas id="bar-chart"></canvas>
+        </div>
+        <div class="results-numbers">
+          <div class="result-row result-row--bad">
+            <span class="result-label">Without AI Mind Map</span>
+            <span class="result-value" id="tokens-without">—</span>
+          </div>
+          <div class="result-row result-row--good">
+            <span class="result-label">With AI Mind Map</span>
+            <span class="result-value" id="tokens-with">—</span>
+          </div>
+          <div class="result-row result-row--saved">
+            <span class="result-label">Tokens Saved</span>
+            <span class="result-value" id="tokens-saved">—</span>
+          </div>
+        </div>
+
+        <hr class="divider" style="margin:24px 0">
+
+        <h3 class="cost-title">💰 Cost Impact</h3>
+        <div class="cost-grid">
+          <div class="cost-item">
+            <span class="cost-label">Daily without</span>
+            <span class="cost-value cost-value--bad" id="cost-without">$0.00</span>
+          </div>
+          <div class="cost-item">
+            <span class="cost-label">Daily with</span>
+            <span class="cost-value cost-value--good" id="cost-with">$0.00</span>
+          </div>
+          <div class="cost-item">
+            <span class="cost-label">Daily savings</span>
+            <span class="cost-value cost-value--green" id="cost-daily">$0.00</span>
+          </div>
+          <div class="cost-item cost-item--highlight">
+            <span class="cost-label">Monthly savings</span>
+            <span class="cost-value cost-value--hero" id="cost-monthly">$0.00</span>
+          </div>
+          <div class="cost-item">
+            <span class="cost-label">Yearly savings</span>
+            <span class="cost-value cost-value--green" id="cost-yearly">$0.00</span>
+          </div>
+        </div>
+
+        <div class="pie-container">
+          <canvas id="pie-chart"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Formula ═══ -->
+  <section class="section container">
+    <div class="glass-card reveal">
+      <h2 class="section-title" style="text-align:left;font-size:1.4rem;">📐 How We Calculate</h2>
+      <div class="code-block mt-2">
+<pre>Without = files × avgLines × tokensPerLine(~3) × sessions × rereadsPerSession(~2.5)
+With    = files × avgLines × tokensPerLine(~3) × sessions × 0.10  <span style="color:var(--green)">// 90% reduction</span>
+Saved   = Without − With
+Cost    = tokens × pricePerToken</pre>
+      </div>
+      <p class="mt-2" style="color:var(--text-secondary);font-size:0.95rem;">
+        The <strong style="color:var(--cyan)">×2.5 rereads</strong> factor comes from industry research showing AI agents re-read the same files ~2.5 times per session on average. AI Mind Map's persistent memory eliminates nearly all redundant reads.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══ Social Proof Stats ═══ -->
+  <section class="section container">
+    <h2 class="section-title reveal">Real Numbers from AI Mind Map Users</h2>
+    <p class="section-subtitle reveal">Measured savings across real-world codebases</p>
+    <div class="grid-3">
+      <div class="glass-card stat-card reveal">
+        <div class="stat-card__icon">🗺️</div>
+        <div class="stat-card__value text-gradient">99%</div>
+        <div class="stat-card__label">Savings on signature lookups</div>
+        <div class="stat-card__detail">5,000 → 50 tokens per query</div>
+      </div>
+      <div class="glass-card stat-card reveal">
+        <div class="stat-card__icon">🧠</div>
+        <div class="stat-card__value text-gradient">96%</div>
+        <div class="stat-card__label">Savings on session resume</div>
+        <div class="stat-card__detail">50,000 → 2,000 tokens per session</div>
+      </div>
+      <div class="glass-card stat-card reveal">
+        <div class="stat-card__icon">🗜️</div>
+        <div class="stat-card__value text-gradient">80-98%</div>
+        <div class="stat-card__label">Savings on log compression</div>
+        <div class="stat-card__detail">Build logs, stack traces, test output</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer container">
+    <div class="footer__links">
+      <a href="https://github.com/shdra06/ai-mind-map" target="_blank">GitHub</a>
+      <a href="https://www.npmjs.com/package/ai-mind-map" target="_blank">npm</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="install.html">Install</a>
+    </div>
+    <p>© 2025 AI Mind Map by <a href="https://github.com/shdra06" target="_blank">shdra06</a> · MIT License</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/calculator.js"></script>
+</body>
+</html>

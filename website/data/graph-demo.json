@@ -1,0 +1,3554 @@
+{
+  "nodes": [
+    {
+      "id": "181f6d59f8def68d",
+      "name": "KnowledgeGraph",
+      "qualifiedName": "KnowledgeGraph",
+      "type": "class",
+      "file": "src/knowledge-graph/graph.ts",
+      "line": 150,
+      "endLine": 1933,
+      "signature": "export class KnowledgeGraph",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 104
+    },
+    {
+      "id": "008bd0f682ef5018",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/graph-tools.ts",
+      "line": 116,
+      "endLine": 120,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": "Wrap a ToolResult in the MCP text-content format.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "0359e5f7c802195f",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/smart-tools.ts",
+      "line": 41,
+      "endLine": 45,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "133c625dd868711e",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/change-tools.ts",
+      "line": 87,
+      "endLine": 91,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "1c7535326874a447",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/filesystem-tools.ts",
+      "line": 50,
+      "endLine": 54,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "322b135d2abf75fd",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/flow-tools.ts",
+      "line": 35,
+      "endLine": 39,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "3b968c12ffe3cc83",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/project-map-tool.ts",
+      "line": 43,
+      "endLine": 45,
+      "signature": "function mcpText(text: string)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "4cbb0941a84377f5",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/evolving-tools.ts",
+      "line": 32,
+      "endLine": 36,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "8bcd29ab996f5dfd",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/smart-context-tool.ts",
+      "line": 33,
+      "endLine": 37,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "a43bb820ea7178c2",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/memory-tools.ts",
+      "line": 99,
+      "endLine": 103,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "a67fdc3884bbe8d8",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/context-tools.ts",
+      "line": 131,
+      "endLine": 135,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "a7b82424ba6edd19",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/advanced-tools.ts",
+      "line": 52,
+      "endLine": 56,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": "Wrap a ToolResult in the MCP text-content format.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "bc66e0b7dd9b0101",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/session-tools.ts",
+      "line": 37,
+      "endLine": 39,
+      "signature": "function mcpText(text: string)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "d44d4cebaa93a2af",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/snapshot-tools.ts",
+      "line": 32,
+      "endLine": 36,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "d654c1800f71c6f7",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/explore-tools.ts",
+      "line": 43,
+      "endLine": 47,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "d8732547febac7ca",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/digest-tools.ts",
+      "line": 36,
+      "endLine": 38,
+      "signature": "function mcpText(text: string)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "db4349651fe9fc3c",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/semantic-tools.ts",
+      "line": 34,
+      "endLine": 38,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "e9bca51df8d87db5",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/quality-tools.ts",
+      "line": 47,
+      "endLine": 51,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": "Wrap a ToolResult in the MCP text-content format.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "ed09dbb3acad89d0",
+      "name": "mcpText",
+      "qualifiedName": "mcpText",
+      "type": "function",
+      "file": "src/tools/debug-tools.ts",
+      "line": 37,
+      "endLine": 41,
+      "signature": "function mcpText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 101
+    },
+    {
+      "id": "03a6be2cc707cc61",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/flow-tools.ts",
+      "line": 54,
+      "endLine": 56,
+      "signature": "function fail(message: string, recovery?: string) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "3448c7e5a5b24f4b",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/advanced-tools.ts",
+      "line": 93,
+      "endLine": 95,
+      "signature": "function fail(message: string, recovery?: string) : : ToolResult",
+      "doc": "Build an error ToolResult.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "3a975789d1bbb2fe",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/semantic-tools.ts",
+      "line": 46,
+      "endLine": 48,
+      "signature": "function fail(message: string) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "7add6e4278cff75b",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/session-tools.ts",
+      "line": 33,
+      "endLine": 35,
+      "signature": "function fail(message: string, recovery?: string) : : string",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "8fb77039fe4f76d0",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/digest-tools.ts",
+      "line": 32,
+      "endLine": 34,
+      "signature": "function fail(message: string, recovery?: string) : : string",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "8fd277b34fa52a50",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/graph-tools.ts",
+      "line": 144,
+      "endLine": 146,
+      "signature": "function fail(message: string, recovery?: string) : : ToolResult",
+      "doc": "Build an error ToolResult.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "95fb186145f8a443",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/explore-tools.ts",
+      "line": 65,
+      "endLine": 67,
+      "signature": "function fail(message: string) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "a32b258f21df7ccc",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/project-map-tool.ts",
+      "line": 39,
+      "endLine": 41,
+      "signature": "function fail(message: string, recovery?: string) : : string",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "a4d891520736b086",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/smart-context-tool.ts",
+      "line": 44,
+      "endLine": 46,
+      "signature": "function fail(msg: string) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "b69599faa5f33af2",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/smart-tools.ts",
+      "line": 70,
+      "endLine": 72,
+      "signature": "function fail(message: string, recovery?: string) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "c477b7bb0fd52ebc",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/context-tools.ts",
+      "line": 160,
+      "endLine": 162,
+      "signature": "function fail(message: string, recovery?: string) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "d578a829031be087",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/memory-tools.ts",
+      "line": 118,
+      "endLine": 120,
+      "signature": "function fail(message: string, recovery?: string) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "d740a54b498a8c22",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/change-tools.ts",
+      "line": 106,
+      "endLine": 108,
+      "signature": "function fail(message: string, recovery?: string) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "dc2aaf2fd0a3ea6f",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/quality-tools.ts",
+      "line": 65,
+      "endLine": 67,
+      "signature": "function fail(message: string) : : ToolResult",
+      "doc": "Build an error ToolResult.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "e1be08664078b2da",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/debug-tools.ts",
+      "line": 49,
+      "endLine": 51,
+      "signature": "function fail(message: string) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "ef8f1720b3026786",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/evolving-tools.ts",
+      "line": 44,
+      "endLine": 46,
+      "signature": "function fail(message: string) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "f875a67532c02b91",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/filesystem-tools.ts",
+      "line": 69,
+      "endLine": 71,
+      "signature": "function fail(message: string, recovery?: string) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "fbc86a1caadd085b",
+      "name": "fail",
+      "qualifiedName": "fail",
+      "type": "function",
+      "file": "src/tools/snapshot-tools.ts",
+      "line": 44,
+      "endLine": 46,
+      "signature": "function fail(message: string) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 100
+    },
+    {
+      "id": "6c812abe83391987",
+      "name": "registerAdvancedTools",
+      "qualifiedName": "registerAdvancedTools",
+      "type": "function",
+      "file": "src/tools/advanced-tools.ts",
+      "line": 142,
+      "endLine": 688,
+      "signature": "export function registerAdvancedTools( server: McpServer, graph: KnowledgeGraph, config: MindMapConfig, estimator: ITokenEstimator = defaultEstimator, semanticEngine?: SemanticSearchEngine, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 93
+    },
+    {
+      "id": "ef0ae60eb4b6a574",
+      "name": "registerDigestTools",
+      "qualifiedName": "registerDigestTools",
+      "type": "function",
+      "file": "src/tools/digest-tools.ts",
+      "line": 48,
+      "endLine": 525,
+      "signature": "export function registerDigestTools( server: McpServer, graph: KnowledgeGraph, changelog: ChangelogEngine, config: MindMapConfig, estimator: ITokenEstimator = defaultEstimator, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 82
+    },
+    {
+      "id": "f81a70c67696448f",
+      "name": "registerSmartTools",
+      "qualifiedName": "registerSmartTools",
+      "type": "function",
+      "file": "src/tools/smart-tools.ts",
+      "line": 92,
+      "endLine": 666,
+      "signature": "export function registerSmartTools( server: McpServer, graph: KnowledgeGraph, config: MindMapConfig, estimator: ITokenEstimator = defaultEstimator, semanticEngine?: SemanticSearchEngine, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 82
+    },
+    {
+      "id": "7edd32f6c2b0f2de",
+      "name": "registerSessionTools",
+      "qualifiedName": "registerSessionTools",
+      "type": "function",
+      "file": "src/tools/session-tools.ts",
+      "line": 49,
+      "endLine": 538,
+      "signature": "export function registerSessionTools( server: McpServer, graph: KnowledgeGraph, changelog: ChangelogEngine, config: MindMapConfig, estimator: ITokenEstimator = defaultEstimator, persistentMemory?: PersistentMemory, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 80
+    },
+    {
+      "id": "12d12310743e59c3",
+      "name": "registerProjectMapTool",
+      "qualifiedName": "registerProjectMapTool",
+      "type": "function",
+      "file": "src/tools/project-map-tool.ts",
+      "line": 151,
+      "endLine": 282,
+      "signature": "export function registerProjectMapTool( server: McpServer, graph: KnowledgeGraph, config: MindMapConfig, estimator: ITokenEstimator = defaultEstimator, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 76
+    },
+    {
+      "id": "26f0036ce886b72a",
+      "name": "registerFilesystemTools",
+      "qualifiedName": "registerFilesystemTools",
+      "type": "function",
+      "file": "src/tools/filesystem-tools.ts",
+      "line": 658,
+      "endLine": 1396,
+      "signature": "export function registerFilesystemTools( server: McpServer, graph: KnowledgeGraph, config: MindMapConfig, estimator: ITokenEstimator = defaultEstimator, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 73
+    },
+    {
+      "id": "78ab824a8d6c9509",
+      "name": "registerDebugTools",
+      "qualifiedName": "registerDebugTools",
+      "type": "function",
+      "file": "src/tools/debug-tools.ts",
+      "line": 60,
+      "endLine": 301,
+      "signature": "export function registerDebugTools( server: McpServer, graph: KnowledgeGraph, config: MindMapConfig, estimator: ITokenEstimator = defaultEstimator, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 66
+    },
+    {
+      "id": "5e1c4321d5892b8d",
+      "name": "registerContextTools",
+      "qualifiedName": "registerContextTools",
+      "type": "function",
+      "file": "src/tools/context-tools.ts",
+      "line": 179,
+      "endLine": 400,
+      "signature": "export function registerContextTools( server: McpServer, context: IContextEngine, indexer: IIndexer, estimator: ITokenEstimator = defaultEstimator, config?: MindMapConfig, serverVersion?: string, db?: IStatusDb, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 65
+    },
+    {
+      "id": "b9f0d68001e0815d",
+      "name": "registerSmartContextTools",
+      "qualifiedName": "registerSmartContextTools",
+      "type": "function",
+      "file": "src/tools/smart-context-tool.ts",
+      "line": 52,
+      "endLine": 268,
+      "signature": "export function registerSmartContextTools( server: McpServer, graph: KnowledgeGraph, changelog: ChangelogEngine, config: MindMapConfig, estimator: ITokenEstimator = defaultEstimator, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 62
+    },
+    {
+      "id": "0b94bc16d172a5fe",
+      "name": "mcpErrorText",
+      "qualifiedName": "mcpErrorText",
+      "type": "function",
+      "file": "src/tools/graph-tools.ts",
+      "line": 125,
+      "endLine": 130,
+      "signature": "function mcpErrorText(result: ToolResult)",
+      "doc": "Wrap an error ToolResult in the MCP text-content format with isError flag.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 60
+    },
+    {
+      "id": "1e96e2f7d37691f3",
+      "name": "mcpErrorText",
+      "qualifiedName": "mcpErrorText",
+      "type": "function",
+      "file": "src/tools/filesystem-tools.ts",
+      "line": 56,
+      "endLine": 61,
+      "signature": "function mcpErrorText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 60
+    },
+    {
+      "id": "510d30aff59219d8",
+      "name": "mcpErrorText",
+      "qualifiedName": "mcpErrorText",
+      "type": "function",
+      "file": "src/tools/digest-tools.ts",
+      "line": 40,
+      "endLine": 42,
+      "signature": "function mcpErrorText(text: string)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 60
+    },
+    {
+      "id": "71b0f69e7965c263",
+      "name": "mcpErrorText",
+      "qualifiedName": "mcpErrorText",
+      "type": "function",
+      "file": "src/tools/memory-tools.ts",
+      "line": 105,
+      "endLine": 110,
+      "signature": "function mcpErrorText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 60
+    },
+    {
+      "id": "795a27110cb2c9b6",
+      "name": "mcpErrorText",
+      "qualifiedName": "mcpErrorText",
+      "type": "function",
+      "file": "src/tools/project-map-tool.ts",
+      "line": 47,
+      "endLine": 49,
+      "signature": "function mcpErrorText(text: string)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 60
+    },
+    {
+      "id": "7e870cbfe459b13d",
+      "name": "mcpErrorText",
+      "qualifiedName": "mcpErrorText",
+      "type": "function",
+      "file": "src/tools/change-tools.ts",
+      "line": 93,
+      "endLine": 98,
+      "signature": "function mcpErrorText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 60
+    },
+    {
+      "id": "9980a2d746de8d11",
+      "name": "mcpErrorText",
+      "qualifiedName": "mcpErrorText",
+      "type": "function",
+      "file": "src/tools/session-tools.ts",
+      "line": 41,
+      "endLine": 43,
+      "signature": "function mcpErrorText(text: string)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 60
+    },
+    {
+      "id": "a330a61e689eccbe",
+      "name": "mcpErrorText",
+      "qualifiedName": "mcpErrorText",
+      "type": "function",
+      "file": "src/tools/flow-tools.ts",
+      "line": 41,
+      "endLine": 46,
+      "signature": "function mcpErrorText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 60
+    },
+    {
+      "id": "a895a6cbcee08450",
+      "name": "mcpErrorText",
+      "qualifiedName": "mcpErrorText",
+      "type": "function",
+      "file": "src/tools/smart-tools.ts",
+      "line": 47,
+      "endLine": 52,
+      "signature": "function mcpErrorText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 60
+    },
+    {
+      "id": "c90de1206fe991fd",
+      "name": "mcpErrorText",
+      "qualifiedName": "mcpErrorText",
+      "type": "function",
+      "file": "src/tools/advanced-tools.ts",
+      "line": 61,
+      "endLine": 66,
+      "signature": "function mcpErrorText(result: ToolResult)",
+      "doc": "Wrap an error ToolResult in the MCP text-content format with isError flag.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 60
+    },
+    {
+      "id": "f4d120823b23720b",
+      "name": "mcpErrorText",
+      "qualifiedName": "mcpErrorText",
+      "type": "function",
+      "file": "src/tools/context-tools.ts",
+      "line": 137,
+      "endLine": 142,
+      "signature": "function mcpErrorText(result: ToolResult)",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 60
+    },
+    {
+      "id": "a34693508e46aee6",
+      "name": "parse",
+      "qualifiedName": "CypherParser.parse",
+      "type": "method",
+      "file": "src/knowledge-graph/cypher.ts",
+      "line": 468,
+      "endLine": 514,
+      "signature": "parse() : : CypherAST",
+      "doc": "Main parse entry point",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 59
+    },
+    {
+      "id": "14dab35cd8fbbdde",
+      "name": "registerGraphTools",
+      "qualifiedName": "registerGraphTools",
+      "type": "function",
+      "file": "src/tools/graph-tools.ts",
+      "line": 169,
+      "endLine": 333,
+      "signature": "export function registerGraphTools( server: McpServer, graph: IKnowledgeGraph, estimator: ITokenEstimator = defaultEstimator, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 58
+    },
+    {
+      "id": "ae88b1041ab730fa",
+      "name": "registerExploreTools",
+      "qualifiedName": "registerExploreTools",
+      "type": "function",
+      "file": "src/tools/explore-tools.ts",
+      "line": 491,
+      "endLine": 758,
+      "signature": "export function registerExploreTools( server: McpServer, graph: KnowledgeGraph, indexer: Indexer, config: MindMapConfig, estimator: ITokenEstimator = defaultEstimator, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 57
+    },
+    {
+      "id": "e749b403d858ec55",
+      "name": "registerFlowTools",
+      "qualifiedName": "registerFlowTools",
+      "type": "function",
+      "file": "src/tools/flow-tools.ts",
+      "line": 65,
+      "endLine": 273,
+      "signature": "export function registerFlowTools( server: McpServer, graph: KnowledgeGraph, config: MindMapConfig, estimator: ITokenEstimator = defaultEstimator, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 57
+    },
+    {
+      "id": "5a6a73a30382ca48",
+      "name": "registerMemoryTools",
+      "qualifiedName": "registerMemoryTools",
+      "type": "function",
+      "file": "src/tools/memory-tools.ts",
+      "line": 134,
+      "endLine": 326,
+      "signature": "export function registerMemoryTools( server: McpServer, store: IMemoryStore, session: ISessionProvider, estimator: ITokenEstimator = defaultEstimator, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 55
+    },
+    {
+      "id": "2a9cf3e021169eb5",
+      "name": "registerQualityTools",
+      "qualifiedName": "registerQualityTools",
+      "type": "function",
+      "file": "src/tools/quality-tools.ts",
+      "line": 470,
+      "endLine": 892,
+      "signature": "export function registerQualityTools( server: McpServer, graph: KnowledgeGraph, config: MindMapConfig, tokenEstimator: ITokenEstimator = defaultEstimator, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 52
+    },
+    {
+      "id": "8a9a345be8b08598",
+      "name": "registerChangeTools",
+      "qualifiedName": "registerChangeTools",
+      "type": "function",
+      "file": "src/tools/change-tools.ts",
+      "line": 121,
+      "endLine": 201,
+      "signature": "export function registerChangeTools( server: McpServer, tracker: IChangeTracker, estimator: ITokenEstimator = defaultEstimator, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 52
+    },
+    {
+      "id": "3793a1d41c5509af",
+      "name": "registerSemanticTools",
+      "qualifiedName": "registerSemanticTools",
+      "type": "function",
+      "file": "src/tools/semantic-tools.ts",
+      "line": 57,
+      "endLine": 203,
+      "signature": "export function registerSemanticTools( server: McpServer, graph: KnowledgeGraph, semanticEngine: SemanticSearchEngine, config: MindMapConfig, estimator: ITokenEstimator = defaultEstimator, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 51
+    },
+    {
+      "id": "7db6040c01899554",
+      "name": "PersistentMemory",
+      "qualifiedName": "PersistentMemory",
+      "type": "class",
+      "file": "src/memory/persistent-memory.ts",
+      "line": 90,
+      "endLine": 786,
+      "signature": "export class PersistentMemory",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 50
+    },
+    {
+      "id": "1f18b9f0a6cd3ad5",
+      "name": "getStats",
+      "qualifiedName": "SemanticSearchEngine.getStats",
+      "type": "method",
+      "file": "src/knowledge-graph/semantic-search.ts",
+      "line": 789,
+      "endLine": 814,
+      "signature": "getStats() : : SemanticIndexStats",
+      "doc": "Get statistics about the semantic index.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 46
+    },
+    {
+      "id": "3767b3f8ece7b2d9",
+      "name": "getStats",
+      "qualifiedName": "KnowledgeGraph.getStats",
+      "type": "method",
+      "file": "src/knowledge-graph/graph.ts",
+      "line": 1015,
+      "endLine": 1060,
+      "signature": "getStats() : : { totalNodes: number; totalEdges: number; totalFiles: number; nodesByType: Record<string, number>; edgesByType: Record<string, number>; languageBreakdown: Record<string, number>; }",
+      "doc": "Get graph statistics.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 46
+    },
+    {
+      "id": "a53dcf152b98160f",
+      "name": "getStats",
+      "qualifiedName": "PersistentMemory.getStats",
+      "type": "method",
+      "file": "src/memory/persistent-memory.ts",
+      "line": 536,
+      "endLine": 557,
+      "signature": "getStats() : : MemoryStats",
+      "doc": "Aggregate statistics about the memory store.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 45
+    },
+    {
+      "id": "532dc6c76d026a52",
+      "name": "getStats",
+      "qualifiedName": "ChangelogEngine.getStats",
+      "type": "method",
+      "file": "src/knowledge-graph/changelog.ts",
+      "line": 669,
+      "endLine": 692,
+      "signature": "getStats() : : { totalEntries: number; totalSessions: number; activeSessions: number; trackedFiles: number; oldestEntry: number | null; newestEntry: number | null; }",
+      "doc": "Get stats about the changelog engine.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 44
+    },
+    {
+      "id": "cba679b605719bbf",
+      "name": "getStats",
+      "qualifiedName": "ChangeLog.getStats",
+      "type": "method",
+      "file": "src/change-tracker/change-log.ts",
+      "line": 506,
+      "endLine": 560,
+      "signature": "getStats(topN = 10) : : ChangeLogStats",
+      "doc": "Compute aggregate statistics across the entire change log.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 44
+    },
+    {
+      "id": "f192aaa7b8c12f0e",
+      "name": "registerSnapshotTools",
+      "qualifiedName": "registerSnapshotTools",
+      "type": "function",
+      "file": "src/tools/snapshot-tools.ts",
+      "line": 52,
+      "endLine": 165,
+      "signature": "export function registerSnapshotTools( server: McpServer, graph: KnowledgeGraph, config: MindMapConfig, estimator: ITokenEstimator = defaultEstimator, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 44
+    },
+    {
+      "id": "cf254b6e8fc5ffbd",
+      "name": "registerEvolvingTools",
+      "qualifiedName": "registerEvolvingTools",
+      "type": "function",
+      "file": "src/tools/evolving-tools.ts",
+      "line": 55,
+      "endLine": 237,
+      "signature": "export function registerEvolvingTools( server: McpServer, graph: KnowledgeGraph, config: MindMapConfig, estimator: ITokenEstimator = defaultEstimator, ) : : void",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 43
+    },
+    {
+      "id": "9d3db9fff7a0c85d",
+      "name": "DecisionLog",
+      "qualifiedName": "DecisionLog",
+      "type": "class",
+      "file": "src/memory/decision-log.ts",
+      "line": 62,
+      "endLine": 670,
+      "signature": "export class DecisionLog",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 41
+    },
+    {
+      "id": "7f076526dcc20a60",
+      "name": "search",
+      "qualifiedName": "SemanticSearchEngine.search",
+      "type": "method",
+      "file": "src/knowledge-graph/semantic-search.ts",
+      "line": 650,
+      "endLine": 731,
+      "signature": "search( query: string, limit: number = 10, threshold: number = 0.01, useSynonyms: boolean = true, ) : : SemanticSearchResult[]",
+      "doc": "Perform semantic search using BM25 (Okapi BM25) scoring.\r\n\r\n@param query - Natural language query (e.g., \"save user preferences\")\r\n@param limit - Maximum results to return\r\n@param threshold - Minimum similarity score (0–1, default 0.01)\r\n@param useSynonyms - Whether to expand query with synonyms (default true)\r\n@returns Ranked search results with similarity scores",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 40
+    },
+    {
+      "id": "f816eeb564954597",
+      "name": "getStats",
+      "qualifiedName": "IIndexer.getStats",
+      "type": "method",
+      "file": "src/tools/context-tools.ts",
+      "line": 85,
+      "endLine": 85,
+      "signature": "getStats() : : MindMapStats",
+      "doc": "Get current system statistics.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 40
+    },
+    {
+      "id": "07a3a934cfc7a4da",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/smart-tools.ts",
+      "line": 30,
+      "endLine": 30,
+      "signature": "estimate(text: string) : : number",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "09b830e5bf6e3a20",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/evolving-tools.ts",
+      "line": 25,
+      "endLine": 25,
+      "signature": "estimate(text: string) : : number",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "19ddfd0f9de581de",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/change-tools.ts",
+      "line": 76,
+      "endLine": 76,
+      "signature": "estimate(text: string) : : number",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "1a6e458c494a0091",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/smart-context-tool.ts",
+      "line": 22,
+      "endLine": 22,
+      "signature": "estimate(text: string) : : number",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "5dc3f3849bc512b4",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/memory-tools.ts",
+      "line": 71,
+      "endLine": 71,
+      "signature": "estimate(text: string) : : number",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "6113f6eeb63b7321",
+      "name": "makeNode",
+      "qualifiedName": "makeNode",
+      "type": "function",
+      "file": "src/knowledge-graph/parser.ts",
+      "line": 541,
+      "endLine": 577,
+      "signature": "function makeNode( tsNode: any, name: string, nType: NodeType, parentId?: string, ) : : GraphNode",
+      "doc": "Create a GraphNode from a tree-sitter node",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "63a3eb73c3dc6c4d",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/flow-tools.ts",
+      "line": 28,
+      "endLine": 28,
+      "signature": "estimate(text: string) : : number",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "69d4615c10f45a56",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/filesystem-tools.ts",
+      "line": 39,
+      "endLine": 39,
+      "signature": "estimate(text: string) : : number",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "76d020243e2f13d5",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/context-tools.ts",
+      "line": 89,
+      "endLine": 89,
+      "signature": "estimate(text: string) : : number",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "a0a36759c1b43cb7",
+      "name": "SessionMemory",
+      "qualifiedName": "SessionMemory",
+      "type": "class",
+      "file": "src/memory/session-memory.ts",
+      "line": 64,
+      "endLine": 471,
+      "signature": "export class SessionMemory",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 36
+    },
+    {
+      "id": "b1d902fbaf7d9383",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/explore-tools.ts",
+      "line": 32,
+      "endLine": 32,
+      "signature": "estimate(text: string) : : number",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "bccb7c5a227d31b6",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/quality-tools.ts",
+      "line": 32,
+      "endLine": 32,
+      "signature": "estimate(text: string) : : number",
+      "doc": "Rough token count for a string (4 chars ≈ 1 token).",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "d6142e556ea21f48",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/snapshot-tools.ts",
+      "line": 25,
+      "endLine": 25,
+      "signature": "estimate(text: string) : : number",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "e593de111ac518ea",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/debug-tools.ts",
+      "line": 30,
+      "endLine": 30,
+      "signature": "estimate(text: string) : : number",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "e72a8cd80206aea1",
+      "name": "match",
+      "qualifiedName": "CypherParser.match",
+      "type": "method",
+      "file": "src/knowledge-graph/cypher.ts",
+      "line": 459,
+      "endLine": 465,
+      "signature": "private match(type: TokenType) : : boolean",
+      "doc": "If current token matches, consume it and return true",
+      "language": "typescript",
+      "visibility": "private",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "f68cd487743fc133",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/advanced-tools.ts",
+      "line": 37,
+      "endLine": 37,
+      "signature": "estimate(text: string) : : number",
+      "doc": "Rough token count for a string (4 chars ≈ 1 token).",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "f7d3e6b314d3883e",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/graph-tools.ts",
+      "line": 84,
+      "endLine": 84,
+      "signature": "estimate(text: string) : : number",
+      "doc": "Rough token count for a string (4 chars ≈ 1 token).",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "fcb5446761da39a2",
+      "name": "estimate",
+      "qualifiedName": "ITokenEstimator.estimate",
+      "type": "method",
+      "file": "src/tools/semantic-tools.ts",
+      "line": 23,
+      "endLine": 23,
+      "signature": "estimate(text: string) : : number",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 36
+    },
+    {
+      "id": "962fae138b652317",
+      "name": "search",
+      "qualifiedName": "KnowledgeGraph.search",
+      "type": "method",
+      "file": "src/knowledge-graph/graph.ts",
+      "line": 743,
+      "endLine": 807,
+      "signature": "search(query: string, limit: number = 40) : : GraphNode[]",
+      "doc": "Full-text search across node names, signatures, and doc comments.\r\n\r\nUses FTS5 with porter stemming and unicode support, combined with\r\nLIKE search for exact substring matching. CamelCase/PascalCase queries\r\nare split into individual words for FTS5 matching.\r\n\r\n@param query - Search query\r\n@param limit - Maximum results (default 20)\r\n@returns Matching nodes sorted by relevance",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 35
+    },
+    {
+      "id": "fe985505b7593ac5",
+      "name": "SemanticSearchEngine",
+      "qualifiedName": "SemanticSearchEngine",
+      "type": "class",
+      "file": "src/knowledge-graph/semantic-search.ts",
+      "line": 354,
+      "endLine": 841,
+      "signature": "export class SemanticSearchEngine",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 35
+    },
+    {
+      "id": "3e4123537bec6418",
+      "name": "cmdStatus",
+      "qualifiedName": "cmdStatus",
+      "type": "function",
+      "file": "src/cli.ts",
+      "line": 514,
+      "endLine": 599,
+      "signature": "async function cmdStatus(args: ParsedArgs) : : Promise<void>",
+      "doc": "ai-mind-map status [<project-path>] — Show index stats",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": true,
+      "static": false,
+      "exported": false,
+      "degree": 33
+    },
+    {
+      "id": "67e99ac91d793080",
+      "name": "main",
+      "qualifiedName": "main",
+      "type": "function",
+      "file": "src/stress-test.ts",
+      "line": 75,
+      "endLine": 287,
+      "signature": "async function main()",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": true,
+      "static": false,
+      "exported": false,
+      "degree": 33
+    },
+    {
+      "id": "8bece98afcc44730",
+      "name": "Indexer",
+      "qualifiedName": "Indexer",
+      "type": "class",
+      "file": "src/knowledge-graph/indexer.ts",
+      "line": 75,
+      "endLine": 1301,
+      "signature": "export class Indexer",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 33
+    },
+    {
+      "id": "e39633bed1b39c25",
+      "name": "compress",
+      "qualifiedName": "compress",
+      "type": "function",
+      "file": "src/context/compressor.ts",
+      "line": 153,
+      "endLine": 187,
+      "signature": "export function compress( text: string, level: CompressionLevel = 'moderate', contentType?: ContentType, ) : : CompressionResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 33
+    },
+    {
+      "id": "6f8080da0a2721b1",
+      "name": "cmdChanges",
+      "qualifiedName": "cmdChanges",
+      "type": "function",
+      "file": "src/cli.ts",
+      "line": 776,
+      "endLine": 855,
+      "signature": "async function cmdChanges(args: ParsedArgs) : : Promise<void>",
+      "doc": "ai-mind-map changes [--since last_session|<ms>] — Show what changed",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": true,
+      "static": false,
+      "exported": false,
+      "degree": 32
+    },
+    {
+      "id": "c9b68864029254bc",
+      "name": "fullIndex",
+      "qualifiedName": "Indexer.fullIndex",
+      "type": "method",
+      "file": "src/knowledge-graph/indexer.ts",
+      "line": 505,
+      "endLine": 848,
+      "signature": "async fullIndex(onProgress?: IndexProgressCallback) : : Promise<IndexStats>",
+      "doc": "Perform a full index of the entire codebase.\r\n\r\nScans all files, parses each, and stores results in the graph.\r\nClears existing data before indexing.\r\n\r\n@param onProgress - Optional progress callback\r\n@returns Indexing statistics",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": true,
+      "static": false,
+      "exported": false,
+      "degree": 32
+    },
+    {
+      "id": "28e18475b6c3351c",
+      "name": "FlowAnalyzer",
+      "qualifiedName": "FlowAnalyzer",
+      "type": "class",
+      "file": "src/knowledge-graph/flow-analyzer.ts",
+      "line": 291,
+      "endLine": 1005,
+      "signature": "export class FlowAnalyzer",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 30
+    },
+    {
+      "id": "2f06b525539efb1c",
+      "name": "close",
+      "qualifiedName": "KnowledgeGraph.close",
+      "type": "method",
+      "file": "src/knowledge-graph/graph.ts",
+      "line": 1836,
+      "endLine": 1838,
+      "signature": "close() : : void",
+      "doc": "Close the database connection.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 30
+    },
+    {
+      "id": "32077e07094326cd",
+      "name": "okWithSavings",
+      "qualifiedName": "okWithSavings",
+      "type": "function",
+      "file": "src/tools/explore-tools.ts",
+      "line": 55,
+      "endLine": 63,
+      "signature": "function okWithSavings( data: unknown, tokensSaved: number, estimator: ITokenEstimator, ) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 30
+    },
+    {
+      "id": "3a254198b42e28ad",
+      "name": "okWithSavings",
+      "qualifiedName": "okWithSavings",
+      "type": "function",
+      "file": "src/tools/context-tools.ts",
+      "line": 150,
+      "endLine": 158,
+      "signature": "function okWithSavings( data: unknown, tokensSaved: number, estimator: ITokenEstimator, ) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 30
+    },
+    {
+      "id": "8091a4e6e6065962",
+      "name": "getIndexedFiles",
+      "qualifiedName": "KnowledgeGraph.getIndexedFiles",
+      "type": "method",
+      "file": "src/knowledge-graph/graph.ts",
+      "line": 919,
+      "endLine": 924,
+      "signature": "getIndexedFiles() : : string[]",
+      "doc": "Get all indexed file paths.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 30
+    },
+    {
+      "id": "81bea5bb23e9e54f",
+      "name": "CypherParser",
+      "qualifiedName": "CypherParser",
+      "type": "class",
+      "file": "src/knowledge-graph/cypher.ts",
+      "line": 420,
+      "endLine": 889,
+      "signature": "class CypherParser",
+      "doc": "Recursive descent parser that produces a CypherAST from a token stream.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 30
+    },
+    {
+      "id": "9cd62f6f2ca2fca3",
+      "name": "okWithSavings",
+      "qualifiedName": "okWithSavings",
+      "type": "function",
+      "file": "src/tools/advanced-tools.ts",
+      "line": 80,
+      "endLine": 88,
+      "signature": "function okWithSavings( data: unknown, tokensSaved: number, estimator: ITokenEstimator, ) : : ToolResult",
+      "doc": "Build a successful ToolResult with estimated tokens saved vs naïve approach.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 30
+    },
+    {
+      "id": "cdbbcdc45947c4f2",
+      "name": "okWithSavings",
+      "qualifiedName": "okWithSavings",
+      "type": "function",
+      "file": "src/tools/smart-tools.ts",
+      "line": 60,
+      "endLine": 68,
+      "signature": "function okWithSavings( data: unknown, tokensSaved: number, estimator: ITokenEstimator, ) : : ToolResult",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 30
+    },
+    {
+      "id": "e306604ceb86af5b",
+      "name": "search",
+      "qualifiedName": "IKnowledgeGraph.search",
+      "type": "method",
+      "file": "src/tools/graph-tools.ts",
+      "line": 30,
+      "endLine": 30,
+      "signature": "search(query: string, type?: NodeType, limit?: number) : : GraphNode[]",
+      "doc": "Full-text / name search across all indexed nodes.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 30
+    },
+    {
+      "id": "ee817ac1082ccc9e",
+      "name": "FileWatcher",
+      "qualifiedName": "FileWatcher",
+      "type": "class",
+      "file": "src/change-tracker/watcher.ts",
+      "line": 64,
+      "endLine": 412,
+      "signature": "export class FileWatcher",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 30
+    },
+    {
+      "id": "11c6882d21f5b1a6",
+      "name": "DiffEngine",
+      "qualifiedName": "DiffEngine",
+      "type": "class",
+      "file": "src/change-tracker/diff-engine.ts",
+      "line": 51,
+      "endLine": 636,
+      "signature": "export class DiffEngine",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 29
+    },
+    {
+      "id": "5c85869d840c028c",
+      "name": "close",
+      "qualifiedName": "ChangeLog.close",
+      "type": "method",
+      "file": "src/change-tracker/change-log.ts",
+      "line": 567,
+      "endLine": 569,
+      "signature": "close() : : void",
+      "doc": "Close the database connection. Call this during graceful shutdown.",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 29
+    },
+    {
+      "id": "71f6d8cd8c1117ae",
+      "name": "close",
+      "qualifiedName": "Logger.close",
+      "type": "method",
+      "file": "src/utils/logger.ts",
+      "line": 131,
+      "endLine": 136,
+      "signature": "close() : : void",
+      "doc": "Flush and close the file stream (if any).",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": false,
+      "degree": 29
+    },
+    {
+      "id": "c4d7b8b1cfd8aa1c",
+      "name": "ChangeLog",
+      "qualifiedName": "ChangeLog",
+      "type": "class",
+      "file": "src/change-tracker/change-log.ts",
+      "line": 80,
+      "endLine": 570,
+      "signature": "export class ChangeLog",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 29
+    },
+    {
+      "id": "3175083bd657b4d7",
+      "name": "main",
+      "qualifiedName": "main",
+      "type": "function",
+      "file": "src/cli.ts",
+      "line": 1162,
+      "endLine": 1257,
+      "signature": "async export function main(argv: string[] = process.argv) : : Promise<void>",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": true,
+      "static": false,
+      "exported": true,
+      "degree": 27
+    },
+    {
+      "id": "32818bd9e7545ec5",
+      "name": "cmdSearch",
+      "qualifiedName": "cmdSearch",
+      "type": "function",
+      "file": "src/cli.ts",
+      "line": 303,
+      "endLine": 351,
+      "signature": "async function cmdSearch(args: ParsedArgs) : : Promise<void>",
+      "doc": "ai-mind-map search <query> [--type ...] [--limit N] — Search the knowledge graph",
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": true,
+      "static": false,
+      "exported": false,
+      "degree": 27
+    },
+    {
+      "id": "6b030f73b7c03b94",
+      "name": "estimateTokens",
+      "qualifiedName": "estimateTokens",
+      "type": "function",
+      "file": "src/utils/token-counter.ts",
+      "line": 45,
+      "endLine": 96,
+      "signature": "export function estimateTokens(text: string) : : number",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 27
+    },
+    {
+      "id": "7dbf7735cccae24a",
+      "name": "ChangelogEngine",
+      "qualifiedName": "ChangelogEngine",
+      "type": "class",
+      "file": "src/knowledge-graph/changelog.ts",
+      "line": 152,
+      "endLine": 742,
+      "signature": "export class ChangelogEngine",
+      "doc": null,
+      "language": "typescript",
+      "visibility": "unknown",
+      "async": false,
+      "static": false,
+      "exported": true,
+      "degree": 27
+    }
+  ],
+  "edges": [
+    {
+      "source": "008bd0f682ef5018",
+      "target": "0359e5f7c802195f",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "133c625dd868711e",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "1c7535326874a447",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "322b135d2abf75fd",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "3b968c12ffe3cc83",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "4cbb0941a84377f5",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "8bcd29ab996f5dfd",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "a43bb820ea7178c2",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "a67fdc3884bbe8d8",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "a7b82424ba6edd19",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "bc66e0b7dd9b0101",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "d44d4cebaa93a2af",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "d654c1800f71c6f7",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "d8732547febac7ca",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "db4349651fe9fc3c",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "e9bca51df8d87db5",
+      "type": "calls"
+    },
+    {
+      "source": "008bd0f682ef5018",
+      "target": "ed09dbb3acad89d0",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "008bd0f682ef5018",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "133c625dd868711e",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "1c7535326874a447",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "322b135d2abf75fd",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "3b968c12ffe3cc83",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "4cbb0941a84377f5",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "8bcd29ab996f5dfd",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "a43bb820ea7178c2",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "a67fdc3884bbe8d8",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "a7b82424ba6edd19",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "bc66e0b7dd9b0101",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "d44d4cebaa93a2af",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "d654c1800f71c6f7",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "d8732547febac7ca",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "db4349651fe9fc3c",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "e9bca51df8d87db5",
+      "type": "calls"
+    },
+    {
+      "source": "0359e5f7c802195f",
+      "target": "ed09dbb3acad89d0",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "3448c7e5a5b24f4b",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "3a975789d1bbb2fe",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "7add6e4278cff75b",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "8fb77039fe4f76d0",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "8fd277b34fa52a50",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "95fb186145f8a443",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "a32b258f21df7ccc",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "a4d891520736b086",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "b69599faa5f33af2",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "c477b7bb0fd52ebc",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "d578a829031be087",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "d740a54b498a8c22",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "dc2aaf2fd0a3ea6f",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "e1be08664078b2da",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "ef8f1720b3026786",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "f875a67532c02b91",
+      "type": "calls"
+    },
+    {
+      "source": "03a6be2cc707cc61",
+      "target": "fbc86a1caadd085b",
+      "type": "calls"
+    },
+    {
+      "source": "0b94bc16d172a5fe",
+      "target": "1e96e2f7d37691f3",
+      "type": "calls"
+    },
+    {
+      "source": "0b94bc16d172a5fe",
+      "target": "510d30aff59219d8",
+      "type": "calls"
+    },
+    {
+      "source": "0b94bc16d172a5fe",
+      "target": "71b0f69e7965c263",
+      "type": "calls"
+    },
+    {
+      "source": "0b94bc16d172a5fe",
+      "target": "795a27110cb2c9b6",
+      "type": "calls"
+    },
+    {
+      "source": "0b94bc16d172a5fe",
+      "target": "7e870cbfe459b13d",
+      "type": "calls"
+    },
+    {
+      "source": "0b94bc16d172a5fe",
+      "target": "9980a2d746de8d11",
+      "type": "calls"
+    },
+    {
+      "source": "0b94bc16d172a5fe",
+      "target": "a330a61e689eccbe",
+      "type": "calls"
+    },
+    {
+      "source": "0b94bc16d172a5fe",
+      "target": "a895a6cbcee08450",
+      "type": "calls"
+    },
+    {
+      "source": "0b94bc16d172a5fe",
+      "target": "c90de1206fe991fd",
+      "type": "calls"
+    },
+    {
+      "source": "0b94bc16d172a5fe",
+      "target": "f4d120823b23720b",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "008bd0f682ef5018",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "0359e5f7c802195f",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "03a6be2cc707cc61",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "0b94bc16d172a5fe",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "133c625dd868711e",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "1c7535326874a447",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "1e96e2f7d37691f3",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "1f18b9f0a6cd3ad5",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "322b135d2abf75fd",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "3448c7e5a5b24f4b",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "3767b3f8ece7b2d9",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "3a975789d1bbb2fe",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "3b968c12ffe3cc83",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "4cbb0941a84377f5",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "510d30aff59219d8",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "532dc6c76d026a52",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "71b0f69e7965c263",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "795a27110cb2c9b6",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "7add6e4278cff75b",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "7e870cbfe459b13d",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "8091a4e6e6065962",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "8bcd29ab996f5dfd",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "8fb77039fe4f76d0",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "8fd277b34fa52a50",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "95fb186145f8a443",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "9980a2d746de8d11",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "a32b258f21df7ccc",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "a330a61e689eccbe",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "a43bb820ea7178c2",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "a4d891520736b086",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "a53dcf152b98160f",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "a67fdc3884bbe8d8",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "a7b82424ba6edd19",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "a895a6cbcee08450",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "b69599faa5f33af2",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "bc66e0b7dd9b0101",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "c477b7bb0fd52ebc",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "c90de1206fe991fd",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "cba679b605719bbf",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "d44d4cebaa93a2af",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "d578a829031be087",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "d654c1800f71c6f7",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "d740a54b498a8c22",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "d8732547febac7ca",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "db4349651fe9fc3c",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "dc2aaf2fd0a3ea6f",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "e1be08664078b2da",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "e9bca51df8d87db5",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "ed09dbb3acad89d0",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "ef8f1720b3026786",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "f4d120823b23720b",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "f816eeb564954597",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "f875a67532c02b91",
+      "type": "calls"
+    },
+    {
+      "source": "12d12310743e59c3",
+      "target": "fbc86a1caadd085b",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "008bd0f682ef5018",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "0359e5f7c802195f",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "1c7535326874a447",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "322b135d2abf75fd",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "3b968c12ffe3cc83",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "4cbb0941a84377f5",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "8bcd29ab996f5dfd",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "a43bb820ea7178c2",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "a67fdc3884bbe8d8",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "a7b82424ba6edd19",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "bc66e0b7dd9b0101",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "d44d4cebaa93a2af",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "d654c1800f71c6f7",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "d8732547febac7ca",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "db4349651fe9fc3c",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "e9bca51df8d87db5",
+      "type": "calls"
+    },
+    {
+      "source": "133c625dd868711e",
+      "target": "ed09dbb3acad89d0",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "008bd0f682ef5018",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "0359e5f7c802195f",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "03a6be2cc707cc61",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "0b94bc16d172a5fe",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "133c625dd868711e",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "1c7535326874a447",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "1e96e2f7d37691f3",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "322b135d2abf75fd",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "3448c7e5a5b24f4b",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "3a975789d1bbb2fe",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "3b968c12ffe3cc83",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "4cbb0941a84377f5",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "510d30aff59219d8",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "71b0f69e7965c263",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "795a27110cb2c9b6",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "7add6e4278cff75b",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "7e870cbfe459b13d",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "7f076526dcc20a60",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "8bcd29ab996f5dfd",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "8fb77039fe4f76d0",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "8fd277b34fa52a50",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "95fb186145f8a443",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "962fae138b652317",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "9980a2d746de8d11",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "a32b258f21df7ccc",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "a330a61e689eccbe",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "a43bb820ea7178c2",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "a4d891520736b086",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "a67fdc3884bbe8d8",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "a7b82424ba6edd19",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "a895a6cbcee08450",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "b69599faa5f33af2",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "bc66e0b7dd9b0101",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "c477b7bb0fd52ebc",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "c90de1206fe991fd",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "d44d4cebaa93a2af",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "d578a829031be087",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "d654c1800f71c6f7",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "d740a54b498a8c22",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "d8732547febac7ca",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "db4349651fe9fc3c",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "dc2aaf2fd0a3ea6f",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "e1be08664078b2da",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "e306604ceb86af5b",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "e9bca51df8d87db5",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "ed09dbb3acad89d0",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "ef8f1720b3026786",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "f4d120823b23720b",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "f875a67532c02b91",
+      "type": "calls"
+    },
+    {
+      "source": "14dab35cd8fbbdde",
+      "target": "fbc86a1caadd085b",
+      "type": "calls"
+    },
+    {
+      "source": "181f6d59f8def68d",
+      "target": "2f06b525539efb1c",
+      "type": "contains"
+    },
+    {
+      "source": "181f6d59f8def68d",
+      "target": "3767b3f8ece7b2d9",
+      "type": "contains"
+    },
+    {
+      "source": "181f6d59f8def68d",
+      "target": "8091a4e6e6065962",
+      "type": "contains"
+    },
+    {
+      "source": "181f6d59f8def68d",
+      "target": "962fae138b652317",
+      "type": "contains"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "008bd0f682ef5018",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "0359e5f7c802195f",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "133c625dd868711e",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "322b135d2abf75fd",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "3b968c12ffe3cc83",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "4cbb0941a84377f5",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "8bcd29ab996f5dfd",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "a43bb820ea7178c2",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "a67fdc3884bbe8d8",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "a7b82424ba6edd19",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "bc66e0b7dd9b0101",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "d44d4cebaa93a2af",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "d654c1800f71c6f7",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "d8732547febac7ca",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "db4349651fe9fc3c",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "e9bca51df8d87db5",
+      "type": "calls"
+    },
+    {
+      "source": "1c7535326874a447",
+      "target": "ed09dbb3acad89d0",
+      "type": "calls"
+    },
+    {
+      "source": "1e96e2f7d37691f3",
+      "target": "0b94bc16d172a5fe",
+      "type": "calls"
+    },
+    {
+      "source": "1e96e2f7d37691f3",
+      "target": "510d30aff59219d8",
+      "type": "calls"
+    },
+    {
+      "source": "1e96e2f7d37691f3",
+      "target": "71b0f69e7965c263",
+      "type": "calls"
+    },
+    {
+      "source": "1e96e2f7d37691f3",
+      "target": "795a27110cb2c9b6",
+      "type": "calls"
+    },
+    {
+      "source": "1e96e2f7d37691f3",
+      "target": "7e870cbfe459b13d",
+      "type": "calls"
+    },
+    {
+      "source": "1e96e2f7d37691f3",
+      "target": "9980a2d746de8d11",
+      "type": "calls"
+    },
+    {
+      "source": "1e96e2f7d37691f3",
+      "target": "a330a61e689eccbe",
+      "type": "calls"
+    },
+    {
+      "source": "1e96e2f7d37691f3",
+      "target": "a895a6cbcee08450",
+      "type": "calls"
+    },
+    {
+      "source": "1e96e2f7d37691f3",
+      "target": "c90de1206fe991fd",
+      "type": "calls"
+    },
+    {
+      "source": "1e96e2f7d37691f3",
+      "target": "f4d120823b23720b",
+      "type": "calls"
+    },
+    {
+      "source": "1f18b9f0a6cd3ad5",
+      "target": "3767b3f8ece7b2d9",
+      "type": "calls"
+    },
+    {
+      "source": "1f18b9f0a6cd3ad5",
+      "target": "532dc6c76d026a52",
+      "type": "calls"
+    },
+    {
+      "source": "1f18b9f0a6cd3ad5",
+      "target": "a34693508e46aee6",
+      "type": "calls"
+    },
+    {
+      "source": "1f18b9f0a6cd3ad5",
+      "target": "a53dcf152b98160f",
+      "type": "calls"
+    },
+    {
+      "source": "1f18b9f0a6cd3ad5",
+      "target": "cba679b605719bbf",
+      "type": "calls"
+    },
+    {
+      "source": "1f18b9f0a6cd3ad5",
+      "target": "f816eeb564954597",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "008bd0f682ef5018",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "0359e5f7c802195f",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "03a6be2cc707cc61",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "0b94bc16d172a5fe",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "133c625dd868711e",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "1c7535326874a447",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "1e96e2f7d37691f3",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "322b135d2abf75fd",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "3448c7e5a5b24f4b",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "3a975789d1bbb2fe",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "3b968c12ffe3cc83",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "4cbb0941a84377f5",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "510d30aff59219d8",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "71b0f69e7965c263",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "795a27110cb2c9b6",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "7add6e4278cff75b",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "7e870cbfe459b13d",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "8091a4e6e6065962",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "8bcd29ab996f5dfd",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "8fb77039fe4f76d0",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "8fd277b34fa52a50",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "95fb186145f8a443",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "9980a2d746de8d11",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "a32b258f21df7ccc",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "a330a61e689eccbe",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "a34693508e46aee6",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "a43bb820ea7178c2",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "a4d891520736b086",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "a67fdc3884bbe8d8",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "a7b82424ba6edd19",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "a895a6cbcee08450",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "b69599faa5f33af2",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "bc66e0b7dd9b0101",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "c477b7bb0fd52ebc",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "c90de1206fe991fd",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "d44d4cebaa93a2af",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "d578a829031be087",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "d654c1800f71c6f7",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "d740a54b498a8c22",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "d8732547febac7ca",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "db4349651fe9fc3c",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "dc2aaf2fd0a3ea6f",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "e1be08664078b2da",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "e72a8cd80206aea1",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "e9bca51df8d87db5",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "ed09dbb3acad89d0",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "ef8f1720b3026786",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "f4d120823b23720b",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "f875a67532c02b91",
+      "type": "calls"
+    },
+    {
+      "source": "26f0036ce886b72a",
+      "target": "fbc86a1caadd085b",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "008bd0f682ef5018",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "0359e5f7c802195f",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "03a6be2cc707cc61",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "133c625dd868711e",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "1c7535326874a447",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "322b135d2abf75fd",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "3448c7e5a5b24f4b",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "3a975789d1bbb2fe",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "3b968c12ffe3cc83",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "4cbb0941a84377f5",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "7add6e4278cff75b",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "7f076526dcc20a60",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "8091a4e6e6065962",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "8bcd29ab996f5dfd",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "8fb77039fe4f76d0",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "8fd277b34fa52a50",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "95fb186145f8a443",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "962fae138b652317",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "a32b258f21df7ccc",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "a43bb820ea7178c2",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "a4d891520736b086",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "a67fdc3884bbe8d8",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "a7b82424ba6edd19",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "b69599faa5f33af2",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "bc66e0b7dd9b0101",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "c477b7bb0fd52ebc",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "d44d4cebaa93a2af",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "d578a829031be087",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "d654c1800f71c6f7",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "d740a54b498a8c22",
+      "type": "calls"
+    },
+    {
+      "source": "2a9cf3e021169eb5",
+      "target": "d8732547febac7ca",
+      "type": "calls"
+    }
+  ],
+  "meta": {
+    "project": "ai-mind-map",
+    "version": "1.21.2",
+    "totalNodes": 4977,
+    "totalEdges": 12146,
+    "extractedAt": "2026-07-09T07:33:20.769Z",
+    "description": "Real graph data — AI Mind Map indexing itself"
+  }
+}

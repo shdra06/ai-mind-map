@@ -1,0 +1,572 @@
+<html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Install AI Mind Map — One Command Setup</title>
+  <meta name="description" content="Install AI Mind Map in one command. Auto-detects Claude, Cursor, VS Code Copilot, Windsurf, Antigravity, Zed, Continue.dev, and Codex.">
+  <style data-original-href="https://ai-mind-map-website.vercel.app/css/globals.css">@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap");
+:root { --bg-primary: #0C0A09; --bg-secondary: #141210; --bg-tertiary: #1E1A17; --bg-input: #110F0D; --bg-glass: rgba(20, 18, 16, 0.85); --bg-glass-strong: rgba(20, 18, 16, 0.95); --accent-primary: #E8611A; --accent-hover: #FF7A35; --accent-dim: #C44D0F; --accent-subtle: rgba(232, 97, 26, 0.08); --accent-glow: 0 0 24px rgba(232, 97, 26, 0.2); --accent-purple: #E8611A; --accent-cyan: #D4901F; --accent-pink: #FF7A35; --accent-green: #39D353; --accent-orange: #D4901F; --amber: #D4901F; --amber-bright: #F0A835; --code-green: #39D353; --text-primary: #F5F0EB; --text-secondary: #9C8E82; --text-muted: #5C5048; --text-code: #FFB347; --border-subtle: rgba(245, 166, 35, 0.08); --border-mid: rgba(245, 166, 35, 0.14); --border-strong: rgba(245, 166, 35, 0.24); --border-active: rgba(232, 97, 26, 0.5); --gradient-hero: linear-gradient(135deg, #E8611A, #D4901F); --gradient-purple-pink: linear-gradient(135deg, #E8611A, #F0A835); --glow-purple: 0 0 24px rgba(232, 97, 26, 0.18); --glow-cyan: 0 0 24px rgba(212, 144, 31, 0.15); --glow-pink: 0 0 24px rgba(255, 122, 53, 0.15); --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 20px; --transition-fast: 0.15s ease; --transition-normal: 0.25s ease; --transition-slow: 0.45s ease; --space-xs: 0.25rem; --space-sm: 0.5rem; --space-md: 1rem; --space-lg: 1.5rem; --space-xl: 2rem; --space-2xl: 3rem; --space-3xl: 4.5rem; --space-4xl: 6rem; }
+*, ::before, ::after { margin: 0px; padding: 0px; box-sizing: border-box; }
+html { scroll-behavior: smooth; text-size-adjust: 100%; font-size: 16px; }
+body { background-color: var(--bg-primary); color: var(--text-primary); font-family: Geist, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 1rem; line-height: 1.65; font-feature-settings: "ss01"; -webkit-font-smoothing: antialiased; overflow-x: hidden; min-height: 100vh; letter-spacing: -0.01em; }
+img, video, svg { display: block; max-width: 100%; }
+a { color: var(--accent-primary); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+ul, ol { list-style: none; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; font-size: inherit; color: inherit; }
+input, textarea, select { font-family: inherit; font-size: inherit; color: inherit; }
+::selection { background: rgba(232, 97, 26, 0.25); color: var(--text-primary); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: rgba(232, 97, 26, 0.25); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(232, 97, 26, 0.4); }
+* { scrollbar-width: thin; scrollbar-color: rgba(232, 97, 26, 0.25) var(--bg-primary); }
+h1, h2, h3, h4, h5, h6 { font-family: Geist, system-ui, sans-serif; font-weight: 600; letter-spacing: -0.03em; line-height: 1.08; color: var(--text-primary); }
+h1 { font-size: clamp(2.5rem, 5vw, 4.5rem); line-height: 1.05; }
+h2 { font-size: clamp(1.8rem, 3.5vw, 2.75rem); margin-bottom: 1rem; }
+h3 { font-size: 1.35rem; font-weight: 600; margin-bottom: 0.75rem; }
+h4 { font-size: 1.1rem; font-weight: 500; }
+p { font-size: 1rem; line-height: 1.7; color: var(--text-secondary); }
+.text-gradient { background: linear-gradient(135deg, rgb(245, 240, 235) 0%, rgb(232, 97, 26) 50%, rgb(212, 144, 31) 100%) 0% 0% / 200% 200% text; -webkit-text-fill-color: transparent; animation: 5s ease 0s infinite normal none running gradient-shift; }
+.text-gradient-pink { background: linear-gradient(135deg, rgb(232, 97, 26), rgb(240, 168, 53)) text; -webkit-text-fill-color: transparent; }
+.text-glow { color: var(--accent-primary); text-shadow: rgba(232, 97, 26, 0.4) 0px 0px 20px; }
+.text-cyan { color: var(--amber); }
+.text-purple { color: var(--accent-primary); }
+.text-pink { color: var(--accent-hover); }
+.text-green { color: var(--code-green); }
+.text-orange { color: var(--amber); }
+.text-muted { color: var(--text-muted); }
+.text-secondary { color: var(--text-secondary); }
+.text-center { text-align: center; }
+.text-sm { font-size: 0.875rem; }
+.text-lg { font-size: 1.25rem; }
+.text-xl { font-size: 1.5rem; }
+.text-2xl { font-size: 2rem; }
+.font-mono { font-family: "Geist Mono", "JetBrains Mono", monospace; }
+.font-light { font-weight: 300; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 600; }
+code, kbd, samp { font-family: "Geist Mono", "JetBrains Mono", monospace; font-size: 0.875em; color: var(--text-code); background: rgba(232, 97, 26, 0.06); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.1em 0.4em; }
+pre { font-family: "Geist Mono", "JetBrains Mono", monospace; background: var(--bg-input); border: 1px solid var(--border-mid); border-radius: var(--radius-md); padding: 1.25rem 1.5rem; overflow-x: auto; font-size: 0.875rem; line-height: 1.7; color: var(--text-code); position: relative; }
+pre::before { content: ""; position: absolute; top: 0px; left: 0px; right: 0px; height: 1px; background: linear-gradient(90deg, var(--accent-primary), var(--amber), transparent); opacity: 0.6; }
+pre code { background: none; padding: 0px; border-radius: 0px; border: none; font-size: inherit; color: inherit; }
+.container { max-width: 1160px; margin: 0px auto; padding: 0px 2rem; width: 100%; }
+.container-sm { max-width: 800px; margin: 0px auto; padding: 0px 1.5rem; width: 100%; }
+.container-lg { max-width: 1400px; margin: 0px auto; padding: 0px 1.5rem; width: 100%; }
+.section { padding: 6rem 0px; position: relative; z-index: 1; }
+.section-sm { padding: 4rem 0px; }
+.section-lg { padding: 8rem 0px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+.flex { display: flex; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.align-center { align-items: center; }
+.justify-center { justify-content: center; }
+.gap-xs { gap: 0.25rem; }
+.gap-sm { gap: 0.5rem; }
+.gap-md { gap: 1rem; }
+.gap-lg { gap: 1.5rem; }
+.gap-xl { gap: 2rem; }
+.gap-2xl { gap: 3rem; }
+.mb-sm { margin-bottom: 0.5rem; }
+.mb-md { margin-bottom: 1rem; }
+.mb-lg { margin-bottom: 1.5rem; }
+.mb-xl { margin-bottom: 2rem; }
+.mb-2xl { margin-bottom: 3rem; }
+.mb-3xl { margin-bottom: 4rem; }
+.mt-sm { margin-top: 0.5rem; }
+.mt-md { margin-top: 1rem; }
+.mt-lg { margin-top: 1.5rem; }
+.mt-xl { margin-top: 2rem; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.card { background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 2rem; transition: border-color var(--transition-normal),
+              box-shadow var(--transition-normal),
+              transform var(--transition-normal); position: relative; overflow: hidden; }
+.card::before { content: ""; position: absolute; top: 0px; left: 0px; right: 0px; height: 1px; background: linear-gradient(90deg, transparent, rgba(232, 97, 26, 0.4), transparent); opacity: 0; transition: opacity var(--transition-normal); }
+.card:hover { border-color: var(--border-strong); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), var(--accent-glow); transform: translateY(-2px); }
+.card:hover::before { opacity: 1; }
+.card-icon { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
+.card-title { font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.75rem; }
+.card-text { font-size: 0.95rem; color: var(--text-secondary); line-height: 1.7; }
+.card-green { border-color: rgba(57, 211, 83, 0.15); }
+.card-green:hover { border-color: rgba(57, 211, 83, 0.3); box-shadow: rgba(57, 211, 83, 0.12) 0px 0px 20px; }
+.card-pink { border-color: rgba(232, 97, 26, 0.15); }
+.card-pink:hover { border-color: rgba(232, 97, 26, 0.35); box-shadow: var(--accent-glow); }
+.card-cyan { border-color: rgba(212, 144, 31, 0.15); }
+.card-cyan:hover { border-color: rgba(212, 144, 31, 0.35); box-shadow: var(--glow-cyan); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: var(--radius-md); font-family: Geist, sans-serif; font-weight: 500; font-size: 0.9rem; letter-spacing: -0.01em; line-height: 1; transition: all var(--transition-normal); cursor: pointer; white-space: nowrap; text-decoration: none; }
+.btn-primary { background: var(--accent-primary); color: rgb(255, 255, 255); border: 1px solid transparent; box-shadow: rgba(232, 97, 26, 0.25) 0px 2px 8px; }
+.btn-primary:hover { background: var(--accent-hover); color: rgb(255, 255, 255); transform: translateY(-1px); box-shadow: rgba(232, 97, 26, 0.35) 0px 6px 20px; }
+.btn-primary:active { transform: translateY(0px); }
+.btn-secondary { background: transparent; color: var(--text-primary); border: 1px solid var(--border-mid); }
+.btn-secondary:hover { background: var(--accent-subtle); border-color: var(--border-active); color: var(--text-primary); }
+.btn-ghost { background: none; border: none; color: var(--text-secondary); padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); }
+.btn-ghost:hover { color: var(--text-primary); background: var(--accent-subtle); }
+.btn-lg { padding: 1rem 2rem; font-size: 1rem; border-radius: var(--radius-lg); }
+.btn-sm { padding: 0.5rem 1rem; font-size: 0.82rem; }
+.btn-icon { width: 40px; height: 40px; padding: 0px; border-radius: var(--radius-md); }
+.badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.7rem; border-radius: 99px; font-family: "Geist Mono", monospace; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.02em; border: 1px solid; }
+.badge-purple, .badge-primary { background: rgba(232, 97, 26, 0.1); color: rgb(255, 122, 53); border-color: rgba(232, 97, 26, 0.25); }
+.badge-cyan, .badge-amber { background: rgba(212, 144, 31, 0.1); color: rgb(240, 168, 53); border-color: rgba(212, 144, 31, 0.25); }
+.badge-green { background: rgba(57, 211, 83, 0.08); color: rgb(57, 211, 83); border-color: rgba(57, 211, 83, 0.2); }
+.badge-pink, .badge-warm { background: rgba(245, 240, 235, 0.06); color: rgb(200, 184, 168); border-color: rgba(245, 240, 235, 0.12); }
+.badge-orange { background: rgba(212, 144, 31, 0.1); color: rgb(240, 168, 53); border-color: rgba(212, 144, 31, 0.25); }
+.tag { display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 0.72rem; font-family: "Geist Mono", monospace; color: var(--text-secondary); transition: all var(--transition-fast); }
+.tag:hover { border-color: var(--border-active); color: var(--text-primary); }
+.tag-purple { background: rgba(232, 97, 26, 0.08); color: var(--accent-primary); }
+.tag-cyan { background: rgba(212, 144, 31, 0.08); color: var(--amber); }
+.input { background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.65rem 1rem; font-family: Geist, sans-serif; font-size: 0.875rem; color: var(--text-primary); outline: none; transition: border-color var(--transition-fast); width: 100%; }
+.input:focus { border-color: var(--border-active); }
+.input::placeholder { color: var(--text-muted); }
+.glass-panel { background: rgba(12, 10, 9, 0.9); backdrop-filter: blur(20px); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
+.divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border-mid), transparent); border: none; margin: 2rem 0px; }
+.code-block { position: relative; background: var(--bg-input); border: 1px solid var(--border-mid); border-radius: var(--radius-md); overflow: hidden; }
+.code-block::before { content: ""; position: absolute; top: 0px; left: 0px; right: 0px; height: 1px; background: linear-gradient(90deg, var(--accent-primary), var(--amber), transparent); opacity: 0.5; }
+.code-block pre { margin: 0px; border: none; padding: 1.25rem 4rem 1.25rem 1.5rem; }
+.code-block pre::before { display: none; }
+.code-block .copy-btn { position: absolute; top: 0.75rem; right: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border-mid); border-radius: var(--radius-sm); padding: 0.4rem 0.7rem; color: var(--text-secondary); font-size: 0.78rem; cursor: pointer; transition: all var(--transition-fast); font-family: Geist, sans-serif; }
+.code-block .copy-btn:hover { background: var(--accent-primary); color: rgb(255, 255, 255); border-color: var(--accent-primary); }
+.code-block .copy-btn.copied { background: rgba(57, 211, 83, 0.15); color: rgb(57, 211, 83); border-color: rgba(57, 211, 83, 0.3); }
+.navbar { position: fixed; top: 0px; left: 0px; right: 0px; z-index: 1000; padding: 0px 2rem; height: 60px; display: flex; align-items: center; justify-content: space-between; background: rgba(12, 10, 9, 0.85); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border-subtle); transition: all var(--transition-normal); }
+.navbar.scrolled { background: rgba(12, 10, 9, 0.97); border-bottom-color: var(--border-mid); box-shadow: 0 1px 0 var(--border-mid), 0 4px 24px rgba(0, 0, 0, 0.5); }
+.navbar .container { display: flex; align-items: center; justify-content: space-between; }
+.nav-logo { font-family: "Geist Mono", monospace; font-size: 1rem; font-weight: 600; color: var(--text-primary); text-decoration: none; letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.5rem; }
+.nav-logo .logo-icon { font-size: 1.25rem; }
+.nav-logo .logo-text { background-image: ; background-position-x: ; background-position-y: ; background-size: ; background-repeat: ; background-attachment: ; background-origin: ; background-color: ; background-clip: text; -webkit-text-fill-color: transparent; }
+.nav-links { display: flex; align-items: center; gap: 0.25rem; }
+.nav-link { position: relative; padding: 0.4rem 0.75rem; color: var(--text-secondary); font-size: 0.875rem; font-weight: 500; letter-spacing: -0.01em; transition: all var(--transition-fast); text-decoration: none; border-radius: var(--radius-sm); }
+.nav-link:hover { color: var(--text-primary); background: var(--accent-subtle); }
+.nav-link::after { content: ""; position: absolute; bottom: 0px; left: 50%; transform: translateX(-50%); width: 0px; height: 1px; background: var(--accent-primary); border-radius: 1px; transition: width var(--transition-normal); }
+.nav-link:hover::after, .nav-link.active::after { width: 60%; }
+.nav-link.active { color: var(--accent-primary); }
+.nav-actions { display: flex; align-items: center; gap: 0.75rem; }
+.nav-github { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.9rem; background: var(--bg-secondary); border: 1px solid var(--border-mid); border-radius: var(--radius-sm); font-size: 0.82rem; color: var(--text-primary); transition: all var(--transition-fast); text-decoration: none; }
+.nav-github:hover { border-color: var(--border-active); color: var(--accent-primary); background: var(--accent-subtle); }
+.nav-github svg { width: 18px; height: 18px; fill: currentcolor; }
+.hamburger { display: none; flex-direction: column; gap: 5px; padding: 0.5rem; cursor: pointer; background: none; border: none; z-index: 1001; }
+.hamburger span { display: block; width: 22px; height: 1.5px; background: var(--text-secondary); border-radius: 1px; transition: all var(--transition-fast); }
+.hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+.hamburger.active span:nth-child(2) { opacity: 0; }
+.hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+.mobile-nav { display: none; position: fixed; top: 60px; left: 0px; right: 0px; background: rgba(12, 10, 9, 0.98); border-bottom: 1px solid var(--border-mid); padding: 1.5rem 2rem; flex-direction: column; gap: 0.5rem; z-index: 999; backdrop-filter: blur(16px); opacity: 0; pointer-events: none; transition: opacity var(--transition-normal); }
+.mobile-nav.active { display: flex; opacity: 1; pointer-events: all; }
+.mobile-nav .nav-link { font-size: 1.1rem; padding: 0.85rem; border-bottom: 1px solid var(--border-subtle); }
+.mobile-nav .nav-link::after { display: none; }
+@keyframes fadeInUp { 
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+@keyframes float { 
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes pulse-glow { 
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+@keyframes gradient-shift { 
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes ember-flicker { 
+  0%, 100% { opacity: 1; }
+  25% { opacity: 0.85; }
+  75% { opacity: 0.95; }
+}
+@keyframes shimmer { 
+  0% { background-position: -200% 0px; }
+  100% { background-position: 200% 0px; }
+}
+@keyframes spin { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes breathe { 
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+@keyframes count-up { 
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+@keyframes marquee { 
+  0% { transform: translateX(0px); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes neuralShift { 
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1); }
+.reveal.active { opacity: 1; transform: none; }
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.32s; }
+.reveal-delay-4 { transition-delay: 0.45s; }
+.reveal-delay-5 { transition-delay: 0.55s; }
+.animate-fadeInUp { animation: 0.6s ease 0s 1 normal forwards running fadeInUp; }
+.animate-float { animation: 3s ease-in-out 0s infinite normal none running float; }
+.animate-pulse-glow { animation: 2s ease-in-out 0s infinite normal none running pulse-glow; }
+.animate-gradient { background-size: 200% 200%; animation: 4s ease 0s infinite normal none running gradient-shift; }
+.animate-breathe { animation: 3s ease-in-out 0s infinite normal none running breathe; }
+body::before { content: ""; position: fixed; inset: 0px; background-image: radial-gradient(circle, rgba(232, 97, 26, 0.043) 1px, transparent 1px); background-size: 28px 28px; pointer-events: none; z-index: 0; }
+.neural-bg { background: linear-gradient(135deg, rgb(12, 10, 9) 0%, rgb(18, 14, 10) 40%, rgb(12, 10, 9) 70%, rgb(14, 11, 7) 100%) 0% 0% / 400% 400%; animation: 25s ease 0s infinite normal none running neuralShift; }
+.cursor-glow { position: fixed; pointer-events: none; width: 480px; height: 480px; border-radius: 50%; background: radial-gradient(circle, rgba(232, 97, 26, 0.055) 0%, transparent 70%); transform: translate(-50%, -50%); transition: left 0.08s linear, top 0.08s linear; z-index: 0; will-change: left, top; }
+.gradient-border { position: relative; }
+.gradient-border::before { content: ""; position: absolute; inset: 0px; border-radius: inherit; padding: 1px; background: var(--gradient-hero); mask: linear-gradient(rgb(255, 255, 255) 0px, rgb(255, 255, 255) 0px) content-box exclude, linear-gradient(rgb(255, 255, 255) 0px, rgb(255, 255, 255) 0px); pointer-events: none; }
+.hover-lift { transition: transform var(--transition-normal); }
+.hover-lift:hover { transform: translateY(-4px); }
+.glow-on-hover { transition: box-shadow var(--transition-normal); }
+.glow-on-hover:hover { box-shadow: var(--glow-purple); }
+.shimmer { background: linear-gradient(90deg, transparent, rgba(232, 97, 26, 0.12), transparent) 0% 0% / 200% 100%; animation: 2s ease 0s infinite normal none running shimmer; }
+.particle-bg { position: relative; overflow: hidden; }
+.particle-bg canvas { position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; pointer-events: none; }
+.noise-overlay::after { content: ""; position: absolute; inset: 0px; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events: none; opacity: 0.4; }
+.orb { position: absolute; border-radius: 50%; filter: blur(100px); pointer-events: none; animation: 12s ease-in-out 0s infinite normal none running float; z-index: 0; opacity: 0.6; }
+.orb-purple { background: rgba(232, 97, 26, 0.18); width: 500px; height: 500px; }
+.orb-cyan { background: rgba(212, 144, 31, 0.1); width: 350px; height: 350px; animation-delay: -5s; }
+.orb-pink { background: rgba(232, 97, 26, 0.07); width: 280px; height: 280px; animation-delay: -9s; }
+.node-hotspot { filter: drop-shadow(rgba(232, 97, 26, 0.7) 0px 0px 8px); }
+.hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding-top: 5rem; overflow: hidden; }
+.hero-content { position: relative; z-index: 2; text-align: center; max-width: 860px; margin: 0px auto; }
+.hero h1 { margin-bottom: 1.5rem; }
+.hero .subtitle { font-size: 1.1rem; color: var(--text-secondary); max-width: 640px; margin: 0px auto 2.5rem; line-height: 1.75; }
+.hero-cta { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 2.5rem; flex-wrap: wrap; }
+.hero-install { max-width: 450px; margin: 0px auto 2rem; }
+.section-header { text-align: center; max-width: 700px; margin: 0px auto 4rem; }
+.section-header h2 { margin-bottom: 1rem; }
+.section-header p { font-size: 1.05rem; color: var(--text-secondary); }
+.section-label { display: flex; align-items: center; gap: 0.6rem; font-family: "Geist Mono", monospace; font-size: 0.7rem; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-primary); margin-bottom: 1rem; }
+.section-label::before { content: ""; width: 16px; height: 1px; background: var(--accent-primary); opacity: 0.6; display: inline-block; }
+.section-title { font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 600; font-family: Geist, sans-serif; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 1rem; }
+.section-sub { font-size: 1.05rem; color: var(--text-secondary); max-width: 580px; line-height: 1.75; }
+.stat-card { text-align: center; padding: 2rem 1rem; position: relative; overflow: hidden; }
+.stat-card::before { content: ""; position: absolute; top: 0px; left: 0px; right: 0px; height: 1px; background: linear-gradient(90deg, transparent, var(--accent, var(--accent-primary)), transparent); }
+.stat-number { font-size: 3.5rem; font-weight: 600; font-family: "Geist Mono", monospace; background: linear-gradient(135deg, rgb(245, 240, 235), rgb(232, 97, 26)) text; -webkit-text-fill-color: transparent; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.04em; }
+.stat-label { color: var(--text-muted); font-size: 0.78rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 0.5rem; }
+.bento-grid { display: grid; grid-template-columns: repeat(12, 1fr); grid-auto-rows: 80px; gap: 1px; background: var(--border-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; }
+.bento-hero { grid-area: span 5 / span 7; }
+.bento-tall { grid-area: span 5 / span 5; }
+.bento-wide { grid-area: span 3 / span 7; }
+.bento-small { grid-area: span 3 / span 5; }
+.bento-sq { grid-area: span 3 / span 4; }
+.bento-card { background: var(--bg-secondary); padding: 2rem; display: flex; flex-direction: column; overflow: hidden; transition: background var(--transition-normal); }
+.bento-card:hover { background: var(--bg-tertiary); }
+.card-accent-border { position: relative; overflow: hidden; }
+.card-accent-border::before { content: ""; position: absolute; top: 0px; left: 0px; right: 0px; height: 1px; background: linear-gradient(90deg, transparent, rgba(232, 97, 26, 0.5), transparent); opacity: 0; transition: opacity var(--transition-normal); }
+.card-accent-border:hover::before { opacity: 1; }
+.lang-badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.75rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 0.75rem; font-family: "Geist Mono", monospace; color: var(--text-secondary); transition: all var(--transition-fast); cursor: default; }
+.lang-badge:hover { border-color: var(--border-active); color: var(--accent-primary); transform: translateY(-2px); }
+.marquee-wrap { overflow: hidden; mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent); }
+.marquee-track { display: flex; gap: 0.75rem; animation: 30s linear 0s infinite normal none running marquee; width: max-content; }
+.marquee-track:hover { animation-play-state: paused; }
+.real-data-banner { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.5rem 1.1rem; background: rgba(57, 211, 83, 0.06); border: 1px solid rgba(57, 211, 83, 0.2); border-radius: 99px; font-size: 0.78rem; color: rgb(57, 211, 83); font-family: "Geist Mono", monospace; }
+.real-data-banner .dot { width: 7px; height: 7px; background: rgb(57, 211, 83); border-radius: 50%; box-shadow: rgb(57, 211, 83) 0px 0px 8px; animation: 2s ease-in-out 0s infinite normal none running pulse-glow; }
+.comparison-card { border-radius: var(--radius-lg); overflow: hidden; }
+.comparison-card .card-header { padding: 1rem 1.5rem; font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem; }
+.comparison-card.bad .card-header { background: rgba(253, 121, 168, 0.08); color: rgb(249, 168, 212); border-bottom: 1px solid rgba(253, 121, 168, 0.15); }
+.comparison-card.good .card-header { background: rgba(57, 211, 83, 0.08); color: rgb(57, 211, 83); border-bottom: 1px solid rgba(57, 211, 83, 0.15); }
+.comparison-card pre { border: none; border-radius: 0px; margin: 0px; }
+.agents-grid { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2rem; }
+.agent-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.25rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-size: 0.95rem; color: var(--text-secondary); transition: all var(--transition-normal); }
+.agent-item:hover { border-color: var(--border-active); color: var(--text-primary); transform: translateY(-2px); }
+.agent-icon { font-size: 1.3rem; }
+.footer { border-top: 1px solid var(--border-subtle); padding: 3rem 0px; }
+.footer-content { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; }
+.footer-links { display: flex; gap: 1.5rem; }
+.footer-link { color: var(--text-muted); font-size: 0.9rem; transition: color var(--transition-fast); text-decoration: none; }
+.footer-link:hover { color: var(--text-primary); }
+.footer-copy { color: var(--text-muted); font-size: 0.85rem; }
+.footer-tech { color: var(--text-muted); font-size: 0.8rem; }
+.cta-section { text-align: center; position: relative; }
+.cta-section h2 { margin-bottom: 1.5rem; }
+.cta-buttons { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 2rem; flex-wrap: wrap; }
+@media (max-width: 1024px) {
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .section { padding: 4.5rem 0px; }
+  .bento-hero, .bento-tall, .bento-wide, .bento-small, .bento-sq { grid-column: span 12; }
+  .bento-grid { grid-auto-rows: auto; }
+}
+@media (max-width: 768px) {
+  html { font-size: 15px; }
+  h1 { font-size: 2.2rem; }
+  h2 { font-size: 1.75rem; }
+  h3 { font-size: 1.25rem; }
+  .section { padding: 3.5rem 0px; }
+  .container { padding: 0px 1.25rem; }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .stat-number { font-size: 2.75rem; }
+  .nav-links, .nav-actions { display: none; }
+  .hamburger { display: flex; }
+  .hero { min-height: auto; padding: 8rem 0px 4rem; }
+  .hero .subtitle { font-size: 1rem; }
+  .hero-cta { flex-direction: column; }
+  .footer-content { flex-direction: column; text-align: center; }
+  .footer-links { justify-content: center; }
+  .agents-grid { gap: 1rem; }
+  .agent-item { padding: 0.6rem 1rem; font-size: 0.85rem; }
+}
+@media (max-width: 480px) {
+  html { font-size: 14px; }
+  h1 { font-size: 1.85rem; }
+  h2 { font-size: 1.5rem; }
+  .section { padding: 3rem 0px; }
+  .container { padding: 0px 1rem; }
+  .card { padding: 1.5rem; }
+  .btn-lg { padding: 0.85rem 1.5rem; font-size: 0.95rem; }
+  .stat-number { font-size: 2.25rem; }
+  .section-header { margin-bottom: 2.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}</style>
+  <style data-original-href="https://ai-mind-map-website.vercel.app/css/install.css">.step-indicator { display: flex; align-items: center; justify-content: center; gap: 0px; margin-bottom: 3rem; }
+.step-number { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; background: var(--bg-card); border: 2px solid var(--border); color: var(--text-muted); transition: all var(--transition); flex-shrink: 0; }
+.step-number.active { background: var(--purple); border-color: var(--purple); color: rgb(255, 255, 255); box-shadow: 0 0 20px var(--purple-glow); }
+.step-number.completed { background: var(--green); border-color: var(--green); color: rgb(255, 255, 255); box-shadow: 0 0 16px var(--green-glow); }
+.step-line { height: 2px; width: 60px; background: var(--border); transition: background var(--transition); }
+.step-line.filled { background: linear-gradient(90deg, var(--green), var(--purple)); }
+.agent-card { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 1.5rem 1rem; background: var(--bg-glass); backdrop-filter: blur(12px); border: 2px solid var(--border); border-radius: var(--radius-md); cursor: pointer; transition: all var(--transition); color: var(--text-primary); font-family: inherit; }
+.agent-card:hover { border-color: var(--border-hover); transform: translateY(-4px); box-shadow: rgba(108, 92, 231, 0.15) 0px 8px 30px; }
+.agent-card.active { border-color: var(--purple); box-shadow: 0 0 30px var(--purple-glow), inset 0 0 30px var(--purple-dim); background: rgba(108, 92, 231, 0.08); }
+.agent-card__icon { font-size: 2.2rem; line-height: 1; }
+.agent-card__name { font-size: 0.88rem; font-weight: 600; text-align: center; }
+.install-step { opacity: 0; transform: translateY(24px); transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out); pointer-events: none; }
+.install-step.visible { opacity: 1; transform: translateY(0px); pointer-events: auto; }
+.install-command .code-block { font-size: 1.2rem; padding: 1.5rem 2rem; text-align: center; }
+.install-note { display: flex; align-items: center; gap: 10px; color: var(--text-secondary); font-size: 0.88rem; }
+.config-preview { overflow: hidden; }
+.config-toggle { display: flex; justify-content: space-between; align-items: center; width: 100%; background: none; border: none; color: var(--text-secondary); font-size: 0.95rem; padding: 0px; cursor: pointer; transition: color var(--transition); }
+.config-toggle:hover { color: var(--text-primary); }
+.config-toggle__arrow { transition: transform var(--transition); font-size: 1.2rem; }
+.config-toggle__arrow.open { transform: rotate(90deg); }
+.config-content { max-height: 0px; overflow: hidden; transition: max-height 0.5s var(--ease-out), margin-top 0.5s var(--ease-out); margin-top: 0px; }
+.config-content.open { max-height: 400px; margin-top: 1.2rem; }
+.config-file-path { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.6rem; padding: 6px 12px; background: rgba(0, 0, 0, 0.3); border-radius: 4px; display: inline-block; }
+.success-card { padding: 3rem 2rem; }
+.success-checkmark { width: 80px; height: 80px; margin: 0px auto; }
+.checkmark-svg { width: 100%; height: 100%; }
+.checkmark-circle { stroke-dasharray: 166; stroke-dashoffset: 166; animation: 0.8s ease-in-out 0s 1 normal forwards running checkCircle; }
+.checkmark-path { stroke-dasharray: 48; stroke-dashoffset: 48; animation: 0.4s ease-in-out 0.5s 1 normal forwards running checkPath; }
+@keyframes checkCircle { 
+  100% { stroke-dashoffset: 0; }
+}
+@keyframes checkPath { 
+  100% { stroke-dashoffset: 0; }
+}
+.next-steps { display: flex; flex-direction: column; gap: 1rem; max-width: 400px; margin: 2rem auto 0px; }
+.next-step-link { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-primary); font-weight: 500; transition: all var(--transition); padding: 14px 20px !important; }
+.next-step-link:hover { transform: translateX(6px); border-color: var(--purple); }
+.next-step-icon { font-size: 1.4rem; }
+.next-step-text { flex: 1 1 0%; font-size: 0.92rem; }
+.next-step-arrow { color: var(--text-muted); font-size: 1.2rem; transition: color var(--transition), transform var(--transition); }
+.next-step-link:hover .next-step-arrow { color: var(--purple); transform: translateX(4px); }</style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- ═══ Navigation ═══ -->
+  <nav class="nav" role="navigation">
+    <a href="index.html" class="nav__logo">
+      <span class="nav__logo-icon">🧠</span>
+      <span>AI Mind Map</span>
+    </a>
+    <ul class="nav__links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="tools.html">Tools</a></li>
+      <li><a href="architecture.html">Architecture</a></li>
+      <li><a href="calculator.html">Calculator</a></li>
+      <li><a href="install.html" class="active">Install</a></li>
+      <li><a href="explorer.html">Explorer</a></li>
+      <li><a href="https://github.com/shdra06/ai-mind-map" target="_blank" class="nav__cta">GitHub ↗</a></li>
+    </ul>
+    <button class="nav__hamburger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- ═══ Hero ═══ -->
+  <header class="hero container">
+    <h1 class="hero__title reveal active">Install in One Command</h1>
+    <p class="hero__subtitle reveal active">Auto-detects and configures your AI agent. No config files. No manual setup.</p>
+  </header>
+
+  <!-- ═══ Step 1: Choose Agent ═══ -->
+  <section class="section container" id="step-1">
+    <div class="step-indicator reveal active">
+      <div class="step-number completed">1</div>
+      <div class="step-line filled"></div>
+      <div class="step-number completed" id="step-dot-2">2</div>
+      <div class="step-line filled"></div>
+      <div class="step-number active" id="step-dot-3">3</div>
+      <div class="step-line"></div>
+      <div class="step-number" id="step-dot-4">4</div>
+    </div>
+
+    <h2 class="section-title reveal active">Choose Your Agent</h2>
+    <p class="section-subtitle reveal active">Select the AI agent you're using. AI Mind Map supports all of them.</p>
+
+    <div class="grid-4 reveal active" id="agent-grid">
+      <button class="agent-card" data-agent="claude">
+        <span class="agent-card__icon">🤖</span>
+        <span class="agent-card__name">Claude Code</span>
+        <span class="badge badge--green">Supported</span>
+      </button>
+      <button class="agent-card active" data-agent="cursor">
+        <span class="agent-card__icon">🎯</span>
+        <span class="agent-card__name">Cursor</span>
+        <span class="badge badge--green">Supported</span>
+      </button>
+      <button class="agent-card" data-agent="vscode">
+        <span class="agent-card__icon">💻</span>
+        <span class="agent-card__name">VS Code Copilot</span>
+        <span class="badge badge--green">Supported</span>
+      </button>
+      <button class="agent-card" data-agent="windsurf">
+        <span class="agent-card__icon">🏄</span>
+        <span class="agent-card__name">Windsurf</span>
+        <span class="badge badge--green">Supported</span>
+      </button>
+      <button class="agent-card" data-agent="antigravity">
+        <span class="agent-card__icon">🚀</span>
+        <span class="agent-card__name">Antigravity / Gemini</span>
+        <span class="badge badge--green">Supported</span>
+      </button>
+      <button class="agent-card" data-agent="zed">
+        <span class="agent-card__icon">⚡</span>
+        <span class="agent-card__name">Zed</span>
+        <span class="badge badge--green">Supported</span>
+      </button>
+      <button class="agent-card" data-agent="continuedev">
+        <span class="agent-card__icon">🔄</span>
+        <span class="agent-card__name">Continue.dev</span>
+        <span class="badge badge--green">Supported</span>
+      </button>
+      <button class="agent-card" data-agent="codex">
+        <span class="agent-card__icon">📦</span>
+        <span class="agent-card__name">Codex</span>
+        <span class="badge badge--green">Supported</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ═══ Step 2: Install ═══ -->
+  <section class="section container install-step visible" id="step-2">
+    <h2 class="section-title reveal active">Run the Installer</h2>
+    <p class="section-subtitle reveal active">One command auto-detects <strong id="agent-name-display" style="color:var(--cyan)">Cursor</strong> and configures everything.</p>
+
+    <div class="glass-card install-command reveal active">
+      <div class="code-block">
+        <code>npx ai-mind-map install</code>
+        <button class="code-copy" id="copy-install" data-text="npx ai-mind-map install" data-testsprite-action-target="0">Copy</button>
+      </div>
+      <p class="install-note mt-2">
+        <span class="badge badge--cyan">Note</span>
+        Works on macOS, Linux, and Windows. Requires Node.js ≥ 18.
+      </p>
+    </div>
+
+    <!-- Advanced: Config Preview -->
+    <div class="glass-card config-preview reveal mt-4 active">
+      <button class="config-toggle" id="config-toggle">
+        <span>⚙️ View generated config</span>
+        <span class="config-toggle__arrow">▸</span>
+      </button>
+      <div class="config-content" id="config-content">
+        <div class="config-file-path" id="config-file-path">.cursor/mcp.json</div>
+        <div class="code-block">
+          <pre id="config-json">{
+  "mcpServers": {
+    "ai-mind-map": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "ai-mind-map"
+      ]
+    }
+  }
+}</pre>
+          <button class="code-copy" id="copy-config">Copy</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Step 3: Verify ═══ -->
+  <section class="section container install-step visible" id="step-3">
+    <h2 class="section-title reveal active">Verify the Connection</h2>
+    <p class="section-subtitle reveal active">Restart your agent, then ask it:</p>
+
+    <div class="glass-card reveal active">
+      <div class="code-block">
+        <code>Call mindmap_status to verify the connection</code>
+        <button class="code-copy" data-text="Call mindmap_status to verify the connection">Copy</button>
+      </div>
+      <p class="mt-3" style="color:var(--text-secondary);font-size:0.9rem;">Expected response:</p>
+      <div class="code-block mt-1" style="color:var(--green);">
+<pre>{
+  "status": "connected",
+  "version": "1.21.2",
+  "tools": 50,
+  "project": "your-project",
+  "indexed": true,
+  "symbols": 1247,
+  "edges": 3891
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Step 4: Done! ═══ -->
+  <section class="section container install-step" id="step-4">
+    <div class="glass-card success-card reveal text-center">
+      <div class="success-checkmark">
+        <svg viewBox="0 0 52 52" class="checkmark-svg">
+          <circle cx="26" cy="26" r="24" fill="none" stroke="var(--green)" stroke-width="2" class="checkmark-circle"></circle>
+          <path fill="none" stroke="var(--green)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M14 27l8 8 16-16" class="checkmark-path"></path>
+        </svg>
+      </div>
+      <h2 class="section-title mt-3" style="color:var(--green)">You're Done!</h2>
+      <p class="section-subtitle">Your agent now has persistent codebase memory.</p>
+      <div class="next-steps">
+        <a href="explorer.html" class="next-step-link glass-card">
+          <span class="next-step-icon">🌐</span>
+          <span class="next-step-text">Explore the Knowledge Graph</span>
+          <span class="next-step-arrow">→</span>
+        </a>
+        <a href="tools.html" class="next-step-link glass-card">
+          <span class="next-step-icon">🛠️</span>
+          <span class="next-step-text">Browse 50+ Tools</span>
+          <span class="next-step-arrow">→</span>
+        </a>
+        <a href="calculator.html" class="next-step-link glass-card">
+          <span class="next-step-icon">💰</span>
+          <span class="next-step-text">Calculate Your Savings</span>
+          <span class="next-step-arrow">→</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer container">
+    <div class="footer__links">
+      <a href="https://github.com/shdra06/ai-mind-map" target="_blank">GitHub</a>
+      <a href="https://www.npmjs.com/package/ai-mind-map" target="_blank">npm</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="calculator.html">Calculator</a>
+    </div>
+    <p>© 2025 AI Mind Map by <a href="https://github.com/shdra06" target="_blank">shdra06</a> · MIT License</p>
+  </footer>
+
+  <script src="js/nav.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/install.js"></script>
+
+
+</body></html>

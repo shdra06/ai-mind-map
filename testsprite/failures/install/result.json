@@ -1,0 +1,18 @@
+{
+  "testId": "7b68bb8c-3bcb-4370-9eb6-04c4097a7157",
+  "status": "failed",
+  "startedAt": "2026-07-09T08:54:35.598Z",
+  "finishedAt": "2026-07-09T09:01:16.549Z",
+  "videoUrl": "https://testsprite-videos.s3.us-east-1.amazonaws.com/14d8b4c8-3011-70b3-6365-ae8daa3819f9/1783587672979449//tmp/8e1e1d72-8bae-4549-a28e-1e0287fad2a6/result.webm",
+  "failureAnalysisUrl": null,
+  "snapshotId": "snap_7364d43522447b0a",
+  "runIdIfAvailable": "c9d64472-938e-421e-8463-fe8c45b3985a",
+  "codeVersion": "v1",
+  "targetUrl": "https://ai-mind-map-website.vercel.app",
+  "targetUrlSource": "run",
+  "failedStepIndex": 11,
+  "failureKind": "unknown",
+  "verdict": "failed",
+  "executionStatus": "completed",
+  "summary": "Failed: TEST FAILURE\n\nThe install command copy button did not show any visible confirmation after being clicked multiple times.\n\nObservations:\n- The install page displayed the install command and a 'Copy' button next to it.\n- Clicking the install 'Copy' button repeatedly produced no visible 'Copied' confirmation, text change, or checkmark on the page.\n- Agent selection (Claude, Cursor) and the agent-specific configuration snippets are present and switching between them worked as expected."
+}

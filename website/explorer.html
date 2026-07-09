@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knowledge Graph Explorer — AI Mind Map</title>
+  <meta name="description" content="Interactive visualization of code relationships, dependencies, and architecture using AI Mind Map's knowledge graph.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/globals.css">
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+
+  <style>
+    /* ── Explorer Layout ───────────────────── */
+    .explorer-layout {
+      display: flex;
+      height: calc(100vh - 60px);
+      margin-top: 60px;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ───────────────────────────── */
+    .explorer-sidebar {
+      width: 300px;
+      min-width: 300px;
+      background: var(--bg-glass-strong);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-right: 1px solid rgba(108,92,231,0.12);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      z-index: 10;
+    }
+    .sidebar-section {
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(108,92,231,0.1);
+    }
+    .sidebar-section h3 {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* Search */
+    .search-wrapper {
+      position: relative;
+    }
+    .search-wrapper .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    .search-wrapper input {
+      padding-left: 36px;
+    }
+
+    /* Filter checkboxes */
+    .filter-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .filter-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+    }
+    .filter-item:hover {
+      background: rgba(108,92,231,0.06);
+    }
+    .filter-item input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--text-muted);
+      border-radius: 4px;
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .filter-item input[type="checkbox"]:checked {
+      border-color: var(--accent-purple);
+      background: var(--accent-purple);
+    }
+    .filter-item input[type="checkbox"]:checked::after {
+      content: '✓';
+      position: absolute;
+      top: -2px; left: 1px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .filter-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Layout selector */
+    .layout-options {
+      display: flex;
+      gap: 6px;
+    }
+    .layout-option {
+      flex: 1;
+      padding: 8px 4px;
+      border: 1px solid rgba(108,92,231,0.15);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .layout-option:has(input:checked) {
+      border-color: var(--accent-purple);
+      background: rgba(108,92,231,0.1);
+      color: var(--accent-purple);
+    }
+    .layout-option input {
+      display: none;
+    }
+
+    /* Zoom slider */
+    .zoom-slider {
+      width: 100%;
+      margin-top: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      background: rgba(108,92,231,0.15);
+      border-radius: 2px;
+      outline: none;
+    }
+    .zoom-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent-purple);
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(108,92,231,0.4);
+    }
+
+    /* Legend */
+    .legend-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Stats */
+    .graph-stats {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--accent-cyan);
+      text-align: center;
+      padding: 10px;
+    }
+
+    /* ── Node Details Panel ─────────────────── */
+    #node-details {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s;
+      border-top: 1px solid rgba(108,92,231,0.1);
+      background: rgba(10,11,20,0.5);
+    }
+    #node-details.visible {
+      max-height: 600px;
+      opacity: 1;
+      overflow-y: auto;
+      padding: 16px 18px;
+    }
+    .detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .detail-header h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .detail-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+    }
+    .detail-label {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .detail-value {
+      color: var(--text-secondary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+    }
+    .async-badge { color: var(--accent-cyan) !important; }
+    .export-badge { color: var(--accent-green) !important; }
+    .detail-signature {
+      margin-bottom: 14px;
+    }
+    .detail-signature .detail-label {
+      display: block;
+      margin-bottom: 6px;
+    }
+    .detail-signature code {
+      display: block;
+      padding: 10px 12px;
+      background: rgba(10,11,20,0.8);
+      border: 1px solid rgba(108,92,231,0.15);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      color: var(--accent-cyan);
+      word-break: break-all;
+      line-height: 1.5;
+    }
+    .detail-section {
+      margin-bottom: 12px;
+    }
+    .detail-section h4 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .detail-section .count {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    .detail-section ul {
+      list-style: none;
+      padding: 0;
+    }
+    .detail-section li {
+      padding: 4px 0;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .detail-section li a {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--accent-cyan);
+    }
+    .detail-section li a:hover {
+      color: var(--accent-purple);
+    }
+    .edge-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    .btn-view-source {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 8px;
+      border: 1px solid rgba(108,92,231,0.15);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    /* ── Main Graph Area ───────────────────── */
+    .graph-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Graph top bar */
+    .graph-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      background: rgba(10,11,20,0.7);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(108,92,231,0.1);
+      z-index: 5;
+    }
+    .graph-topbar-title h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .graph-topbar-title p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin: 2px 0 0 0;
+    }
+    .graph-topbar-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border: 1px solid rgba(108,92,231,0.15);
+      border-radius: 8px;
+      background: var(--bg-glass);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .icon-btn:hover {
+      border-color: var(--accent-purple);
+      color: var(--accent-purple);
+      box-shadow: 0 0 12px rgba(108,92,231,0.2);
+    }
+
+    /* Canvas */
+    #graph-canvas {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(108,92,231,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(0,206,201,0.03) 0%, transparent 50%),
+        var(--bg-primary);
+    }
+    #graph-canvas svg {
+      display: block;
+    }
+
+    /* Tooltip */
+    #graph-tooltip {
+      display: none;
+      position: absolute;
+      background: rgba(18,19,31,0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(108,92,231,0.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      pointer-events: none;
+      z-index: 100;
+      min-width: 160px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    #graph-tooltip strong {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .tooltip-type {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .tooltip-file {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Responsive ────────────────────────── */
+    @media (max-width: 768px) {
+      .navbar .nav-links,
+      .navbar .nav-actions { display: none; }
+      .hamburger { display: flex; }
+    }
+    @media (max-width: 900px) {
+      .explorer-sidebar {
+        position: absolute;
+        left: -320px;
+        top: 0;
+        height: 100%;
+        z-index: 50;
+        transition: left 0.3s cubic-bezier(0.4,0,0.2,1);
+      }
+      .explorer-sidebar.open {
+        left: 0;
+        box-shadow: 20px 0 60px rgba(0,0,0,0.5);
+      }
+      .sidebar-toggle-mobile {
+        display: flex !important;
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 60;
+      }
+    }
+    @media (min-width: 901px) {
+      .sidebar-toggle-mobile { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation (same as index.html) ────── -->
+  <nav class="navbar scrolled" role="navigation" aria-label="Main navigation">
+    <div class="container flex-between">
+      <a href="index.html" class="nav-logo" aria-label="AI Mind Map Home">
+        <span class="logo-icon">🧠</span>
+        <span class="logo-text">AI Mind Map</span>
+      </a>
+
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="explorer.html" class="nav-link active">Explorer</a>
+        <a href="tools.html" class="nav-link">Tools</a>
+        <a href="calculator.html" class="nav-link">Calculator</a>
+        <a href="install.html" class="nav-link">Install</a>
+        <a href="architecture.html" class="nav-link">Architecture</a>
+      </div>
+
+      <div class="nav-actions">
+        <a href="https://github.com/shdra06/ai-mind-map" target="_blank" rel="noopener" class="nav-github" aria-label="View on GitHub">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+          <span>Star</span>
+        </a>
+      </div>
+
+      <button class="hamburger" aria-label="Toggle menu" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile Nav -->
+  <div class="mobile-nav" role="navigation" aria-label="Mobile navigation">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="explorer.html" class="nav-link active">Explorer</a>
+    <a href="tools.html" class="nav-link">Tools</a>
+    <a href="calculator.html" class="nav-link">Calculator</a>
+    <a href="install.html" class="nav-link">Install</a>
+    <a href="architecture.html" class="nav-link">Architecture</a>
+  </div>
+
+  <!-- ── Explorer Layout ────────────────────── -->
+  <div class="explorer-layout">
+
+    <!-- Mobile sidebar toggle -->
+    <button class="icon-btn sidebar-toggle-mobile" onclick="document.querySelector('.explorer-sidebar').classList.toggle('open')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+
+    <!-- ── Sidebar ──────────────────────────── -->
+    <aside class="explorer-sidebar">
+
+      <!-- Search -->
+      <div class="sidebar-section">
+        <div class="search-wrapper">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="graph-search" class="input" placeholder="Search nodes…">
+        </div>
+      </div>
+
+      <!-- Filter by Type -->
+      <div class="sidebar-section">
+        <h3>Filter by Type</h3>
+        <div class="filter-list">
+          <label class="filter-item">
+            <input type="checkbox" class="filter-checkbox" data-type="function" checked>
+            <span class="filter-dot" style="background:#6c5ce7"></span>
+            Functions
+          </label>
+          <label class="filter-item">
+            <input type="checkbox" class="filter-checkbox" data-type="class" checked>
+            <span class="filter-dot" style="background:#00b894"></span>
+            Classes
+          </label>
+          <label class="filter-item">
+            <input type="checkbox" class="filter-checkbox" data-type="method" checked>
+            <span class="filter-dot" style="background:#00cec9"></span>
+            Methods
+          </label>
+          <label class="filter-item">
+            <input type="checkbox" class="filter-checkbox" data-type="interface" checked>
+            <span class="filter-dot" style="background:#fd79a8"></span>
+            Interfaces
+          </label>
+          <label class="filter-item">
+            <input type="checkbox" class="filter-checkbox" data-type="component" checked>
+            <span class="filter-dot" style="background:#fdcb6e"></span>
+            Components
+          </label>
+          <label class="filter-item">
+            <input type="checkbox" class="filter-checkbox" data-type="routes_to" checked>
+            <span class="filter-dot" style="background:#e17055"></span>
+            Routes
+          </label>
+          <label class="filter-item">
+            <input type="checkbox" class="filter-checkbox" data-type="test" checked>
+            <span class="filter-dot" style="background:#8b8ba3"></span>
+            Tests
+          </label>
+        </div>
+      </div>
+
+      <!-- Layout -->
+      <div class="sidebar-section">
+        <h3>Layout</h3>
+        <div class="layout-options">
+          <label class="layout-option">
+            <input type="radio" name="layout" value="force" checked>
+            Force
+          </label>
+          <label class="layout-option">
+            <input type="radio" name="layout" value="tree">
+            Tree
+          </label>
+          <label class="layout-option">
+            <input type="radio" name="layout" value="radial">
+            Radial
+          </label>
+        </div>
+      </div>
+
+      <!-- Zoom -->
+      <div class="sidebar-section">
+        <h3>Zoom</h3>
+        <input type="range" id="zoom-slider" class="zoom-slider" min="0.15" max="5" step="0.05" value="1">
+      </div>
+
+      <!-- Legend -->
+      <div class="sidebar-section">
+        <h3>Edge Legend</h3>
+        <div class="legend-grid">
+          <div class="legend-item"><span class="legend-dot" style="background:#6c5ce7"></span> Calls</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#00cec9"></span> Imports</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#5a5a72"></span> Contains</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#fdcb6e"></span> Uses</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#00b894"></span> Inherits</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#fd79a8"></span> Routes</div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="sidebar-section">
+        <div id="graph-stats" class="graph-stats">Loading…</div>
+      </div>
+
+      <!-- Node Details (bottom) -->
+      <div id="node-details"></div>
+
+    </aside>
+
+    <!-- ── Main Graph Area ──────────────────── -->
+    <main class="graph-area">
+
+      <!-- Top bar -->
+      <div class="graph-topbar">
+        <div class="graph-topbar-title">
+          <h2>Knowledge Graph Explorer</h2>
+          <p>Interactive visualization of code relationships</p>
+        </div>
+        <div class="graph-topbar-actions">
+          <button class="icon-btn" id="reset-zoom" title="Reset Zoom">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+          </button>
+          <button class="icon-btn" id="fullscreen-toggle" title="Toggle Fullscreen">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Canvas -->
+      <div id="graph-canvas"></div>
+
+    </main>
+
+  </div>
+
+  <!-- ── Scripts ────────────────────────────── -->
+  <script src="js/nav.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="js/graph.js"></script>
+
+</body>
+</html>

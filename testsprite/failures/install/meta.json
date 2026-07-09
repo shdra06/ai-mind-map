@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "cli-v1",
+  "snapshotId": "snap_7364d43522447b0a",
+  "testId": "7b68bb8c-3bcb-4370-9eb6-04c4097a7157",
+  "projectId": "ba8983c8-b2a5-40ba-b17b-eba7646b8228",
+  "codeVersion": "v1",
+  "runIdIfAvailable": "c9d64472-938e-421e-8463-fe8c45b3985a",
+  "targetUrl": "https://ai-mind-map-website.vercel.app",
+  "failedStepIndex": 11,
+  "failureKind": "unknown",
+  "capturedAt": "2026-07-09T09:01:16.549Z",
+  "fetchedAt": "2026-07-09T09:01:53.085Z"
+}

@@ -1,0 +1,77 @@
+{
+  "projectId": "ba8983c8-b2a5-40ba-b17b-eba7646b8228",
+  "type": "frontend",
+  "name": "Responsive Layout — Mobile & Tablet Breakpoints",
+  "description": "Tests that the website is fully responsive across mobile (375px) and tablet (768px) viewports. Verifies hamburger menu appears on mobile, navigation collapses properly, and no horizontal overflow occurs.",
+  "priority": "p2",
+  "planSteps": [
+    {
+      "action": "setViewport",
+      "value": "375x812",
+      "description": "Set mobile viewport (iPhone SE size)"
+    },
+    {
+      "action": "navigate",
+      "value": "https://ai-mind-map-website.vercel.app",
+      "description": "Load homepage on mobile viewport"
+    },
+    {
+      "action": "assertVisible",
+      "selector": ".hamburger, [class*='hamburger'], [class*='menu-btn']",
+      "description": "Hamburger menu button is visible on mobile"
+    },
+    {
+      "action": "assertNotVisible",
+      "selector": ".nav-links",
+      "description": "Desktop nav links are hidden on mobile"
+    },
+    {
+      "action": "click",
+      "selector": ".hamburger, [class*='hamburger']",
+      "description": "Click hamburger to open mobile menu"
+    },
+    {
+      "action": "assertVisible",
+      "selector": ".mobile-nav.open, .mobile-nav, [class*='mobile-nav']",
+      "description": "Mobile navigation menu opens"
+    },
+    {
+      "action": "assertNoHorizontalScroll",
+      "description": "No horizontal overflow on mobile"
+    },
+    {
+      "action": "setViewport",
+      "value": "768x1024",
+      "description": "Set tablet viewport (iPad)"
+    },
+    {
+      "action": "navigate",
+      "value": "https://ai-mind-map-website.vercel.app",
+      "description": "Load homepage on tablet viewport"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "h1",
+      "description": "Hero heading renders on tablet"
+    },
+    {
+      "action": "assertNoHorizontalScroll",
+      "description": "No horizontal overflow on tablet"
+    },
+    {
+      "action": "setViewport",
+      "value": "1280x800",
+      "description": "Restore desktop viewport"
+    },
+    {
+      "action": "navigate",
+      "value": "https://ai-mind-map-website.vercel.app",
+      "description": "Load homepage on desktop viewport"
+    },
+    {
+      "action": "assertVisible",
+      "selector": ".nav-links",
+      "description": "Desktop nav links are visible again"
+    }
+  ]
+}

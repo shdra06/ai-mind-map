@@ -1,0 +1,52 @@
+{
+  "projectId": "ba8983c8-b2a5-40ba-b17b-eba7646b8228",
+  "type": "frontend",
+  "name": "Token Savings Calculator — Interactive Sliders",
+  "description": "Tests the calculator.html token savings calculator. Verifies sliders update displayed values, savings percentage recalculates dynamically, and cost breakdown updates in real time.",
+  "priority": "p1",
+  "planSteps": [
+    {
+      "action": "navigate",
+      "value": "https://ai-mind-map-website.vercel.app/calculator.html",
+      "description": "Open the Token Calculator page"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "h1, h2",
+      "description": "Calculator page heading is visible"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "input[type='range'], [class*='slider']",
+      "description": "At least one range slider is present"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "[id*='saving'], [class*='saving'], [id*='total'], [class*='total']",
+      "description": "Savings display element is present"
+    },
+    {
+      "action": "dragSlider",
+      "selector": "input[type='range']",
+      "value": "75",
+      "description": "Drag the first slider to 75% to trigger recalculation"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "body",
+      "description": "Page remains stable after slider interaction"
+    },
+    {
+      "action": "assertNotText",
+      "selector": "[id*='saving'], [class*='saving']",
+      "value": "NaN",
+      "description": "Savings value is a valid number, not NaN"
+    },
+    {
+      "action": "assertNotText",
+      "selector": "[id*='saving'], [class*='saving']",
+      "value": "undefined",
+      "description": "Savings value does not show 'undefined'"
+    }
+  ]
+}

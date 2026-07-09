@@ -1,0 +1,392 @@
+/* ═══════════════════════════════════════════════════════════════
+   AI Mind Map — Install Page Styles (Light Theme)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+.install-hero {
+  padding: 8rem 0 4rem;
+  text-align: center;
+}
+.install-hero h1 {
+  font-size: clamp(2.4rem, 5vw, 3.8rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  line-height: 1.15;
+}
+.install-hero h1 span {
+  background: linear-gradient(135deg, #E8611A, #D4901F);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.install-hero p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  max-width: 520px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+/* ── Step Indicator ───────────────────────────────────────────── */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin: 0 auto 4rem;
+  max-width: 500px;
+}
+.step-number {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  color: var(--text-muted);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.step-number.active {
+  background: #E8611A;
+  border-color: #E8611A;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(232,97,26,0.15);
+}
+.step-number.completed {
+  background: #1A7F37;
+  border-color: #1A7F37;
+  color: #fff;
+}
+.step-number.completed::after {
+  content: '✓';
+}
+.step-line {
+  height: 2px;
+  flex: 1;
+  max-width: 80px;
+  background: var(--border);
+  transition: background 0.3s ease;
+}
+.step-line.filled {
+  background: linear-gradient(90deg, #1A7F37, #E8611A);
+}
+
+/* ── Section Layout ───────────────────────────────────────────── */
+.install-section {
+  padding: 3rem 0;
+}
+.install-section + .install-section {
+  border-top: 1px solid var(--border);
+}
+.section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #E8611A;
+  margin-bottom: 0.75rem;
+}
+.install-section h2 {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+.install-section > .container > p {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  font-size: 1rem;
+}
+
+/* ── Agent Grid ───────────────────────────────────────────────── */
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+@media (max-width: 768px) { .agent-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 480px) { .agent-grid { grid-template-columns: repeat(2,1fr); gap: 0.75rem; } }
+
+.agent-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.4rem 0.75rem 1rem;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  color: var(--text-primary);
+  font-family: inherit;
+  text-align: center;
+}
+.agent-card:hover {
+  border-color: rgba(232,97,26,0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(232,97,26,0.1);
+}
+.agent-card.active {
+  border-color: #E8611A;
+  background: rgba(232,97,26,0.05);
+  box-shadow: 0 0 0 3px rgba(232,97,26,0.12);
+}
+.agent-card__icon { font-size: 2rem; line-height: 1; }
+.agent-card__name { font-size: 0.82rem; font-weight: 600; line-height: 1.3; }
+.agent-card .badge {
+  font-size: 0.65rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(26,127,55,0.1);
+  color: #1A7F37;
+  border: 1px solid rgba(26,127,55,0.2);
+  border-radius: 100px;
+}
+
+/* ── Install Command Card ─────────────────────────────────────── */
+.install-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem 2.5rem;
+  margin-top: 1.5rem;
+}
+.install-cmd-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+.install-cmd-box {
+  display: flex;
+  align-items: center;
+  background: #1A1614;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.install-cmd-prompt { color: #E8611A; font-family: 'JetBrains Mono', monospace; font-size: 1rem; }
+.install-cmd-text {
+  flex: 1;
+  color: #F0EBE3;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+.install-cmd-copy {
+  background: rgba(232,97,26,0.15);
+  color: #E8611A;
+  border: 1px solid rgba(232,97,26,0.3);
+  border-radius: 7px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.install-cmd-copy:hover { background: rgba(232,97,26,0.25); }
+.install-cmd-copy.copied { background: rgba(26,127,55,0.15); color: #1A7F37; border-color: rgba(26,127,55,0.3); }
+
+.install-note-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.note-icon { font-size: 1rem; }
+
+/* ── Config Preview Accordion ─────────────────────────────────── */
+.config-accordion {
+  margin-top: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.config-accordion-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: var(--bg-card);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: color 0.2s, background 0.2s;
+}
+.config-accordion-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
+.config-accordion-btn span:last-child { transition: transform 0.3s; font-size: 0.75rem; }
+.config-accordion-btn.open span:last-child { transform: rotate(90deg); }
+.config-accordion-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+}
+.config-accordion-body.open { max-height: 500px; }
+.config-accordion-inner {
+  padding: 0 1.25rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+.config-filepath {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--bg-hover);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  margin-top: 1rem;
+}
+.config-code {
+  background: #1A1614;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  position: relative;
+}
+.config-code pre {
+  color: #A8D5A2;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.config-copy-btn {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  background: rgba(255,255,255,0.08);
+  color: #A8D5A2;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.config-copy-btn:hover { background: rgba(255,255,255,0.16); }
+
+/* ── Verify Section ───────────────────────────────────────────── */
+.verify-box {
+  background: #1A1614;
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  margin-top: 1.5rem;
+}
+.verify-prompt {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.95rem;
+  color: #FFB347;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.verify-response {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+.verify-response pre {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: #A8D5A2;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ── Success / Done Card ──────────────────────────────────────── */
+.done-card {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: linear-gradient(135deg, rgba(26,127,55,0.04), rgba(232,97,26,0.04));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  margin-top: 2rem;
+}
+.done-checkmark {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1.5rem;
+}
+.done-checkmark svg { width: 100%; height: 100%; }
+.checkmark-circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  animation: checkCircle 0.8s ease-in-out forwards;
+}
+.checkmark-path {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: checkPath 0.4s 0.5s ease-in-out forwards;
+}
+@keyframes checkCircle { to { stroke-dashoffset: 0; } }
+@keyframes checkPath   { to { stroke-dashoffset: 0; } }
+
+.done-card h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1A7F37;
+  margin-bottom: 0.5rem;
+}
+.done-card p {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+.next-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  max-width: 640px;
+  margin: 0 auto;
+}
+@media (max-width: 640px) { .next-steps { grid-template-columns: 1fr; } }
+.next-step-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.25rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.next-step-card:hover {
+  border-color: #E8611A;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(232,97,26,0.1);
+}
+.next-step-card .icon { font-size: 1.5rem; }

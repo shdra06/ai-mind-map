@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Install AI Mind Map — One Command Setup</title>
+  <meta name="description" content="Install AI Mind Map in one command. Auto-detects Claude, Cursor, VS Code Copilot, Windsurf, Antigravity, Zed, Continue.dev, and Codex.">
+  <meta property="og:title" content="Install AI Mind Map">
+  <meta property="og:description" content="One command. Auto-detects your AI agent. No config files.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/globals.css">
+  <link rel="stylesheet" href="css/install.css">
+</head>
+<body>
+
+  <!-- ═══ Navigation ═══ -->
+  <nav class="navbar" id="navbar">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;">
+      <a href="index.html" class="nav-logo">&#x1F9E0; AI Mind Map</a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="explorer.html" class="nav-link">Explorer</a>
+        <a href="tools.html" class="nav-link">Tools</a>
+        <a href="calculator.html" class="nav-link">Calculator</a>
+        <a href="install.html" class="nav-link active">Install</a>
+        <a href="architecture.html" class="nav-link">Architecture</a>
+      </div>
+      <div class="nav-actions">
+        <a href="https://github.com/shdra06/ai-mind-map" target="_blank" class="btn btn-secondary" style="padding:0.45rem 1rem;font-size:0.85rem;">&#x2B50; GitHub</a>
+      </div>
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="mobile-nav" id="mobileNav">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="explorer.html" class="nav-link">Explorer</a>
+    <a href="tools.html" class="nav-link">Tools</a>
+    <a href="calculator.html" class="nav-link">Calculator</a>
+    <a href="install.html" class="nav-link active">Install</a>
+    <a href="architecture.html" class="nav-link">Architecture</a>
+  </div>
+
+  <!-- ═══ Hero ═══ -->
+  <header class="install-hero">
+    <div class="container">
+      <div class="section-label" style="justify-content:center;margin-bottom:1.25rem;">One Command Setup</div>
+      <h1>Install in <span>60 Seconds</span></h1>
+      <p>Auto-detects your AI agent and configures everything. No config files to edit. No manual setup. Just run and go.</p>
+    </div>
+  </header>
+
+  <!-- ═══ Step Progress ═══ -->
+  <div class="container">
+    <div class="step-indicator" id="step-indicator">
+      <div class="step-number active" id="step-dot-1">1</div>
+      <div class="step-line" id="step-line-1"></div>
+      <div class="step-number" id="step-dot-2">2</div>
+      <div class="step-line" id="step-line-2"></div>
+      <div class="step-number" id="step-dot-3">3</div>
+      <div class="step-line" id="step-line-3"></div>
+      <div class="step-number" id="step-dot-4">4</div>
+    </div>
+  </div>
+
+  <!-- ═══ Step 1: Choose Agent ═══ -->
+  <section class="install-section" id="step-1">
+    <div class="container">
+      <div class="section-eyebrow">Step 1</div>
+      <h2>Choose Your Agent</h2>
+      <p>Select the AI coding agent you're using — AI Mind Map supports all of them.</p>
+
+      <div class="agent-grid" id="agent-grid">
+        <button class="agent-card active" data-agent="claude" id="agent-claude">
+          <span class="agent-card__icon">🤖</span>
+          <span class="agent-card__name">Claude Code</span>
+          <span class="badge">Supported</span>
+        </button>
+        <button class="agent-card" data-agent="cursor" id="agent-cursor">
+          <span class="agent-card__icon">🎯</span>
+          <span class="agent-card__name">Cursor</span>
+          <span class="badge">Supported</span>
+        </button>
+        <button class="agent-card" data-agent="vscode" id="agent-vscode">
+          <span class="agent-card__icon">💻</span>
+          <span class="agent-card__name">VS Code Copilot</span>
+          <span class="badge">Supported</span>
+        </button>
+        <button class="agent-card" data-agent="windsurf" id="agent-windsurf">
+          <span class="agent-card__icon">🏄</span>
+          <span class="agent-card__name">Windsurf</span>
+          <span class="badge">Supported</span>
+        </button>
+        <button class="agent-card" data-agent="antigravity" id="agent-antigravity">
+          <span class="agent-card__icon">🚀</span>
+          <span class="agent-card__name">Antigravity</span>
+          <span class="badge">Supported</span>
+        </button>
+        <button class="agent-card" data-agent="zed" id="agent-zed">
+          <span class="agent-card__icon">⚡</span>
+          <span class="agent-card__name">Zed</span>
+          <span class="badge">Supported</span>
+        </button>
+        <button class="agent-card" data-agent="continuedev" id="agent-continuedev">
+          <span class="agent-card__icon">🔄</span>
+          <span class="agent-card__name">Continue.dev</span>
+          <span class="badge">Supported</span>
+        </button>
+        <button class="agent-card" data-agent="codex" id="agent-codex">
+          <span class="agent-card__icon">📦</span>
+          <span class="agent-card__name">Codex</span>
+          <span class="badge">Supported</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Step 2: Run Installer ═══ -->
+  <section class="install-section" id="step-2">
+    <div class="container">
+      <div class="section-eyebrow">Step 2</div>
+      <h2>Run the Installer</h2>
+      <p>One command auto-detects <strong id="agent-name-display" style="color:#E8611A;">Claude Code</strong> and writes the correct config.</p>
+
+      <div class="install-card">
+        <div class="install-cmd-label">Run in your terminal</div>
+        <div class="install-cmd-box">
+          <span class="install-cmd-prompt">$</span>
+          <span class="install-cmd-text" id="install-cmd-text">npx ai-mind-map install</span>
+          <button class="install-cmd-copy" id="copy-install" aria-label="Copy install command" onclick="copyInstallCmd(this)">Copy</button>
+        </div>
+        <div class="install-note-row">
+          <span class="note-icon">ℹ️</span>
+          <span>Works on macOS, Linux, and Windows &middot; Requires Node.js ≥ 18</span>
+        </div>
+      </div>
+
+      <!-- Config preview accordion -->
+      <div class="config-accordion">
+        <button class="config-accordion-btn" id="config-toggle" aria-expanded="false">
+          <span>⚙️ View the generated config file</span>
+          <span>▶</span>
+        </button>
+        <div class="config-accordion-body" id="config-body">
+          <div class="config-accordion-inner">
+            <div class="config-filepath" id="config-filepath">~/.claude/claude_desktop_config.json</div>
+            <div class="config-code">
+              <pre id="config-json">{
+  "mcpServers": {
+    "ai-mind-map": {
+      "command": "npx",
+      "args": ["-y", "ai-mind-map"]
+    }
+  }
+}</pre>
+              <button class="config-copy-btn" id="copy-config" aria-label="Copy generated config" onclick="copyConfig(this)">Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Step 3: Verify ═══ -->
+  <section class="install-section" id="step-3">
+    <div class="container">
+      <div class="section-eyebrow">Step 3</div>
+      <h2>Verify the Connection</h2>
+      <p>Restart your agent, then ask it to confirm the connection is working:</p>
+
+      <div class="verify-box">
+        <div class="verify-prompt">
+          <span style="color:#5C5248;font-size:0.8rem;">You say:</span>
+          <span>"Call mindmap_status to verify the connection"</span>
+          <button class="install-cmd-copy" id="copy-verify" aria-label="Copy verify command"
+            onclick="navigator.clipboard.writeText('Call mindmap_status to verify the connection').then(()=>{this.textContent='Copied!';setTimeout(()=>{this.textContent='Copy'},1800)})"
+            style="margin-left:auto;font-size:0.75rem;">Copy</button>
+        </div>
+        <div class="verify-response">
+          <pre>{
+  "status": "connected",
+  "version": "1.21.2",
+  "tools": 50,
+  "project": "your-project",
+  "indexed": true,
+  "symbols": 1247,
+  "edges": 3891
+}</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Step 4: Done ═══ -->
+  <section class="install-section" id="step-4">
+    <div class="container">
+      <div class="done-card">
+        <div class="done-checkmark">
+          <svg viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="24" fill="none" stroke="#1A7F37" stroke-width="2" class="checkmark-circle"/>
+            <path fill="none" stroke="#1A7F37" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M14 27l8 8 16-16" class="checkmark-path"/>
+          </svg>
+        </div>
+        <h2>You're Done!</h2>
+        <p>Your AI agent now has a persistent, indexed brain of your entire codebase.</p>
+        <div class="next-steps">
+          <a href="explorer.html" class="next-step-card">
+            <span class="icon">🌐</span>
+            <span>Explore Graph</span>
+          </a>
+          <a href="tools.html" class="next-step-card">
+            <span class="icon">🛠️</span>
+            <span>Browse 50+ Tools</span>
+          </a>
+          <a href="calculator.html" class="next-step-card">
+            <span class="icon">💰</span>
+            <span>Token Savings</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Footer ═══ -->
+  <footer style="border-top:1px solid var(--border);padding:2.5rem 0;margin-top:4rem;">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+      <span style="color:var(--text-muted);font-size:0.85rem;">© 2025 AI Mind Map by <a href="https://github.com/shdra06" target="_blank" style="color:var(--text-secondary);">shdra06</a> · MIT License</span>
+      <div style="display:flex;gap:1.5rem;">
+        <a href="https://github.com/shdra06/ai-mind-map" target="_blank" style="color:var(--text-secondary);font-size:0.85rem;text-decoration:none;">GitHub</a>
+        <a href="https://www.npmjs.com/package/ai-mind-map" target="_blank" style="color:var(--text-secondary);font-size:0.85rem;text-decoration:none;">npm</a>
+        <a href="architecture.html" style="color:var(--text-secondary);font-size:0.85rem;text-decoration:none;">Architecture</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/nav.js"></script>
+  <script src="js/animations.js"></script>
+  <script>
+    // Agent config data
+    const AGENTS = {
+      claude:      { name: 'Claude Code',      cmd: 'npx ai-mind-map install',            filepath: '~/.claude/claude_desktop_config.json', config: `{\n  "mcpServers": {\n    "ai-mind-map": {\n      "command": "npx",\n      "args": ["-y", "ai-mind-map"]\n    }\n  }\n}` },
+      cursor:      { name: 'Cursor',            cmd: 'npx ai-mind-map install --cursor',   filepath: '~/.cursor/mcp.json',                   config: `{\n  "mcpServers": {\n    "ai-mind-map": {\n      "command": "npx",\n      "args": ["-y", "ai-mind-map"]\n    }\n  }\n}` },
+      vscode:      { name: 'VS Code Copilot',  cmd: 'npx ai-mind-map install --vscode',   filepath: '~/.vscode/settings.json (mcp section)', config: `{\n  "github.copilot.chat.mcp.servers": {\n    "ai-mind-map": {\n      "command": "npx",\n      "args": ["-y", "ai-mind-map"]\n    }\n  }\n}` },
+      windsurf:    { name: 'Windsurf',         cmd: 'npx ai-mind-map install --windsurf', filepath: '~/.codeium/windsurf/mcp_config.json',   config: `{\n  "mcpServers": {\n    "ai-mind-map": {\n      "command": "npx",\n      "args": ["-y", "ai-mind-map"]\n    }\n  }\n}` },
+      antigravity: { name: 'Antigravity',      cmd: 'npx ai-mind-map install --gemini',   filepath: '~/.gemini/settings.json',               config: `{\n  "mcpServers": {\n    "ai-mind-map": {\n      "command": "npx",\n      "args": ["-y", "ai-mind-map"]\n    }\n  }\n}` },
+      zed:         { name: 'Zed',              cmd: 'npx ai-mind-map install --zed',      filepath: '~/.config/zed/settings.json',           config: `{\n  "context_servers": {\n    "ai-mind-map": {\n      "command": { "path": "npx", "args": ["-y", "ai-mind-map"] }\n    }\n  }\n}` },
+      continuedev: { name: 'Continue.dev',     cmd: 'npx ai-mind-map install --continue', filepath: '~/.continue/config.json',               config: `{\n  "mcpServers": [\n    {\n      "name": "ai-mind-map",\n      "command": "npx",\n      "args": ["-y", "ai-mind-map"]\n    }\n  ]\n}` },
+      codex:       { name: 'Codex',            cmd: 'npx ai-mind-map install --codex',    filepath: '~/.codex/config.json',                  config: `{\n  "mcpServers": {\n    "ai-mind-map": {\n      "command": "npx",\n      "args": ["-y", "ai-mind-map"]\n    }\n  }\n}` },
+    };
+
+    let selectedAgent = 'claude';
+
+    function selectAgent(agentKey) {
+      selectedAgent = agentKey;
+      const agent = AGENTS[agentKey];
+
+      // Update active card
+      document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('active'));
+      document.getElementById('agent-' + agentKey).classList.add('active');
+
+      // Update step 2 content
+      document.getElementById('agent-name-display').textContent = agent.name;
+      document.getElementById('install-cmd-text').textContent = agent.cmd;
+      document.getElementById('config-filepath').textContent = agent.filepath;
+      document.getElementById('config-json').textContent = agent.config;
+
+      // Reset copy button
+      const copyBtn = document.getElementById('copy-install');
+      copyBtn.textContent = 'Copy';
+      copyBtn.classList.remove('copied');
+    }
+
+    // Wire up agent cards
+    document.querySelectorAll('.agent-card').forEach(card => {
+      card.addEventListener('click', () => selectAgent(card.dataset.agent));
+    });
+
+    // Config accordion
+    const configToggle = document.getElementById('config-toggle');
+    const configBody   = document.getElementById('config-body');
+    configToggle.addEventListener('click', () => {
+      const open = configBody.classList.toggle('open');
+      configToggle.classList.toggle('open', open);
+      configToggle.setAttribute('aria-expanded', open);
+    });
+
+    // Copy functions
+    function copyInstallCmd(btn) {
+      const cmd = document.getElementById('install-cmd-text').textContent;
+      navigator.clipboard.writeText(cmd).then(() => {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+      });
+    }
+
+    function copyConfig(btn) {
+      const code = document.getElementById('config-json').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
+      });
+    }
+
+    // Step scroll highlight
+    const steps = ['step-1','step-2','step-3','step-4'];
+    const dots   = [1,2,3,4].map(n => document.getElementById('step-dot-'+n));
+    const lines  = [1,2,3].map(n => document.getElementById('step-line-'+n));
+
+    function updateStepIndicator() {
+      let active = 0;
+      steps.forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight * 0.6) active = i;
+      });
+      dots.forEach((dot, i) => {
+        dot.className = 'step-number' + (i < active ? ' completed' : (i === active ? ' active' : ''));
+        if (i < active) dot.textContent = '✓';
+        else dot.textContent = i + 1;
+      });
+      lines.forEach((line, i) => {
+        line.className = 'step-line' + (i < active ? ' filled' : '');
+      });
+    }
+
+    window.addEventListener('scroll', updateStepIndicator, { passive: true });
+    updateStepIndicator();
+  </script>
+</body>
+</html>

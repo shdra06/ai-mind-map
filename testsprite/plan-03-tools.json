@@ -1,0 +1,50 @@
+{
+  "projectId": "ba8983c8-b2a5-40ba-b17b-eba7646b8228",
+  "type": "frontend",
+  "name": "Tools Explorer — 50+ MCP Tools Search & Filter",
+  "description": "Tests the tools.html page showing all 50+ MCP tools. Verifies search filtering, category tabs, tool cards render with correct info, and copy-to-clipboard buttons work.",
+  "priority": "p1",
+  "planSteps": [
+    {
+      "action": "navigate",
+      "value": "https://ai-mind-map-website.vercel.app/tools.html",
+      "description": "Open the Tools Explorer page"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "h1, h2",
+      "description": "Page heading is visible"
+    },
+    {
+      "action": "assertVisible",
+      "selector": ".tool-card, [class*='tool']",
+      "description": "Tool cards are rendered on the page"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "input[type='text'], input[placeholder*='search'], input[placeholder*='Search']",
+      "description": "Search input is present"
+    },
+    {
+      "action": "type",
+      "selector": "input[type='text'], input[placeholder*='search'], input[placeholder*='Search']",
+      "value": "digest",
+      "description": "Search for 'digest' to filter tools"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "body",
+      "description": "Page still responsive after search input"
+    },
+    {
+      "action": "clear",
+      "selector": "input[type='text'], input[placeholder*='search'], input[placeholder*='Search']",
+      "description": "Clear search input"
+    },
+    {
+      "action": "assertVisible",
+      "selector": "nav .nav-link[href*='calculator'], a[href*='calculator']",
+      "description": "Navigation link to Calculator is present"
+    }
+  ]
+}

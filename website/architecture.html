@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture — How AI Mind Map Works</title>
+  <meta name="description" content="From source code to intelligent context — every layer of AI Mind Map explained. Tree-Sitter parsing, knowledge graphs, PageRank, persistent memory.">
+  <link rel="stylesheet" href="css/globals.css">
+  <link rel="stylesheet" href="css/architecture.css">
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- ═══ Navigation ═══ -->
+  <nav class="nav" role="navigation">
+    <a href="index.html" class="nav__logo">
+      <span class="nav__logo-icon">🧠</span>
+      <span>AI Mind Map</span>
+    </a>
+    <ul class="nav__links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="tools.html">Tools</a></li>
+      <li><a href="architecture.html" class="active">Architecture</a></li>
+      <li><a href="calculator.html">Calculator</a></li>
+      <li><a href="install.html">Install</a></li>
+      <li><a href="explorer.html">Explorer</a></li>
+      <li><a href="https://github.com/shdra06/ai-mind-map" target="_blank" class="nav__cta">GitHub ↗</a></li>
+    </ul>
+    <button class="nav__hamburger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- ═══ Hero ═══ -->
+  <header class="hero container">
+    <h1 class="hero__title reveal">How AI Mind Map Works</h1>
+    <p class="hero__subtitle reveal">From source code to intelligent context — every layer explained</p>
+  </header>
+
+  <!-- ═══ Architecture Pipeline ═══ -->
+  <section class="section container">
+    <h2 class="section-title reveal">The Pipeline</h2>
+    <p class="section-subtitle reveal">Your code flows through these stages to become instant, queryable knowledge</p>
+
+    <div class="pipeline reveal" id="pipeline">
+      <!-- Row 1 -->
+      <div class="pipeline-row">
+        <div class="pipe-card glass-card" data-pipe="source" data-connects="parser">
+          <div class="pipe-icon">📂</div>
+          <h3>Your Code</h3>
+          <p>60+ symbol types</p>
+          <p>30+ languages</p>
+        </div>
+        <div class="pipe-arrow">
+          <svg width="60" height="20"><line x1="0" y1="10" x2="60" y2="10" class="pipe-line"/><polygon points="55,5 60,10 55,15" fill="var(--cyan)"/></svg>
+        </div>
+        <div class="pipe-card glass-card" data-pipe="parser" data-connects="graph">
+          <div class="pipe-icon">🌳</div>
+          <h3>Tree-Sitter AST Parser</h3>
+          <p>14 native grammars</p>
+          <p>+ 20 regex fallback</p>
+        </div>
+        <div class="pipe-arrow">
+          <svg width="60" height="20"><line x1="0" y1="10" x2="60" y2="10" class="pipe-line"/><polygon points="55,5 60,10 55,15" fill="var(--cyan)"/></svg>
+        </div>
+        <div class="pipe-card glass-card" data-pipe="graph" data-connects="context">
+          <div class="pipe-icon">🕸️</div>
+          <h3>Knowledge Graph</h3>
+          <p>Nodes + Edges</p>
+          <p>PageRank scoring</p>
+        </div>
+      </div>
+
+      <!-- Row 2 -->
+      <div class="pipeline-row">
+        <div class="pipe-card glass-card" data-pipe="watcher" data-connects="tracker">
+          <div class="pipe-icon">👁️</div>
+          <h3>File Watcher</h3>
+          <p>chokidar</p>
+          <p>real-time sync</p>
+        </div>
+        <div class="pipe-arrow">
+          <svg width="60" height="20"><line x1="0" y1="10" x2="60" y2="10" class="pipe-line"/><polygon points="55,5 60,10 55,15" fill="var(--cyan)"/></svg>
+        </div>
+        <div class="pipe-card glass-card" data-pipe="tracker" data-connects="memory">
+          <div class="pipe-icon">📊</div>
+          <h3>Change Tracker</h3>
+          <p>git-aware</p>
+          <p>symbol-level diffs</p>
+        </div>
+        <div class="pipe-arrow">
+          <svg width="60" height="20"><line x1="0" y1="10" x2="60" y2="10" class="pipe-line"/><polygon points="55,5 60,10 55,15" fill="var(--cyan)"/></svg>
+        </div>
+        <div class="pipe-card glass-card" data-pipe="memory" data-connects="context">
+          <div class="pipe-icon">💾</div>
+          <h3>Persistent Memory</h3>
+          <p>SQLite database</p>
+          <p>10 memory categories</p>
+        </div>
+      </div>
+
+      <!-- Vertical connector -->
+      <div class="pipeline-vert-connector">
+        <svg width="20" height="60"><line x1="10" y1="0" x2="10" y2="60" class="pipe-line"/><polygon points="5,55 10,60 15,55" fill="var(--cyan)"/></svg>
+      </div>
+
+      <!-- Row 3: Context Engine -->
+      <div class="pipeline-row pipeline-row--center">
+        <div class="pipe-card pipe-card--wide glass-card" data-pipe="context" data-connects="tools">
+          <div class="pipe-icon">⚙️</div>
+          <h3>Context Engine</h3>
+          <p>Compression · Progressive Disclosure · Smart Retrieval</p>
+        </div>
+      </div>
+
+      <div class="pipeline-vert-connector">
+        <svg width="20" height="50"><line x1="10" y1="0" x2="10" y2="50" class="pipe-line"/><polygon points="5,45 10,50 15,45" fill="var(--cyan)"/></svg>
+      </div>
+
+      <!-- Row 4: Tools -->
+      <div class="pipeline-row pipeline-row--center">
+        <div class="pipe-card glass-card" data-pipe="tools" data-connects="agent">
+          <div class="pipe-icon">🛠️</div>
+          <h3>50+ MCP Tools</h3>
+          <p>Search · Explain · Trace · Remember</p>
+        </div>
+      </div>
+
+      <div class="pipeline-vert-connector">
+        <svg width="20" height="50">
+          <line x1="10" y1="0" x2="10" y2="50" class="pipe-line"/>
+          <polygon points="5,45 10,50 15,45" fill="var(--cyan)"/>
+        </svg>
+        <span class="pipe-protocol-label">stdio</span>
+      </div>
+
+      <!-- Row 5: Agent -->
+      <div class="pipeline-row pipeline-row--center">
+        <div class="pipe-card pipe-card--agent glass-card" data-pipe="agent">
+          <div class="pipe-icon">🤖</div>
+          <h3>Your AI Agent</h3>
+          <p>Claude · Cursor · Copilot · Windsurf · Zed</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider container">
+
+  <!-- ═══ Three-Tier Memory ═══ -->
+  <section class="section container">
+    <h2 class="section-title reveal">Three-Tier Memory System</h2>
+    <p class="section-subtitle reveal">Like human memory — working, episodic, and semantic</p>
+
+    <div class="memory-tiers reveal">
+      <div class="memory-tier glass-card" data-tier="1">
+        <div class="tier-header">
+          <div class="tier-badge badge">Tier 1</div>
+          <h3>Working Memory</h3>
+        </div>
+        <p class="tier-desc">Current conversation context</p>
+        <div class="tier-limit">
+          <span class="tier-limit-bar" style="--bar-width:12.5%"></span>
+          <span class="tier-limit-text">≤ 1,250 tokens</span>
+        </div>
+        <ul class="tier-features">
+          <li>Active function signatures</li>
+          <li>Current file context</li>
+          <li>Immediate dependencies</li>
+        </ul>
+      </div>
+      <div class="memory-tier glass-card" data-tier="2">
+        <div class="tier-header">
+          <div class="tier-badge badge badge--cyan">Tier 2</div>
+          <h3>Episodic Memory</h3>
+        </div>
+        <p class="tier-desc">Recent session history</p>
+        <div class="tier-limit">
+          <span class="tier-limit-bar" style="--bar-width:50%"></span>
+          <span class="tier-limit-text">≤ 5,000 tokens</span>
+        </div>
+        <ul class="tier-features">
+          <li>Recent decisions & context</li>
+          <li>Session summaries</li>
+          <li>Change deltas</li>
+        </ul>
+      </div>
+      <div class="memory-tier glass-card" data-tier="3">
+        <div class="tier-header">
+          <div class="tier-badge badge badge--green">Tier 3</div>
+          <h3>Semantic Memory</h3>
+        </div>
+        <p class="tier-desc">Permanent knowledge graph</p>
+        <div class="tier-limit">
+          <span class="tier-limit-bar" style="--bar-width:100%"></span>
+          <span class="tier-limit-text">Unlimited</span>
+        </div>
+        <ul class="tier-features">
+          <li>Full codebase graph</li>
+          <li>Architecture patterns</li>
+          <li>Historical decisions</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider container">
+
+  <!-- ═══ Supported Languages ═══ -->
+  <section class="section container">
+    <h2 class="section-title reveal">Supported Languages</h2>
+    <p class="section-subtitle reveal">14 native Tree-Sitter grammars + 20 regex fallback parsers</p>
+
+    <div class="lang-grid reveal">
+      <div class="lang-badge" data-lang="ts"><span>TS</span>TypeScript</div>
+      <div class="lang-badge" data-lang="js"><span>JS</span>JavaScript</div>
+      <div class="lang-badge" data-lang="py"><span>🐍</span>Python</div>
+      <div class="lang-badge" data-lang="rs"><span>🦀</span>Rust</div>
+      <div class="lang-badge" data-lang="go"><span>Go</span>Go</div>
+      <div class="lang-badge" data-lang="java"><span>☕</span>Java</div>
+      <div class="lang-badge" data-lang="c"><span>C</span>C</div>
+      <div class="lang-badge" data-lang="cpp"><span>C++</span>C++</div>
+      <div class="lang-badge" data-lang="cs"><span>C#</span>C#</div>
+      <div class="lang-badge" data-lang="rb"><span>💎</span>Ruby</div>
+      <div class="lang-badge" data-lang="php"><span>🐘</span>PHP</div>
+      <div class="lang-badge" data-lang="kt"><span>K</span>Kotlin</div>
+      <div class="lang-badge" data-lang="swift"><span>🕊️</span>Swift</div>
+      <div class="lang-badge" data-lang="dart"><span>🎯</span>Dart</div>
+      <div class="lang-badge" data-lang="bash"><span>$_</span>Bash</div>
+      <div class="lang-badge" data-lang="css"><span>🎨</span>CSS</div>
+      <div class="lang-badge" data-lang="html"><span>📄</span>HTML</div>
+      <div class="lang-badge" data-lang="json"><span>{}</span>JSON</div>
+    </div>
+    <p class="text-center mt-3 reveal" style="color:var(--text-secondary)">+ 20 more via regex fallback (YAML, TOML, Markdown, SQL, Lua, Zig, …)</p>
+  </section>
+
+  <hr class="divider container">
+
+  <!-- ═══ Edge Types ═══ -->
+  <section class="section container">
+    <h2 class="section-title reveal">Relationship Types</h2>
+    <p class="section-subtitle reveal">12 edge types capture every code relationship</p>
+
+    <div class="edge-grid reveal">
+      <div class="edge-card glass-card">
+        <div class="edge-icon">→</div>
+        <h4>calls</h4>
+        <p>Function invocations</p>
+      </div>
+      <div class="edge-card glass-card">
+        <div class="edge-icon">📥</div>
+        <h4>imports</h4>
+        <p>Module dependencies</p>
+      </div>
+      <div class="edge-card glass-card">
+        <div class="edge-icon">📤</div>
+        <h4>exports</h4>
+        <p>Public API surface</p>
+      </div>
+      <div class="edge-card glass-card">
+        <div class="edge-icon">🧬</div>
+        <h4>inherits</h4>
+        <p>Class inheritance</p>
+      </div>
+      <div class="edge-card glass-card">
+        <div class="edge-icon">📋</div>
+        <h4>implements</h4>
+        <p>Interface contracts</p>
+      </div>
+      <div class="edge-card glass-card">
+        <div class="edge-icon">🔗</div>
+        <h4>uses</h4>
+        <p>Variable references</p>
+      </div>
+      <div class="edge-card glass-card">
+        <div class="edge-icon">🎀</div>
+        <h4>decorates</h4>
+        <p>Decorators/annotations</p>
+      </div>
+      <div class="edge-card glass-card">
+        <div class="edge-icon">↻</div>
+        <h4>overrides</h4>
+        <p>Method overriding</p>
+      </div>
+      <div class="edge-card glass-card">
+        <div class="edge-icon">📦</div>
+        <h4>contains</h4>
+        <p>Nested symbols</p>
+      </div>
+      <div class="edge-card glass-card">
+        <div class="edge-icon">🧪</div>
+        <h4>tests</h4>
+        <p>Test → implementation</p>
+      </div>
+      <div class="edge-card glass-card">
+        <div class="edge-icon">⚙️</div>
+        <h4>depends_on</h4>
+        <p>External packages</p>
+      </div>
+      <div class="edge-card glass-card">
+        <div class="edge-icon">🛣️</div>
+        <h4>routes_to</h4>
+        <p>Route → handler</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider container">
+
+  <!-- ═══ PageRank ═══ -->
+  <section class="section container">
+    <h2 class="section-title reveal">PageRank-Powered Importance</h2>
+    <p class="section-subtitle reveal">Not all code is equally important. AI Mind Map knows which symbols matter most.</p>
+
+    <div class="glass-card pagerank-demo reveal">
+      <div class="pagerank-visual">
+        <div class="pr-node pr-node--large" data-rank="high">
+          <span class="pr-label">authenticate()</span>
+          <span class="pr-score">Rank: 0.94</span>
+        </div>
+        <div class="pr-edges">
+          <div class="pr-edge pr-edge--thick"></div>
+          <div class="pr-edge pr-edge--thick"></div>
+          <div class="pr-edge pr-edge--thick"></div>
+          <div class="pr-edge pr-edge--medium"></div>
+          <div class="pr-edge pr-edge--medium"></div>
+          <div class="pr-edge pr-edge--thin"></div>
+        </div>
+        <div class="pr-callers">
+          <span class="pr-caller">loginHandler()</span>
+          <span class="pr-caller">apiMiddleware()</span>
+          <span class="pr-caller">socketAuth()</span>
+          <span class="pr-caller">refreshToken()</span>
+          <span class="pr-caller">oauthCallback()</span>
+          <span class="pr-caller">testAuth()</span>
+        </div>
+      </div>
+      <div class="pagerank-explain">
+        <h3>Why PageRank?</h3>
+        <p>Just like Google ranks web pages by incoming links, AI Mind Map ranks code symbols by how many other symbols reference them.</p>
+        <ul>
+          <li><strong style="color:var(--green)">High rank</strong> — Called by many functions, critical to architecture</li>
+          <li><strong style="color:var(--cyan)">Medium rank</strong> — Moderate usage, utility functions</li>
+          <li><strong style="color:var(--text-muted)">Low rank</strong> — Leaf nodes, called by few or none</li>
+        </ul>
+        <p class="mt-2" style="color:var(--text-secondary)">Edge weights affect ranking: <code>calls</code> (1.0), <code>inherits</code> (0.8), <code>imports</code> (0.5), <code>uses</code> (0.3)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer container">
+    <div class="footer__links">
+      <a href="https://github.com/shdra06/ai-mind-map" target="_blank">GitHub</a>
+      <a href="https://www.npmjs.com/package/ai-mind-map" target="_blank">npm</a>
+      <a href="install.html">Install</a>
+      <a href="calculator.html">Calculator</a>
+    </div>
+    <p>© 2025 AI Mind Map by <a href="https://github.com/shdra06" target="_blank">shdra06</a> · MIT License</p>
+  </footer>
+
+  <script src="js/nav.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/architecture.js"></script>
+</body>
+</html>

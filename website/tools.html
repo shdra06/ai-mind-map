@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP Tool Explorer — AI Mind Map</title>
+  <meta name="description" content="Explore 50+ MCP tools for AI coding agents — session management, code search, memory, change tracking, and more.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/globals.css">
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+
+  <style>
+    /* ── Page Layout ───────────────────────── */
+    .tools-page {
+      margin-top: 80px;
+      padding: 48px 24px 80px;
+      max-width: 1280px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ── Hero Section ──────────────────────── */
+    .tools-hero {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeInUp 0.6s ease-out;
+    }
+    .tools-hero h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      background: var(--gradient-hero);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+    .counter-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 18px;
+      background: linear-gradient(135deg, rgba(108,92,231,0.15), rgba(0,206,201,0.1));
+      border: 1px solid rgba(108,92,231,0.25);
+      border-radius: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      margin-bottom: 8px;
+    }
+    .counter-badge #tool-counter {
+      font-size: 1.3rem;
+      color: var(--accent-purple);
+    }
+    .tools-hero p {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    /* ── Search Bar ────────────────────────── */
+    .tools-search-wrapper {
+      max-width: 600px;
+      margin: 0 auto 32px;
+      position: relative;
+      animation: fadeInUp 0.6s ease-out 0.1s both;
+    }
+    .tools-search-wrapper .search-icon {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    .tools-search-wrapper input {
+      width: 100%;
+      padding: 14px 20px 14px 48px;
+      font-size: 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid rgba(108,92,231,0.15);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .tools-search-wrapper input:focus {
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 0 4px rgba(108,92,231,0.12), 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .tools-search-wrapper input::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* ── Category Tabs ─────────────────────── */
+    .category-tabs-wrapper {
+      margin-bottom: 20px;
+      animation: fadeInUp 0.6s ease-out 0.2s both;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .category-tabs-wrapper::-webkit-scrollbar { display: none; }
+
+    #category-tabs {
+      display: flex;
+      gap: 6px;
+      padding-bottom: 4px;
+      min-width: max-content;
+    }
+    .cat-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: 1px solid rgba(108,92,231,0.15);
+      border-radius: 24px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .cat-tab:hover {
+      border-color: rgba(108,92,231,0.35);
+      color: var(--text-primary);
+      background: rgba(108,92,231,0.05);
+    }
+    .cat-tab.active {
+      border-color: var(--accent-purple);
+      background: rgba(108,92,231,0.12);
+      color: var(--accent-purple);
+    }
+    .cat-count {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 12px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Results Count ─────────────────────── */
+    .results-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding: 0 4px;
+      animation: fadeInUp 0.6s ease-out 0.3s both;
+    }
+    #results-count {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Tools Grid ────────────────────────── */
+    #tools-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      #tools-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Tool Card ─────────────────────────── */
+    .tool-card {
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(108,92,231,0.15);
+      border-radius: var(--radius-lg);
+      padding: 0;
+      overflow: hidden;
+      animation: fadeInUp 0.4s ease-out both;
+      transition: all var(--transition-normal);
+      position: relative;
+    }
+    .tool-card:hover {
+      border-color: rgba(108,92,231,0.4);
+      transform: translateY(-2px);
+      box-shadow: var(--glow-purple);
+    }
+    .tool-card.expanded {
+      border-color: rgba(108,92,231,0.35);
+    }
+    .tool-card.highlight-pulse {
+      animation: highlightPulse 1.5s ease-out;
+    }
+    @keyframes highlightPulse {
+      0%   { box-shadow: 0 0 0 0 rgba(108,92,231,0.5); }
+      50%  { box-shadow: 0 0 20px 4px rgba(108,92,231,0.3); }
+      100% { box-shadow: none; }
+    }
+    .tool-card.kb-focus {
+      border-color: var(--accent-cyan) !important;
+      box-shadow: 0 0 0 2px rgba(0,206,201,0.2);
+    }
+
+    .tool-card-header {
+      padding: 16px 18px 0;
+      cursor: pointer;
+    }
+    .tool-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+    .tool-icon {
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+    .tool-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      background: none;
+      padding: 0;
+    }
+    .star-badge {
+      font-size: 0.85rem;
+      cursor: default;
+    }
+    .tool-card-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+    }
+
+    .tool-description {
+      padding: 8px 18px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .tool-card.expanded .tool-description {
+      -webkit-line-clamp: unset;
+    }
+
+    .tool-card-actions {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 18px 12px;
+    }
+    .btn-copy-name, .btn-expand {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border: 1px solid rgba(108,92,231,0.15);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-copy-name:hover, .btn-expand:hover {
+      border-color: rgba(108,92,231,0.35);
+      color: var(--text-secondary);
+      background: rgba(108,92,231,0.05);
+    }
+    .btn-copy-name.copied {
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+    .expand-icon {
+      font-size: 0.65rem;
+      transition: transform 0.3s;
+    }
+
+    /* ── Card Details (expandable) ──────────── */
+    .tool-card-details {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s;
+      border-top: 1px solid transparent;
+    }
+    .tool-card.expanded .tool-card-details {
+      border-top-color: rgba(108,92,231,0.1);
+    }
+
+    .detail-block {
+      padding: 14px 18px;
+    }
+    .detail-block + .detail-block {
+      border-top: 1px solid rgba(108,92,231,0.08);
+    }
+    .detail-block h4 {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    /* Parameters table */
+    .params-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .params-table th {
+      text-align: left;
+      padding: 6px 10px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(108,92,231,0.12);
+    }
+    .params-table td {
+      padding: 8px 10px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid rgba(108,92,231,0.06);
+      vertical-align: top;
+    }
+    .params-table code {
+      color: var(--accent-cyan);
+      font-size: 0.78rem;
+    }
+    .type-badge {
+      display: inline-block;
+      padding: 1px 8px;
+      background: rgba(108,92,231,0.1);
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--accent-purple);
+    }
+    .required-dot { color: var(--accent-pink); }
+    .optional-dot { color: var(--text-muted); }
+    .no-params {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* Example code */
+    .example-code {
+      position: relative;
+      background: var(--bg-secondary);
+      border: 1px solid rgba(108,92,231,0.15);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .example-code pre {
+      padding: 14px 16px;
+      margin: 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 1.65;
+      color: var(--text-secondary);
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border: none;
+    }
+    .btn-copy-example {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border: 1px solid rgba(108,92,231,0.15);
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-copy-example:hover {
+      border-color: var(--accent-purple);
+      color: var(--accent-purple);
+    }
+
+    /* Related tools */
+    .related-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .related-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      border: 1px solid rgba(108,92,231,0.12);
+      border-radius: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .related-link:hover {
+      border-color: var(--accent-purple);
+      color: var(--accent-purple);
+      background: rgba(108,92,231,0.06);
+    }
+
+    /* No results */
+    .no-results {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .no-results-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+    .no-results h3 {
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .no-results p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* Breathe anim for loading */
+    @keyframes breathe {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* ── Responsive ────────────────────────── */
+    @media (max-width: 768px) {
+      .navbar .nav-links,
+      .navbar .nav-actions { display: none; }
+      .hamburger { display: flex; }
+      .tools-hero h1 { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation (same as index.html) ────── -->
+  <nav class="navbar scrolled" role="navigation" aria-label="Main navigation">
+    <div class="container flex-between">
+      <a href="index.html" class="nav-logo" aria-label="AI Mind Map Home">
+        <span class="logo-icon">🧠</span>
+        <span class="logo-text">AI Mind Map</span>
+      </a>
+
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="explorer.html" class="nav-link">Explorer</a>
+        <a href="tools.html" class="nav-link active">Tools</a>
+        <a href="calculator.html" class="nav-link">Calculator</a>
+        <a href="install.html" class="nav-link">Install</a>
+        <a href="architecture.html" class="nav-link">Architecture</a>
+      </div>
+
+      <div class="nav-actions">
+        <a href="https://github.com/shdra06/ai-mind-map" target="_blank" rel="noopener" class="nav-github" aria-label="View on GitHub">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+          <span>Star</span>
+        </a>
+      </div>
+
+      <button class="hamburger" aria-label="Toggle menu" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile Nav -->
+  <div class="mobile-nav" role="navigation" aria-label="Mobile navigation">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="explorer.html" class="nav-link">Explorer</a>
+    <a href="tools.html" class="nav-link active">Tools</a>
+    <a href="calculator.html" class="nav-link">Calculator</a>
+    <a href="install.html" class="nav-link">Install</a>
+    <a href="architecture.html" class="nav-link">Architecture</a>
+  </div>
+
+  <!-- ── Main Content ───────────────────────── -->
+  <div class="tools-page">
+
+    <!-- Hero -->
+    <section class="tools-hero">
+      <div class="counter-badge">
+        <span id="tool-counter">0</span>
+        <span>MCP Tools</span>
+      </div>
+      <h1>MCP Tool Explorer</h1>
+      <p>Every tool your AI agent needs — from session management and code search to persistent memory and architecture analysis.</p>
+    </section>
+
+    <!-- Search -->
+    <div class="tools-search-wrapper">
+      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="tools-search" placeholder="Search tools by name, description, or category…">
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="category-tabs-wrapper">
+      <div id="category-tabs"></div>
+    </div>
+
+    <!-- Results Count -->
+    <div class="results-bar">
+      <span id="results-count">Loading…</span>
+    </div>
+
+    <!-- Tools Grid -->
+    <div id="tools-grid">
+      <div class="no-results">
+        <div class="no-results-icon" style="animation:breathe 1.5s infinite">⏳</div>
+        <h3>Loading tools…</h3>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Footer ─────────────────────────────── -->
+  <footer style="margin-top:60px;padding:32px 24px;border-top:1px solid rgba(108,92,231,0.1);text-align:center;color:var(--text-muted);font-size:0.85rem;">
+    <p>AI Mind Map — Persistent code memory for AI agents · <a href="https://www.npmjs.com/package/ai-mind-map" target="_blank" style="color:var(--text-secondary)">npm</a> · <a href="https://github.com/shdra06/ai-mind-map" target="_blank" style="color:var(--text-secondary)">GitHub</a></p>
+  </footer>
+
+  <!-- ── Scripts ────────────────────────────── -->
+  <script src="js/nav.js"></script>
+  <script src="js/tools.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,211 @@
+/* ═══════════════════════════════════════════════════════════════
+   AI Mind Map — Calculator Page Styles
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Calculator Grid ──────────────────────────────────────── */
+.calculator-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 2rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .calculator-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Inputs Card ──────────────────────────────────────────── */
+.calc-inputs__title,
+.calc-results__title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 1.8rem;
+}
+
+.slider-group {
+  margin-bottom: 1.8rem;
+}
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+.slider-header label {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Custom range slider */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--purple-dim), var(--cyan-dim));
+  outline: none;
+  transition: background var(--transition);
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--purple);
+  border: 3px solid var(--bg-deep);
+  box-shadow: 0 0 12px var(--purple-glow);
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 20px var(--purple-glow);
+}
+.slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--purple);
+  border: 3px solid var(--bg-deep);
+  box-shadow: 0 0 12px var(--purple-glow);
+  cursor: pointer;
+}
+
+.slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Model select */
+.model-select {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(10, 11, 20, 0.8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color var(--transition);
+  cursor: pointer;
+}
+.model-select:focus {
+  border-color: var(--purple);
+}
+.model-select option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+/* ── Results Card ─────────────────────────────────────────── */
+.chart-container {
+  height: 200px;
+  margin-bottom: 1.5rem;
+}
+
+.results-numbers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+.result-row--bad   { background: var(--pink-dim); }
+.result-row--good  { background: var(--green-dim); }
+.result-row--saved {
+  background: linear-gradient(135deg, var(--purple-dim), var(--cyan-dim));
+  font-weight: 600;
+}
+.result-label { color: var(--text-secondary); }
+.result-value { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+.result-row--bad .result-value   { color: var(--pink); }
+.result-row--good .result-value  { color: var(--green); }
+.result-row--saved .result-value { color: var(--cyan); }
+
+/* ── Cost Grid ────────────────────────────────────────────── */
+.cost-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+.cost-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+.cost-item {
+  text-align: center;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(10, 11, 20, 0.5);
+  border: 1px solid var(--border);
+}
+.cost-item--highlight {
+  border-color: var(--green);
+  background: var(--green-dim);
+  grid-column: span 2;
+}
+@media (max-width: 480px) {
+  .cost-item--highlight { grid-column: span 1; }
+}
+.cost-label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.cost-value {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.cost-value--bad   { color: var(--pink); }
+.cost-value--good  { color: var(--text-secondary); }
+.cost-value--green { color: var(--green); }
+.cost-value--hero  { color: var(--green); font-size: 1.6rem; }
+
+/* ── Pie Chart ────────────────────────────────────────────── */
+.pie-container {
+  width: 180px;
+  height: 180px;
+  margin: 2rem auto 0;
+}
+
+/* ── Stat Cards ───────────────────────────────────────────── */
+.stat-card {
+  text-align: center;
+  padding: 2rem;
+}
+.stat-card__icon {
+  font-size: 2rem;
+  margin-bottom: 0.8rem;
+}
+.stat-card__value {
+  font-size: 2.4rem;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+.stat-card__label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+.stat-card__detail {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}

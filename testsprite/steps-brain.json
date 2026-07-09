@@ -1,0 +1,13 @@
+{
+  "planSteps": [
+    {"type":"action","description":"Navigate to the AI Mind Map homepage"},
+    {"type":"action","description":"Scroll down to the 'Live Demo' or 'Codebase Has a Brain' interactive knowledge graph section"},
+    {"type":"assertion","description":"Verify the graph canvas SVG is visible and the stats bar shows '120 nodes' and '300 edges'"},
+    {"type":"action","description":"Click the 'Types' tab in the left panel"},
+    {"type":"assertion","description":"Verify the left panel now shows a list of node type categories such as 'class', 'method', and 'function' each with a count number next to them"},
+    {"type":"action","description":"Click the '🔥 Hot' tab in the left panel"},
+    {"type":"assertion","description":"Verify the left panel shows a ranked list of the most-connected nodes with degree counts visible next to each entry"},
+    {"type":"action","description":"Click the '🔥 Hotspots' control button above the graph area"},
+    {"type":"assertion","description":"Verify the graph updates so that the most-connected nodes appear highlighted or enlarged while less-connected nodes appear dimmed, confirming the hotspot filter is active"}
+  ]
+}
