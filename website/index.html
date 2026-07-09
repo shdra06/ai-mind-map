@@ -147,76 +147,48 @@
     </div>
   </section>
 
-  <!-- Codebase X-Ray — HERO FEATURE -->
+  <!-- Codebase Intelligence -->
   <section id="xray" class="xray-section">
-    <div class="xray-hero-bg">
-      <div class="container">
-        <div class="xray-hero-layout">
-          <!-- Left: Main content -->
-          <div class="xray-hero-content">
-            <div class="xray-hero-badges">
-              <span class="xray-hero-badge xray-badge-new">🔬 FLAGSHIP FEATURE</span>
-              <span class="xray-hero-badge xray-badge-ai">✨ AI-Powered</span>
-              <span class="xray-hero-badge xray-badge-free">🆓 100% Free</span>
-            </div>
-            <h2 class="xray-hero-title">Codebase<br><span class="xray-hero-gradient">Intelligence</span></h2>
-            <p class="xray-hero-subtitle">Paste any GitHub URL → Get an instant deep health report, interactive knowledge graph, AI-powered Q&A, and architecture analysis. No sign-up, no API keys, completely free.</p>
-            
-            <div class="xray-feature-pills">
-              <span class="xray-pill">🏥 Health Grading (ISO 25010)</span>
-              <span class="xray-pill">🧬 Interactive Code Graph</span>
-              <span class="xray-pill">🤖 AI Chatbot Q&A</span>
-              <span class="xray-pill">🛡️ Security Scan (OWASP)</span>
-              <span class="xray-pill">📊 Complexity Metrics</span>
-              <span class="xray-pill">💀 Dead Code Detection</span>
-              <span class="xray-pill">🛣️ Route Tracing</span>
-              <span class="xray-pill">📐 Architecture Patterns</span>
-            </div>
+    <div class="container">
+      <div class="xray-hero">
+        <!-- Left -->
+        <div class="xray-hero-left">
+          <span class="xray-label">Codebase Intelligence</span>
+          <h2 class="xray-title">Understand any repo<br>in 30 seconds.</h2>
+          <p class="xray-desc">Paste a GitHub URL. Get health grades, an interactive code graph, security analysis, and an AI chatbot that answers questions about the codebase.</p>
 
-            <div class="xray-input-row">
-              <div class="xray-input-wrapper">
-                <span class="xray-input-icon">🔗</span>
-                <input type="url" id="xray-url" placeholder="https://github.com/owner/repo" aria-label="GitHub repository URL" value="https://github.com/shdra06/ai-mind-map" />
-              </div>
-              <button id="xray-btn" class="xray-btn-glow" aria-label="Start X-Ray analysis">🔬 X-Ray This Repo</button>
-            </div>
-
-            <div class="xray-trust-row">
-              <span class="xray-trust">✅ Works with public repos</span>
-              <span class="xray-trust">⚡ ~30 second analysis</span>
-              <span class="xray-trust">🌐 18 languages supported</span>
-            </div>
+          <div class="xray-input-row">
+            <input type="url" id="xray-url" placeholder="https://github.com/owner/repo" aria-label="GitHub repository URL" value="https://github.com/shdra06/ai-mind-map" />
+            <button id="xray-btn" aria-label="Start analysis">Analyze →</button>
           </div>
 
-          <!-- Right: AI Chat Guide -->
-          <div class="xray-chat-guide" id="xray-chat-guide">
-            <div class="xray-chat-header">
-              <div class="xray-chat-avatar">🧬</div>
-              <div>
-                <div class="xray-chat-name">Code Intelligence Bot</div>
-                <div class="xray-chat-status"><span class="xray-chat-dot"></span> Online</div>
-              </div>
-            </div>
-            <div class="xray-chat-messages">
-              <div class="xray-chat-msg xray-chat-bot">
-                <p>👋 Hey! I'm your <strong>Codebase Intelligence Bot</strong>.</p>
-              </div>
-              <div class="xray-chat-msg xray-chat-bot xray-chat-delay-1">
-                <p>Paste any <strong>GitHub repo URL</strong> on the left and click <strong>X-Ray</strong> — I'll analyze the entire codebase and let you ask me anything about it! 🔍</p>
-              </div>
-              <div class="xray-chat-msg xray-chat-bot xray-chat-delay-2">
-                <p>After scanning, I can answer questions like:</p>
-                <ul>
-                  <li>"How does the auth flow work?"</li>
-                  <li>"Show me all API routes"</li>
-                  <li>"What would break if I change auth.js?"</li>
-                  <li>"Find dead code in this repo"</li>
-                </ul>
-              </div>
-              <div class="xray-chat-msg xray-chat-bot xray-chat-delay-3">
-                <p>Try it now! ⬅️ Paste a URL and hit X-Ray.</p>
-              </div>
-            </div>
+          <div class="xray-meta">
+            <span>Public repos</span>
+            <span class="xray-meta-dot"></span>
+            <span>18 languages</span>
+            <span class="xray-meta-dot"></span>
+            <span>ISO 25010 · OWASP</span>
+          </div>
+        </div>
+
+        <!-- Right: Compact chat preview -->
+        <div class="xray-chat-preview" id="xray-chat-guide">
+          <div class="xray-cp-header">
+            <span class="xray-cp-dot"></span>
+            <span class="xray-cp-title">AI Assistant</span>
+          </div>
+          <div class="xray-cp-body">
+            <div class="xray-cp-msg xray-cp-bot">Paste a repo URL and hit <strong>Analyze</strong> — I'll map the entire codebase.</div>
+            <div class="xray-cp-msg xray-cp-bot xray-cp-d1">Then ask me anything:</div>
+            <div class="xray-cp-msg xray-cp-example xray-cp-d2">"How does the auth flow work?"</div>
+            <div class="xray-cp-msg xray-cp-example xray-cp-d3">"What would break if I change auth.js?"</div>
+            <div class="xray-cp-msg xray-cp-example xray-cp-d4">"Show dead code"</div>
+          </div>
+          <div class="xray-cp-caps">
+            <span>Health Report</span>
+            <span>Code Graph</span>
+            <span>Security</span>
+            <span>Routes</span>
           </div>
         </div>
       </div>
