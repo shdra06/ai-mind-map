@@ -20,12 +20,14 @@ TestSprite was used to verify all six user-facing flows end-to-end against the l
 
 | Test ID | Name | Priority | Final Status |
 |---------|------|----------|-------------|
-| `5baae20c` | Homepage loads with hero, install command, and problem comparison cards | P0 | ⚠️ inconclusive (agent: PASS 13/13, system: blocked) |
-| `e48d7004` | Live brain graph renders real codebase data and tab switching works | P0 | ✅ passed |
-| `e8cdcacb` | Tools explorer page displays all MCP tools and search filtering works | P1 | ✅ passed |
-| `3e46e983` | Token savings calculator updates dynamically when sliders are adjusted | P1 | ✅ passed |
-| `7b68bb8c` | Install wizard shows correct setup command when agent is selected | P1 | ✅ passed |
-| `7664bd14` | Full site navigation — all pages load and links work correctly | P2 | ✅ passed |
+| `5baae20c-4a69-4164-9332-aad816cdacee` | Homepage loads with hero, install command, and problem comparison cards | P0 | ⚠️ blocked (D3 render overhead) |
+| `e48d7004-3938-4cfd-b74d-fabe50bc536d` | Live brain graph renders real codebase data and tab switching works | P0 | ✅ passed |
+| `8ff5ee98-a075-422f-bc0c-390e062758b0` | Codebase X-Ray generates health report with grade and issues from GitHub URL | P0 | ✅ passed |
+| `7775a338-8416-4631-9dbc-bca9ba61197a` | Live Playground indexes GitHub repo and answers code queries | P0 | ✅ passed |
+| `e8cdcacb-7f37-472d-a010-40a7626534f1` | Tools explorer page displays all MCP tools and search filtering works | P1 | ✅ passed |
+| `3e46e983-64b3-49be-92a3-68cd082116bf` | Token savings calculator updates dynamically when sliders are adjusted | P1 | ✅ passed |
+| `7b68bb8c-3bcb-4370-9eb6-04c4097a7157` | Install wizard shows correct setup command when agent is selected | P1 | ✅ passed |
+| `7664bd14-eb87-492c-bf47-2d218d91b732` | Full site navigation — all pages load and links work correctly | P2 | ✅ passed |
 
 
 ---
@@ -202,15 +204,16 @@ testsprite test run 7664bd14 --target-url https://ai-mind-map-website.vercel.app
 
 ## Dashboard Links
 
-| Test | Dashboard |
-|------|-----------|
-| Homepage | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/5baae20c-4a69-4164-9332-aad816cdacee |
-| Brain Graph | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/e48d7004-3938-4cfd-b74d-fabe50bc536d |
-| Tools Explorer | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/e8cdcacb-7f37-472d-a010-40a7626534f1 |
-| Token Calculator | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/3e46e983-64b3-49be-92a3-68cd082116bf |
-| Install Wizard | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/7b68bb8c-3bcb-4370-9eb6-04c4097a7157 |
-| Site Navigation | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/7664bd14-eb87-492c-bf47-2d218d91b732 |
-| X-Ray | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/8ff5ee98-a075-422f-bc0c-390e062758b0 |
+| Test | Test ID | Dashboard |
+|------|---------|-----------|
+| Homepage | `5baae20c-4a69-4164-9332-aad816cdacee` | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/5baae20c-4a69-4164-9332-aad816cdacee |
+| Brain Graph | `e48d7004-3938-4cfd-b74d-fabe50bc536d` | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/e48d7004-3938-4cfd-b74d-fabe50bc536d |
+| X-Ray | `8ff5ee98-a075-422f-bc0c-390e062758b0` | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/8ff5ee98-a075-422f-bc0c-390e062758b0 |
+| Playground | `7775a338-8416-4631-9dbc-bca9ba61197a` | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/7775a338-8416-4631-9dbc-bca9ba61197a |
+| Tools Explorer | `e8cdcacb-7f37-472d-a010-40a7626534f1` | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/e8cdcacb-7f37-472d-a010-40a7626534f1 |
+| Token Calculator | `3e46e983-64b3-49be-92a3-68cd082116bf` | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/3e46e983-64b3-49be-92a3-68cd082116bf |
+| Install Wizard | `7b68bb8c-3bcb-4370-9eb6-04c4097a7157` | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/7b68bb8c-3bcb-4370-9eb6-04c4097a7157 |
+| Site Navigation | `7664bd14-eb87-492c-bf47-2d218d91b732` | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/7664bd14-eb87-492c-bf47-2d218d91b732 |
 
 ---
 
@@ -224,20 +227,20 @@ testsprite test run 7664bd14 --target-url https://ai-mind-map-website.vercel.app
 Re-ran 5 tests concurrently against the updated production deployment.
 
 ```bash
-testsprite test run e48d7004 --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
-testsprite test run 8ff5ee98 --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
-testsprite test run 7664bd14 --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
-testsprite test run 7b68bb8c --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
-testsprite test run 5baae20c --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
+testsprite test run e48d7004-3938-4cfd-b74d-fabe50bc536d --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
+testsprite test run 8ff5ee98-a075-422f-bc0c-390e062758b0 --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
+testsprite test run 7664bd14-eb87-492c-bf47-2d218d91b732 --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
+testsprite test run 7b68bb8c-3bcb-4370-9eb6-04c4097a7157 --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
+testsprite test run 5baae20c-4a69-4164-9332-aad816cdacee --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
 ```
 
-| Test | Run ID | Status | Steps |
-|------|--------|--------|-------|
-| X-Ray | `290b2641` | ✅ passed | 10/10 |
-| Brain Graph | `c5f21ba2` | ✅ passed | 11/11 |
-| Site Navigation | `3f5b0526` | ✅ passed | 10/10 |
-| Install Wizard | `b271f5ef` | ✅ passed | 15/15 |
-| Homepage | — | ⚠️ blocked | D3 render overhead (consistent with Rounds 2–3) |
+| Test | Test ID | Run ID | Status | Steps |
+|------|---------|--------|--------|-------|
+| X-Ray | `8ff5ee98-a075-422f-bc0c-390e062758b0` | `290b2641-d94c-49c9-96b6-77247a17117e` | ✅ passed | 10/10 |
+| Brain Graph | `e48d7004-3938-4cfd-b74d-fabe50bc536d` | `c5f21ba2-2ec2-43db-90a5-a838629b6bfc` | ✅ passed | 11/11 |
+| Site Navigation | `7664bd14-eb87-492c-bf47-2d218d91b732` | `3f5b0526-7d8d-4646-9d41-e72413367573` | ✅ passed | 10/10 |
+| Install Wizard | `7b68bb8c-3bcb-4370-9eb6-04c4097a7157` | `b271f5ef-451b-4d7e-b8b2-d63b47c6aaf7` | ✅ passed | 15/15 |
+| Homepage | `5baae20c-4a69-4164-9332-aad816cdacee` | `435d005d-49ed-4a8e-8b1d-dd49dacebd79` | ⚠️ timeout (600s) | D3 render overhead |
 
 **4/5 passed ✅** — all code changes from Round 4 confirmed working. Homepage continues to be blocked by D3 graph render time in TestSprite's browser environment (agent reports PASS but system times out waiting for SVG elements).
 
