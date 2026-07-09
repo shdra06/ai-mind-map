@@ -13,6 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/globals.css">
+  <link rel="stylesheet" href="css/xray.css">
   <style>
     .hero { min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8rem 2rem 4rem;position:relative;overflow:hidden; }
     .hero-content { position:relative;z-index:2;max-width:860px;margin:0 auto; }
@@ -123,8 +124,8 @@
         80-99% fewer tokens. Zero file re-reading. One command install.
       </p>
       <div class="hero-actions">
-        <a href="install.html" class="btn btn-primary btn-lg">&#x26A1; Install Now</a>
-        <a href="explorer.html" class="btn btn-secondary btn-lg">&#x1F50D; Explore the Graph &rarr;</a>
+        <a href="#xray" class="btn btn-primary btn-lg">🔬 X-Ray a Repo</a>
+        <a href="playground.html" class="btn btn-secondary btn-lg">🎮 Live Playground →</a>
       </div>
       <div class="install-box">
         <span class="prompt">$</span>
@@ -141,6 +142,56 @@
         <span class="agent-pill">Zed</span>
         <span class="agent-pill">Codex</span>
         <span class="agent-pill">Continue.dev</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Codebase X-Ray -->
+  <section id="xray" class="xray-section">
+    <div class="container">
+      <div class="xray-header">
+        <span class="section-badge">🔬 NEW — Groundbreaking</span>
+        <h2 class="section-title">Codebase X-Ray</h2>
+        <p class="section-subtitle">Instant health report for any GitHub repository. Paste a URL, get a full architectural analysis in seconds — circular dependencies, god functions, orphan files, and an overall health grade.</p>
+      </div>
+      <div class="xray-input-row">
+        <input type="url" id="xray-url" placeholder="https://github.com/owner/repo" aria-label="GitHub repository URL for X-Ray analysis" value="https://github.com/shdra06/ai-mind-map" />
+        <button id="xray-btn" aria-label="Start X-Ray analysis">🔬 X-Ray This Repo</button>
+      </div>
+      <div id="xray-progress" class="xray-progress" style="display:none">
+        <div class="xray-progress-track"><div id="xray-progress-bar" class="xray-progress-fill"></div></div>
+        <p id="xray-progress-text" class="xray-progress-text">Preparing...</p>
+      </div>
+      <div id="xray-results" class="xray-results" style="display:none">
+        <div class="xray-results-grid">
+          <div class="xray-grade-card">
+            <div class="xray-grade-circle">
+              <span id="xray-grade" class="xray-grade-letter">?</span>
+            </div>
+            <div class="xray-grade-label">Overall Health</div>
+            <div id="xray-scores" class="xray-scores"></div>
+          </div>
+          <div class="xray-graph-panel">
+            <div class="xray-panel-header">🔥 Risk Heatmap</div>
+            <div id="xray-graph" class="xray-graph-container"></div>
+            <div class="xray-legend">
+              <span class="legend-item"><span class="legend-dot" style="background:#00b894"></span>Healthy</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#fdcb6e"></span>Warning</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#e17055"></span>Critical</span>
+            </div>
+          </div>
+          <div class="xray-issues-panel">
+            <div class="xray-panel-header">⚠️ Issues Found <span id="xray-issue-count" class="xray-issue-badge">0</span></div>
+            <div id="xray-issues" class="xray-issues-list"></div>
+          </div>
+        </div>
+        <div class="xray-stats-row" id="xray-stats-row">
+          <div class="xray-stat"><span id="xray-stat-files" class="xray-stat-val">0</span><span class="xray-stat-lbl">Files Analyzed</span></div>
+          <div class="xray-stat"><span id="xray-stat-fns" class="xray-stat-val">0</span><span class="xray-stat-lbl">Functions</span></div>
+          <div class="xray-stat"><span id="xray-stat-classes" class="xray-stat-val">0</span><span class="xray-stat-lbl">Classes</span></div>
+          <div class="xray-stat"><span id="xray-stat-deps" class="xray-stat-val">0</span><span class="xray-stat-lbl">Dependencies</span></div>
+          <div class="xray-stat"><span id="xray-stat-issues" class="xray-stat-val">0</span><span class="xray-stat-lbl">Issues</span></div>
+        </div>
       </div>
     </div>
   </section>
@@ -342,6 +393,32 @@
     </div>
   </section>
 
+  <!-- HOW IT WORKS -->
+  <section class="section container reveal">
+    <div class="section-label">How It Works</div>
+    <h2 class="section-title" style="margin-bottom:3rem;">Three Steps to<br><span class="text-gradient">Infinite Memory</span></h2>
+    <div class="how-grid">
+      <div class="card card-accent-border reveal reveal-delay-1" style="text-align:center;padding:2.5rem 2rem;">
+        <div style="width:56px;height:56px;background:rgba(232,97,26,0.1);border:1px solid rgba(232,97,26,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:1.5rem;">&#x1F5FA;&#xFE0F;</div>
+        <div style="color:#E8611A;font-family:'Geist Mono',monospace;font-size:0.75rem;font-weight:600;margin-bottom:0.5rem;">STEP 01</div>
+        <h3 style="font-size:1.1rem;margin-bottom:0.75rem;">Index</h3>
+        <p style="color:#9C8E82;font-size:0.88rem;line-height:1.65;">Tree-sitter parses every file into a knowledge graph. Functions, classes, imports, relationships &mdash; all stored in SQLite.</p>
+      </div>
+      <div class="card card-accent-border reveal reveal-delay-2" style="text-align:center;padding:2.5rem 2rem;">
+        <div style="width:56px;height:56px;background:rgba(212,144,31,0.1);border:1px solid rgba(212,144,31,0.22);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:1.5rem;">&#x1F50D;</div>
+        <div style="color:#D4901F;font-family:'Geist Mono',monospace;font-size:0.75rem;font-weight:600;margin-bottom:0.5rem;">STEP 02</div>
+        <h3 style="font-size:1.1rem;margin-bottom:0.75rem;">Query</h3>
+        <p style="color:#9C8E82;font-size:0.88rem;line-height:1.65;">50+ smart MCP tools give precise answers. Signatures in 50 tokens. Full traces in 200. Your agent stops reading, starts knowing.</p>
+      </div>
+      <div class="card card-accent-border reveal reveal-delay-3" style="text-align:center;padding:2.5rem 2rem;">
+        <div style="width:56px;height:56px;background:rgba(57,211,83,0.08);border:1px solid rgba(57,211,83,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:1.5rem;">&#x1F9E0;</div>
+        <div style="color:#39D353;font-family:'Geist Mono',monospace;font-size:0.75rem;font-weight:600;margin-bottom:0.5rem;">STEP 03</div>
+        <h3 style="font-size:1.1rem;margin-bottom:0.75rem;">Remember</h3>
+        <p style="color:#9C8E82;font-size:0.88rem;line-height:1.65;">Decisions, patterns, and context persist across every session. The AI that worked with you yesterday remembers everything.</p>
+      </div>
+    </div>
+  </section>
+
   <section class="section container reveal">
     <div class="section-label">Features</div>
     <h2 class="section-title" style="margin-bottom:2.5rem;">Everything Your Agent<br><span class="text-gradient">Needs to Think Smarter</span></h2>
@@ -452,31 +529,7 @@
     <a href="explorer.html" class="btn btn-primary" style="margin-top:1rem;">Open Graph Explorer &rarr;</a>
   </section>
 
-  <!-- HOW IT WORKS -->
-  <section class="section container reveal">
-    <div class="section-label">How It Works</div>
-    <h2 class="section-title" style="margin-bottom:3rem;">Three Steps to<br><span class="text-gradient">Infinite Memory</span></h2>
-    <div class="how-grid">
-      <div class="card card-accent-border reveal reveal-delay-1" style="text-align:center;padding:2.5rem 2rem;">
-        <div style="width:56px;height:56px;background:rgba(232,97,26,0.1);border:1px solid rgba(232,97,26,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:1.5rem;">&#x1F5FA;&#xFE0F;</div>
-        <div style="color:#E8611A;font-family:'Geist Mono',monospace;font-size:0.75rem;font-weight:600;margin-bottom:0.5rem;">STEP 01</div>
-        <h3 style="font-size:1.1rem;margin-bottom:0.75rem;">Index</h3>
-        <p style="color:#9C8E82;font-size:0.88rem;line-height:1.65;">Tree-sitter parses every file into a knowledge graph. Functions, classes, imports, relationships &mdash; all stored in SQLite.</p>
-      </div>
-      <div class="card card-accent-border reveal reveal-delay-2" style="text-align:center;padding:2.5rem 2rem;">
-        <div style="width:56px;height:56px;background:rgba(212,144,31,0.1);border:1px solid rgba(212,144,31,0.22);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:1.5rem;">&#x1F50D;</div>
-        <div style="color:#D4901F;font-family:'Geist Mono',monospace;font-size:0.75rem;font-weight:600;margin-bottom:0.5rem;">STEP 02</div>
-        <h3 style="font-size:1.1rem;margin-bottom:0.75rem;">Query</h3>
-        <p style="color:#9C8E82;font-size:0.88rem;line-height:1.65;">50+ smart MCP tools give precise answers. Signatures in 50 tokens. Full traces in 200. Your agent stops reading, starts knowing.</p>
-      </div>
-      <div class="card card-accent-border reveal reveal-delay-3" style="text-align:center;padding:2.5rem 2rem;">
-        <div style="width:56px;height:56px;background:rgba(57,211,83,0.08);border:1px solid rgba(57,211,83,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:1.5rem;">&#x1F9E0;</div>
-        <div style="color:#39D353;font-family:'Geist Mono',monospace;font-size:0.75rem;font-weight:600;margin-bottom:0.5rem;">STEP 03</div>
-        <h3 style="font-size:1.1rem;margin-bottom:0.75rem;">Remember</h3>
-        <p style="color:#9C8E82;font-size:0.88rem;line-height:1.65;">Decisions, patterns, and context persist across every session. The AI that worked with you yesterday remembers everything.</p>
-      </div>
-    </div>
-  </section>
+
 
   <!-- INSTALL CTA -->
   <section class="cta-section reveal">
@@ -1187,5 +1240,6 @@
     });
   }
   </script>
+  <script src="js/xray.js"></script>
 </body>
 </html>
