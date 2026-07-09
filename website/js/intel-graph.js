@@ -228,33 +228,34 @@
   function createDefs() {
     _defs = _svg.append('defs');
 
-    // arrow markers per edge type
+    // arrow markers per edge type — only used on highlighted paths
     Object.entries(EDGE_STYLES).forEach(([type, s]) => {
       if (!s.arrow) return;
       _defs.append('marker')
         .attr('id', `arrow-${type}`)
-        .attr('viewBox', '0 -4 8 8')
-        .attr('refX', 20)
+        .attr('viewBox', '0 -3 6 6')
+        .attr('refX', 16)
         .attr('refY', 0)
-        .attr('markerWidth', 6)
-        .attr('markerHeight', 6)
+        .attr('markerWidth', 4)
+        .attr('markerHeight', 4)
         .attr('orient', 'auto')
         .append('path')
-          .attr('d', 'M0,-4L8,0L0,4Z')
-          .attr('fill', s.stroke);
+          .attr('d', 'M0,-3L6,0L0,3Z')
+          .attr('fill', s.stroke)
+          .attr('opacity', 0.7);
     });
 
     // highlight arrow
     _defs.append('marker')
       .attr('id', 'arrow-highlight')
-      .attr('viewBox', '0 -4 8 8')
-      .attr('refX', 20)
+      .attr('viewBox', '0 -3 6 6')
+      .attr('refX', 16)
       .attr('refY', 0)
-      .attr('markerWidth', 7)
-      .attr('markerHeight', 7)
+      .attr('markerWidth', 5)
+      .attr('markerHeight', 5)
       .attr('orient', 'auto')
       .append('path')
-        .attr('d', 'M0,-4L8,0L0,4Z')
+        .attr('d', 'M0,-3L6,0L0,3Z')
         .attr('fill', '#E8611A');
 
     // glow filter for highlighted nodes
@@ -381,12 +382,8 @@
         })
         .attr('stroke', d => (EDGE_STYLES[d.type] || EDGE_STYLES.calls).stroke)
         .attr('stroke-width', d => (EDGE_STYLES[d.type] || EDGE_STYLES.calls).width)
-        .attr('stroke-opacity', 0.35)
-        .attr('stroke-dasharray', d => (EDGE_STYLES[d.type] || EDGE_STYLES.calls).dash)
-        .attr('marker-end', d => {
-          const s = EDGE_STYLES[d.type] || EDGE_STYLES.calls;
-          return s.arrow ? `url(#arrow-${d.type})` : null;
-        });
+        .attr('stroke-opacity', 0.25)
+        .attr('stroke-dasharray', d => (EDGE_STYLES[d.type] || EDGE_STYLES.calls).dash);
 
     // ── draw nodes ──
     const nodeGroup = _g.append('g').attr('class', 'ig-nodes');

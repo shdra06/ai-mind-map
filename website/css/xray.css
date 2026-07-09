@@ -418,6 +418,72 @@
   letter-spacing: 0.04em;
 }
 
+/* --- Language Distribution (inline with stats) --- */
+.xray-lang-inline {
+  max-width: 1100px;
+  margin: 0.6rem auto 0;
+  padding: 0.9rem 1.2rem;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+}
+
+.lang-bars-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.lang-row-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.lang-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.lang-name-inline {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 80px;
+  text-transform: capitalize;
+}
+
+.lang-bar-track-inline {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-secondary, #F5F0EB);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.lang-bar-fill-inline {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s ease;
+}
+
+.lang-pct-inline {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 32px;
+  text-align: right;
+}
+
+.lang-count-inline {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  min-width: 48px;
+}
+
 /* --- Responsive --- */
 @media (max-width: 1024px) {
   .xray-results-grid {

@@ -193,6 +193,10 @@
           <div class="xray-stat"><span id="xray-stat-deps" class="xray-stat-val">0</span><span class="xray-stat-lbl">Dependencies</span></div>
           <div class="xray-stat"><span id="xray-stat-issues" class="xray-stat-val">0</span><span class="xray-stat-lbl">Issues</span></div>
         </div>
+        <!-- Language Distribution — inline with stats -->
+        <div id="xray-lang-inline" class="xray-lang-inline" style="display:none">
+          <div id="xray-langs" class="lang-bars-inline"></div>
+        </div>
         <!-- Deep Analysis Section -->
         <div id="xray-deep" class="xray-deep" style="display:none">
           <div class="deep-header">
@@ -200,10 +204,6 @@
             <button id="xray-download" class="download-btn">📥 Download Report</button>
           </div>
           <div class="deep-grid">
-            <div class="deep-card">
-              <div class="deep-card-title">🌐 Language Distribution</div>
-              <div id="xray-langs" class="lang-bars"></div>
-            </div>
             <div class="deep-card">
               <div class="deep-card-title">🏔️ Top Connected Functions</div>
               <div id="xray-top-fns" class="top-fns-table"></div>

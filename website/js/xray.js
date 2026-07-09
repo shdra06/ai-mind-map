@@ -710,9 +710,10 @@
     }
   }
 
-  /* --- Language Distribution --- */
+  /* --- Language Distribution (inline with stats) --- */
   function renderLanguages() {
     const el = $('xray-langs');
+    const wrapper = $('xray-lang-inline');
     if (!el) return;
 
     const langCounts = {};
@@ -723,18 +724,21 @@
 
     const sorted = Object.entries(langCounts).sort((a, b) => b[1] - a[1]);
     const total = state.files.length;
-    const langColors = { typescript: '#3178C6', javascript: '#F7DF1E', python: '#3776AB', go: '#00ADD8', ruby: '#CC342D', rust: '#DEA584', java: '#B07219', csharp: '#68217A', php: '#777BB4', swift: '#F05138', kotlin: '#A97BFF', scala: '#DC322F', other: '#6B6560' };
+    const langColors = { typescript: '#3178C6', javascript: '#F7DF1E', python: '#3776AB', go: '#00ADD8', ruby: '#CC342D', rust: '#DEA584', java: '#B07219', csharp: '#68217A', php: '#777BB4', swift: '#F05138', kotlin: '#A97BFF', scala: '#DC322F', html: '#E34C26', css: '#563D7C', shell: '#89E051', markdown: '#083FA1', json: '#292929', yaml: '#CB171E', other: '#6B6560' };
 
-    el.innerHTML = sorted.slice(0, 8).map(([lang, count]) => {
+    el.innerHTML = sorted.slice(0, 6).map(([lang, count]) => {
       const pct = Math.round((count / total) * 100);
       const color = langColors[lang] || langColors.other;
-      return `<div class="lang-row">
-        <span class="lang-name">${lang}</span>
-        <div class="lang-bar-track"><div class="lang-bar-fill" style="width:${pct}%;background:${color}"></div></div>
-        <span class="lang-pct">${pct}%</span>
-        <span class="lang-count">${count} files</span>
+      return `<div class="lang-row-inline">
+        <span class="lang-dot" style="background:${color}"></span>
+        <span class="lang-name-inline">${lang}</span>
+        <div class="lang-bar-track-inline"><div class="lang-bar-fill-inline" style="width:${pct}%;background:${color}"></div></div>
+        <span class="lang-pct-inline">${pct}%</span>
+        <span class="lang-count-inline">${count} files</span>
       </div>`;
     }).join('');
+
+    if (wrapper) wrapper.style.display = 'block';
   }
 
   /* --- Top Connected Functions --- */
