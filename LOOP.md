@@ -4,7 +4,7 @@
 **Project ID:** `ba8983c8-b2a5-40ba-b17b-eba7646b8228`  
 **Target URL:** https://ai-mind-map-website.vercel.app  
 **Hackathon:** TestSprite Season 3  
-**Final Result:** ✅ 5/6 tests passing · 1 inconclusive (agent: PASS, system: blocked due to D3 render overhead) · **3 rounds · 5 bugs found and fixed**
+**Final Result:** ✅ 7/8 tests passing · 1 inconclusive (Homepage: agent PASS, system blocked due to D3 render overhead) · **4 rounds · 6 bugs found and fixed**
 
 ---
 
@@ -210,3 +210,74 @@ testsprite test run 7664bd14 --target-url https://ai-mind-map-website.vercel.app
 | Token Calculator | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/3e46e983-64b3-49be-92a3-68cd082116bf |
 | Install Wizard | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/7b68bb8c-3bcb-4370-9eb6-04c4097a7157 |
 | Site Navigation | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/7664bd14-eb87-492c-bf47-2d218d91b732 |
+| X-Ray | https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/8ff5ee98-a075-422f-bc0c-390e062758b0 |
+
+---
+
+## Round 4 — Post-redesign verification (Codebase Intelligence hero + graph fix)
+
+**Changes since Round 3:**
+- Codebase Intelligence hero section completely redesigned: dark gradient background → clean light Oatmeal theme, removed emoji badges/pills/trust row, simplified copy ("Understand any repo in 30 seconds"), compact AI chat preview panel
+- **Critical bug fix (Bug 6):** D3 graph link misalignment — links were stretching off-screen or converging to random points because edge `source`/`target` properties retained stale node object references from previous simulation runs instead of being resolved against the current simulation's node instances
+- Graph node/edge cleanup: stripped D3 internal properties (`index`, `vx`, `vy`, non-finite `x`/`y`) from node copies to prevent simulation noise
+
+Re-ran 5 tests concurrently against the updated production deployment.
+
+```bash
+testsprite test run e48d7004 --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
+testsprite test run 8ff5ee98 --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
+testsprite test run 7664bd14 --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
+testsprite test run 7b68bb8c --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
+testsprite test run 5baae20c --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
+```
+
+| Test | Run ID | Status | Steps |
+|------|--------|--------|-------|
+| X-Ray | `290b2641` | ✅ passed | 10/10 |
+| Brain Graph | `c5f21ba2` | ✅ passed | 11/11 |
+| Site Navigation | `3f5b0526` | ✅ passed | 10/10 |
+| Install Wizard | `b271f5ef` | ✅ passed | 15/15 |
+| Homepage | — | ⚠️ blocked | D3 render overhead (consistent with Rounds 2–3) |
+
+**4/5 passed ✅** — all code changes from Round 4 confirmed working. Homepage continues to be blocked by D3 graph render time in TestSprite's browser environment (agent reports PASS but system times out waiting for SVG elements).
+
+---
+
+### Bug 6 — D3 graph links stretching off-screen / converging to random points (Round 4)
+**Files:** `website/js/intel-graph.js`, `website/js/codebase-intel.js`  
+**Severity:** Critical — graph visualization was completely inaccurate  
+**Root cause:** D3's `forceLink` mutates edge `source`/`target` properties in-place from string IDs to node object references. When the Codebase Intelligence explorer re-initialized with new data (from `CodebaseIntel.buildIntelGraph`), edges were shallow-copied but retained references to **old** node objects from previous simulation runs. D3 saw they were already objects and skipped resolution, so link coordinates (`d.source.x`, `d.source.y`) remained static/stale while nodes moved to new positions — causing links to stretch off-screen, converge to (0,0), or meet at random intersection points.  
+**Fix:** Added `cleanGraphData()` helper that:
+1. Converts all edge `source`/`target` back to string IDs, forcing D3's `forceLink` to re-resolve them against the current `_nodes` array
+2. Strips D3 internal properties (`index`, `vx`, `vy`) from node copies
+3. Sanitizes non-finite `x`/`y` coordinates to prevent NaN propagation
+
+```diff
+// intel-graph.js — new helper
++ function cleanGraphData(nodes, edges) {
++   const cleanNodes = nodes.map(n => {
++     const copy = Object.assign({}, n);
++     delete copy.index; delete copy.vx; delete copy.vy;
++     if (copy.x !== undefined && !isFinite(copy.x)) delete copy.x;
++     if (copy.y !== undefined && !isFinite(copy.y)) delete copy.y;
++     return copy;
++   });
++   const cleanEdges = edges.map(e => ({
++     ...e,
++     source: typeof e.source === 'object' ? e.source.id : e.source,
++     target: typeof e.target === 'object' ? e.target.id : e.target
++   }));
++   return { nodes: cleanNodes, edges: cleanEdges };
++ }
+
+// codebase-intel.js — buildIntelGraph
+- const nodes = [...existingNodes];
+- const edges = [...existingEdges];
++ const nodes = existingNodes.map(n => { /* deep copy + strip D3 internals */ });
++ const edges = existingEdges.map(e => ({
++   ...e,
++   source: typeof e.source === 'object' ? e.source.id : e.source,
++   target: typeof e.target === 'object' ? e.target.id : e.target
++ }));
+```
+
