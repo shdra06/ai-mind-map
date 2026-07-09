@@ -343,12 +343,7 @@
       margin: 0 auto;
       max-width: 1400px;
     ">
-      <!-- Ctrl+Scroll hint overlay -->
-      <div id="brain-scroll-hint" style="
-        position:absolute;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
-        background:rgba(26,22,18,0.6);pointer-events:none;transition:opacity 0.3s;
-      "><span style="color:#fff;font-size:0.9rem;font-family:'Geist',sans-serif;background:rgba(0,0,0,0.7);
-        padding:0.6rem 1.2rem;border-radius:8px;">Hold <kbd style='background:#E8611A;color:#fff;padding:2px 8px;border-radius:4px;font-family:Geist Mono,monospace;'>Ctrl</kbd> + scroll to zoom</span></div>
+
       <!-- Ambient glow behind graph -->
       <div style="position:absolute;inset:0;pointer-events:none;z-index:0;
         background: radial-gradient(ellipse at 60% 50%, rgba(232,97,26,0.04) 0%, transparent 60%),
@@ -910,29 +905,6 @@
 
       zoom = d3.zoom()
         .scaleExtent([0.15, 4])
-        .filter(function(event) {
-          // Allow programmatic zoom always
-          if (event.type === 'zoom') return true;
-          // Allow double-click zoom
-          if (event.type === 'dblclick') return true;
-          // Allow mouse drag (pan)
-          if (event.type === 'mousedown' || event.type === 'mousemove' || event.type === 'mouseup') return true;
-          // Allow touch events
-          if (event.type.startsWith('touch')) return true;
-          // Scroll wheel: only zoom if Ctrl/Meta is held
-          if (event.type === 'wheel') {
-            if (event.ctrlKey || event.metaKey) return true;
-            // Show hint briefly
-            const hint = document.getElementById('brain-scroll-hint');
-            if (hint) {
-              hint.style.display = 'flex';
-              clearTimeout(hint._hintTimer);
-              hint._hintTimer = setTimeout(() => { hint.style.display = 'none'; }, 1200);
-            }
-            return false; // Let page scroll normally
-          }
-          return true;
-        })
         .on('zoom', e => svgG.attr('transform', e.transform));
       svgEl.call(zoom);
       svgG = svgEl.append('g');
