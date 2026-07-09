@@ -666,6 +666,10 @@
       progress(97, 'Building deep analysis...');
       renderDeepAnalysis();
 
+      // === CODEBASE INTELLIGENCE EXPLORER ===
+      progress(98, '🧬 Building Codebase Intelligence...');
+      initIntelExplorer();
+
       progress(100, `✅ X-Ray complete — ${state.files.length} files, ${state.issues.length + (state.advanced ? state.advanced.security.length : 0)} findings, Grade: ${state.grade}`);
 
     } catch (err) {
@@ -1086,6 +1090,101 @@
   }
 
   /* --- Download Report as Markdown --- */
+  /* ═══════════════════════════════════════════════════════════════
+     ███  CODEBASE INTELLIGENCE EXPLORER  ███
+     ═══════════════════════════════════════════════════════════════ */
+
+  function initIntelExplorer() {
+    const explorerEl = $('intel-explorer');
+    if (!explorerEl || !window.CodebaseIntel) return;
+    
+    try {
+      // Build enriched graph with route/API/DB detection
+      const intelData = window.CodebaseIntel.buildIntelGraph(state.files, state.nodes, state.edges);
+      
+      // Show the explorer
+      explorerEl.style.display = 'block';
+      
+      // Render stats bar
+      const statsEl = $('intel-stats');
+      if (statsEl) {
+        statsEl.innerHTML = `
+          <div class="intel-stat">📁 <span class="intel-stat-val">${intelData.stats.totalNodes}</span> nodes</div>
+          <div class="intel-stat">🔗 <span class="intel-stat-val">${intelData.stats.totalEdges}</span> edges</div>
+          <div class="intel-stat">🛣️ <span class="intel-stat-val">${intelData.stats.routes}</span> routes</div>
+          <div class="intel-stat">🔌 <span class="intel-stat-val">${intelData.stats.apiCalls}</span> API calls</div>
+          <div class="intel-stat">💾 <span class="intel-stat-val">${intelData.stats.dbQueries}</span> DB queries</div>
+        `;
+      }
+      
+      // Initialize D3 graph
+      const graphContainer = $('intel-graph');
+      if (graphContainer && window.IntelGraph) {
+        window.IntelGraph.init(graphContainer, intelData);
+      }
+      
+      // Initialize Chat
+      const chatContainer = $('intel-chat');
+      if (chatContainer && window.IntelChat) {
+        const advancedData = state.advanced || {};
+        window.IntelChat.init(chatContainer, {
+          ...intelData,
+          functionMetrics: advancedData.functionMetrics || [],
+          fileMetrics: advancedData.fileMetrics || [],
+          security: advancedData.security || [],
+          documentation: advancedData.documentation || {},
+          scores: advancedData.scores || state.scores,
+          summary: advancedData.summary || {}
+        }, window.IntelGraph);
+      }
+      
+      // Wire filter buttons
+      document.querySelectorAll('.filter-btn[data-type]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          btn.classList.toggle('active');
+          const activeTypes = Array.from(document.querySelectorAll('.filter-btn.active[data-type]'))
+            .map(b => b.dataset.type);
+          if (window.IntelGraph && window.IntelGraph.filterByType) {
+            window.IntelGraph.filterByType(activeTypes);
+          }
+        });
+      });
+      
+      // Wire search
+      const searchInput = $('intel-search');
+      if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(() => {
+            const query = searchInput.value.trim().toLowerCase();
+            if (!query) {
+              if (window.IntelGraph) window.IntelGraph.clearHighlight();
+              return;
+            }
+            const matches = intelData.nodes
+              .filter(n => n.label.toLowerCase().includes(query) || (n.file || '').toLowerCase().includes(query))
+              .map(n => n.id);
+            if (matches.length > 0 && window.IntelGraph) {
+              window.IntelGraph.highlightPath(matches);
+              if (matches.length === 1) window.IntelGraph.focusNode(matches[0]);
+            }
+          }, 250);
+        });
+      }
+      
+      // Listen for node selection from graph
+      document.addEventListener('intel-node-select', (e) => {
+        if (window.IntelChat && e.detail) {
+          window.IntelChat.handleQuery(`explain ${e.detail.label}`);
+        }
+      });
+      
+    } catch (err) {
+      console.warn('Intel Explorer init failed:', err);
+    }
+  }
+
   function downloadReport() {
     const lines = [
       `# 🔬 Codebase X-Ray Report`,

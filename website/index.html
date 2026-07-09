@@ -14,6 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/globals.css">
   <link rel="stylesheet" href="css/xray.css">
+  <link rel="stylesheet" href="css/intel.css">
   <style>
     .hero { min-height:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:7rem 2rem 3rem;position:relative;overflow:hidden; }
     .hero-content { position:relative;z-index:2;max-width:860px;margin:0 auto; }
@@ -243,6 +244,33 @@
             <div id="xray-standards" class="standards-grid"></div>
           </div>
         </div>
+
+        <!-- Codebase Intelligence Explorer -->
+        <div id="intel-explorer" class="intel-explorer" style="display:none">
+          <div class="intel-header">
+            <h3>🧬 Codebase Intelligence</h3>
+            <div class="intel-toolbar">
+              <input id="intel-search" class="intel-search" type="text" placeholder="Search function, route, or file...">
+              <div class="intel-filters">
+                <button class="filter-btn active" data-type="route"><span class="filter-dot" style="background:#00b894"></span> Routes</button>
+                <button class="filter-btn active" data-type="function"><span class="filter-dot" style="background:#3178C6"></span> Fns</button>
+                <button class="filter-btn active" data-type="class"><span class="filter-dot" style="background:#6c5ce7"></span> Class</button>
+                <button class="filter-btn active" data-type="middleware"><span class="filter-dot" style="background:#f39c12"></span> MW</button>
+                <button class="filter-btn active" data-type="file"><span class="filter-dot" style="background:#95a5a6"></span> Files</button>
+                <button class="filter-btn active" data-type="api-call"><span class="filter-dot" style="background:#e17055"></span> API</button>
+                <button class="filter-btn active" data-type="db-query"><span class="filter-dot" style="background:#d63031"></span> DB</button>
+              </div>
+            </div>
+          </div>
+          <div class="intel-body">
+            <div id="intel-graph" class="intel-graph-panel">
+              <div id="intel-tooltip" class="node-tooltip hidden"></div>
+            </div>
+            <div id="intel-chat" class="intel-chat-panel"></div>
+          </div>
+          <div id="intel-stats" class="intel-stats"></div>
+        </div>
+
       </div>
     </div>
   </section>
@@ -1291,6 +1319,10 @@
     });
   }
   </script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="js/codebase-intel.js"></script>
+  <script src="js/intel-graph.js"></script>
+  <script src="js/intel-chat.js"></script>
   <script src="js/xray-advanced.js"></script>
   <script src="js/xray.js"></script>
 </body>
