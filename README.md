@@ -17,6 +17,37 @@
 
 ---
 
+## 🌐 Live Website
+
+**[ai-mind-map-website.vercel.app](https://ai-mind-map-website.vercel.app)** — Interactive landing page with a live D3.js knowledge graph of the real codebase (120 nodes, 300 edges), token savings calculator, tools explorer, and one-command install wizard.
+
+---
+
+## 🧪 TestSprite Hackathon — Season 3
+
+This project is a submission for the **TestSprite Season 3 Hackathon**. The TestSprite verification loop ran against the live website across 2 rounds, finding and fixing **4 real product bugs**.
+
+| Test | Priority | Status |
+|------|----------|--------|
+| Live brain graph renders real codebase data | P0 | ✅ passed |
+| Homepage hero + comparison cards | P0 | ⚠️ inconclusive (agent: PASS, D3 render overhead) |
+| Tools explorer search filtering | P1 | ✅ passed |
+| Token savings calculator sliders | P1 | ✅ passed |
+| Install wizard agent switching | P1 | ✅ passed |
+| Full site navigation | P2 | ✅ passed |
+
+**Bugs found by TestSprite:**
+- 🐛 Brain graph search input had no ARIA — invisible to accessibility tree
+- 🐛 Install page: 3 identical `Copy` buttons with no unique identifiers
+- 🐛 D3 drag handler fired on every mousedown — hover selected nodes incorrectly
+- 🐛 Homepage hero + CTA both had identical `Copy` buttons — agent blocked
+
+See [`LOOP.md`](./LOOP.md) for the full iteration log, root cause analysis, and fixes.
+
+**CI/CD:** TestSprite runs automatically on every push via [GitHub Actions](./.github/workflows/testsprite.yml).
+
+---
+
 ## ⚡ Install in One Command
 
 ```bash
