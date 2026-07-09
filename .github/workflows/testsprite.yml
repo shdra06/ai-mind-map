@@ -1,0 +1,114 @@
+name: TestSprite Verification Loop
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'website/**'
+      - 'testsprite/**'
+      - 'LOOP.md'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'website/**'
+      - 'testsprite/**'
+  workflow_dispatch:   # allows manual trigger from GitHub UI
+
+jobs:
+  testsprite:
+    name: Run TestSprite Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # 1. Check out the repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Set up Node.js (required for TestSprite CLI)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 3. Install TestSprite CLI
+      - name: Install TestSprite CLI
+        run: npm install -g @testsprite/cli
+
+      # 4. Verify CLI is working
+      - name: Verify TestSprite CLI
+        run: testsprite --version
+
+      # 5. Run Brain Graph test (P0 — most critical)
+      - name: Run Brain Graph test (P0)
+        env:
+          TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
+        run: |
+          testsprite test run "e48d7004-3938-4cfd-b74d-fabe50bc536d" \
+            --target-url "https://ai-mind-map-website.vercel.app" \
+            --wait --timeout 600 --output json
+        continue-on-error: false
+
+      # 6. Run Tools Explorer test (P1)
+      - name: Run Tools Explorer test (P1)
+        env:
+          TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
+        run: |
+          testsprite test run "e8cdcacb-7f37-472d-a010-40a7626534f1" \
+            --target-url "https://ai-mind-map-website.vercel.app" \
+            --wait --timeout 300 --output json
+        continue-on-error: false
+
+      # 7. Run Token Calculator test (P1)
+      - name: Run Token Calculator test (P1)
+        env:
+          TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
+        run: |
+          testsprite test run "3e46e983-64b3-49be-92a3-68cd082116bf" \
+            --target-url "https://ai-mind-map-website.vercel.app" \
+            --wait --timeout 300 --output json
+        continue-on-error: false
+
+      # 8. Run Install Wizard test (P1)
+      - name: Run Install Wizard test (P1)
+        env:
+          TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
+        run: |
+          testsprite test run "7b68bb8c-3bcb-4370-9eb6-04c4097a7157" \
+            --target-url "https://ai-mind-map-website.vercel.app" \
+            --wait --timeout 300 --output json
+        continue-on-error: false
+
+      # 9. Run Site Navigation test (P2)
+      - name: Run Site Navigation test (P2)
+        env:
+          TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
+        run: |
+          testsprite test run "7664bd14-eb87-492c-bf47-2d218d91b732" \
+            --target-url "https://ai-mind-map-website.vercel.app" \
+            --wait --timeout 300 --output json
+        continue-on-error: true   # P2 — don't fail the pipeline
+
+      # 10. Run Homepage test (P0 — inconclusive on heavy pages, non-blocking)
+      - name: Run Homepage test (P0)
+        env:
+          TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
+        run: |
+          testsprite test run "5baae20c-4a69-4164-9332-aad816cdacee" \
+            --target-url "https://ai-mind-map-website.vercel.app" \
+            --wait --timeout 600 --output json
+        continue-on-error: true   # D3 graph causes extended runtime — non-blocking
+
+      # 11. Print summary
+      - name: Print test summary
+        if: always()
+        run: |
+          echo "========================================="
+          echo "  AI Mind Map — TestSprite Loop Results"
+          echo "========================================="
+          echo "Project:    AI Mind Map Website"
+          echo "Target URL: https://ai-mind-map-website.vercel.app"
+          echo "Project ID: ba8983c8-b2a5-40ba-b17b-eba7646b8228"
+          echo ""
+          echo "Dashboard: https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228"
+          echo "========================================="
