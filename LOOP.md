@@ -4,7 +4,7 @@
 **Project ID:** `ba8983c8-b2a5-40ba-b17b-eba7646b8228`  
 **Target URL:** https://ai-mind-map-website.vercel.app  
 **Hackathon:** TestSprite Season 3  
-**Final Result:** ✅ 7/8 tests passing · 1 inconclusive (Homepage: agent PASS, system blocked due to D3 render overhead) · **4 rounds · 6 bugs found and fixed**
+**Final Result:** ✅ 7/8 tests passing · 1 inconclusive (Homepage: agent PASS, system blocked due to D3 render overhead) · **4 rounds · 7 bugs found and fixed**
 
 ---
 
@@ -283,4 +283,24 @@ testsprite test run 5baae20c-4a69-4164-9332-aad816cdacee --target-url https://ai
 +   target: typeof e.target === 'object' ? e.target.id : e.target
 + }));
 ```
+
+---
+
+### Bug 7 — D3 graph mouse wheel scroll trap on homepage (Round 4)
+**Files:** `website/index.html`, `website/js/intel-graph.js`, `website/js/xray.js`  
+**Severity:** High — blocked users from scrolling down the landing page  
+**Root cause:** D3's zoom behavior default handler intercepts and consumes `wheel` events on target elements. Because the graph containers covered a significant viewport height on the homepage, mouse scroll actions were captured by D3 zoom, trapping the user inside the graph and preventing normal body scrolling down the page.  
+**Fix:** Restricted D3 wheel zoom to trigger ONLY when holding the `Ctrl` key, and added explicit HTML/D3 Zoom In/Out controls for mouse-only users. Normal scrolling now bubbles up correctly to scroll the body:
+
+```diff
+// index.html, intel-graph.js, xray.js
+      zoom = d3.zoom()
+        .scaleExtent([0.15, 4])
++       .filter(event => {
++         if (event.type === 'wheel') return event.ctrlKey;
++         return !event.ctrlKey && !event.button;
++       })
+        .on('zoom', e => svgG.attr('transform', e.transform));
+```
+
 
