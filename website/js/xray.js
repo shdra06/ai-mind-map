@@ -641,8 +641,11 @@
       progress(85, 'Running architectural analysis...');
       runAnalysis();
 
-      progress(95, 'Rendering health report...');
+      progress(92, 'Rendering health report...');
       renderResults();
+
+      progress(97, 'Building deep analysis...');
+      renderDeepAnalysis();
 
       progress(100, `✅ X-Ray complete — ${state.files.length} files, ${state.issues.length} issues found, Grade: ${state.grade}`);
 
@@ -659,8 +662,295 @@
     progressTxt.textContent = text;
   }
 
+  /* ═══════════════════════════════════════════════════════════════
+     ███  DEEP ANALYSIS  ███
+     ═══════════════════════════════════════════════════════════════ */
+
+  function renderDeepAnalysis() {
+    const deepEl = $('xray-deep');
+    if (!deepEl) return;
+    deepEl.style.display = 'block';
+
+    renderLanguages();
+    renderTopFunctions();
+    renderDependencies();
+    renderFileSizes();
+    renderRefactorings();
+  }
+
+  /* --- Language Distribution --- */
+  function renderLanguages() {
+    const el = $('xray-langs');
+    if (!el) return;
+
+    const langCounts = {};
+    state.files.forEach(f => {
+      const lang = f.language || 'other';
+      langCounts[lang] = (langCounts[lang] || 0) + 1;
+    });
+
+    const sorted = Object.entries(langCounts).sort((a, b) => b[1] - a[1]);
+    const total = state.files.length;
+    const langColors = { typescript: '#3178C6', javascript: '#F7DF1E', python: '#3776AB', go: '#00ADD8', ruby: '#CC342D', rust: '#DEA584', java: '#B07219', csharp: '#68217A', php: '#777BB4', swift: '#F05138', kotlin: '#A97BFF', scala: '#DC322F', other: '#6B6560' };
+
+    el.innerHTML = sorted.slice(0, 8).map(([lang, count]) => {
+      const pct = Math.round((count / total) * 100);
+      const color = langColors[lang] || langColors.other;
+      return `<div class="lang-row">
+        <span class="lang-name">${lang}</span>
+        <div class="lang-bar-track"><div class="lang-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <span class="lang-pct">${pct}%</span>
+        <span class="lang-count">${count} files</span>
+      </div>`;
+    }).join('');
+  }
+
+  /* --- Top Connected Functions --- */
+  function renderTopFunctions() {
+    const el = $('xray-top-fns');
+    if (!el) return;
+
+    const fnConnections = [];
+    state.nodes.filter(n => n.type === 'function').forEach(fn => {
+      const conns = state.edges.filter(e => {
+        const s = typeof e.source === 'string' ? e.source : e.source.id;
+        const t = typeof e.target === 'string' ? e.target : e.target.id;
+        return s === fn.id || t === fn.id;
+      }).length;
+      fnConnections.push({ name: fn.label, file: fn.file, conns, risk: fn.risk });
+    });
+
+    fnConnections.sort((a, b) => b.conns - a.conns);
+
+    el.innerHTML = `<table class="fn-table">
+      <thead><tr><th>#</th><th>Function</th><th>File</th><th>Connections</th></tr></thead>
+      <tbody>${fnConnections.slice(0, 10).map((f, i) => `
+        <tr class="${f.risk >= 2 ? 'fn-row--risky' : ''}">
+          <td class="fn-rank">${i + 1}</td>
+          <td class="fn-name">${escapeHtml(f.name)}()</td>
+          <td class="fn-file">${f.file.split('/').pop()}</td>
+          <td class="fn-conns"><span class="conn-badge ${f.conns >= 6 ? 'conn-high' : ''}">${f.conns}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  /* --- Dependency Analysis --- */
+  function renderDependencies() {
+    const el = $('xray-deps');
+    if (!el) return;
+
+    const external = new Map();
+    const internalCount = { total: 0 };
+    const mostImported = new Map(); // file → count of files that import it
+
+    state.files.forEach(f => {
+      f.parsed.imports.forEach(imp => {
+        const mod = imp.module || '';
+        if (mod.startsWith('./') || mod.startsWith('../') || mod.startsWith('/')) {
+          internalCount.total++;
+        } else if (mod && !mod.startsWith('#')) {
+          const pkg = mod.split('/')[0].startsWith('@') ? mod.split('/').slice(0, 2).join('/') : mod.split('/')[0];
+          external.set(pkg, (external.get(pkg) || 0) + 1);
+        }
+      });
+    });
+
+    // Find most-imported internal files
+    state.edges.filter(e => e.type === 'imports').forEach(e => {
+      const tgt = typeof e.target === 'string' ? e.target : e.target.id;
+      if (tgt.startsWith('f:')) {
+        const file = tgt.replace('f:', '');
+        mostImported.set(file, (mostImported.get(file) || 0) + 1);
+      }
+    });
+
+    const sortedExt = [...external.entries()].sort((a, b) => b[1] - a[1]);
+    const sortedInternal = [...mostImported.entries()].sort((a, b) => b[1] - a[1]);
+
+    el.innerHTML = `
+      <div class="dep-section">
+        <div class="dep-label">External Packages</div>
+        <div class="dep-tags">${sortedExt.length === 0 ? '<span class="dep-none">None detected</span>' :
+          sortedExt.slice(0, 12).map(([pkg, count]) => `<span class="dep-tag">${escapeHtml(pkg)} <span class="dep-tag-count">×${count}</span></span>`).join('')}
+        </div>
+      </div>
+      <div class="dep-section">
+        <div class="dep-label">Internal Imports</div>
+        <div class="dep-stat">${internalCount.total} cross-file imports</div>
+      </div>
+      <div class="dep-section">
+        <div class="dep-label">Most Imported Files</div>
+        ${sortedInternal.slice(0, 5).map(([file, count]) => `
+          <div class="dep-hot-file">
+            <span class="dep-hot-name">${file.split('/').pop()}</span>
+            <span class="dep-hot-count">${count} files depend on this</span>
+          </div>
+        `).join('') || '<span class="dep-none">No internal imports detected</span>'}
+      </div>
+    `;
+  }
+
+  /* --- File Size Distribution --- */
+  function renderFileSizes() {
+    const el = $('xray-sizes');
+    if (!el) return;
+
+    const buckets = [
+      { label: '< 50 lines', min: 0, max: 50, count: 0, color: '#00b894' },
+      { label: '50–150 lines', min: 50, max: 150, count: 0, color: '#fdcb6e' },
+      { label: '150–300 lines', min: 150, max: 300, count: 0, color: '#e17055' },
+      { label: '300+ lines', min: 300, max: Infinity, count: 0, color: '#d63031' },
+    ];
+
+    state.files.forEach(f => {
+      const lines = (f.content || '').split('\n').length;
+      for (const b of buckets) { if (lines >= b.min && lines < b.max) { b.count++; break; } }
+    });
+
+    const maxCount = Math.max(...buckets.map(b => b.count), 1);
+
+    el.innerHTML = buckets.map(b => {
+      const pct = Math.round((b.count / maxCount) * 100);
+      const warn = b.min >= 300 && b.count > 0;
+      return `<div class="size-row">
+        <span class="size-label">${b.label}</span>
+        <div class="size-bar-track"><div class="size-bar-fill" style="width:${pct}%;background:${b.color}"></div></div>
+        <span class="size-count ${warn ? 'size-warn' : ''}">${b.count} files${warn ? ' ⚠️' : ''}</span>
+      </div>`;
+    }).join('');
+  }
+
+  /* --- Refactoring Recommendations --- */
+  function renderRefactorings() {
+    const el = $('xray-refactors');
+    if (!el) return;
+
+    const recs = [];
+
+    // Based on issues
+    const godFunctions = state.issues.filter(i => i.type === 'God Function');
+    godFunctions.slice(0, 3).forEach(issue => {
+      const fnName = issue.message.match(/^(\w+)\(/)?.[1] || 'this function';
+      recs.push({
+        priority: 'high',
+        icon: '🔴',
+        title: `Split ${fnName}() into smaller functions`,
+        detail: `This function has too many connections. Break it into focused helper functions with single responsibilities. Consider extracting common patterns into a utility module.`,
+        file: issue.files[0]
+      });
+    });
+
+    const circular = state.issues.filter(i => i.type === 'Circular Dependency');
+    circular.slice(0, 2).forEach(issue => {
+      recs.push({
+        priority: 'high',
+        icon: '🔴',
+        title: `Break circular dependency cycle`,
+        detail: `${issue.message} — Extract shared types/interfaces into a separate file that both modules import. Consider using dependency injection or an event-driven pattern.`,
+        file: issue.files[0]
+      });
+    });
+
+    const largeFiles = state.issues.filter(i => i.type === 'Large File');
+    largeFiles.slice(0, 2).forEach(issue => {
+      recs.push({
+        priority: 'medium',
+        icon: '🟡',
+        title: `Decompose ${issue.files[0]?.split('/').pop() || 'large file'}`,
+        detail: `${issue.message}. Group related functions and extract them into feature-specific modules. Aim for files under 200 lines.`,
+        file: issue.files[0]
+      });
+    });
+
+    const orphans = state.issues.filter(i => i.type === 'Orphan File');
+    if (orphans.length > 0) {
+      recs.push({
+        priority: 'low',
+        icon: '🟢',
+        title: `Review ${orphans.length} orphan file${orphans.length > 1 ? 's' : ''}`,
+        detail: `These files aren't imported by anything. Either they're entry points (which is fine), dead code (delete them), or missing integration (add imports where needed).`,
+        file: orphans[0].files[0]
+      });
+    }
+
+    if (state.scores.coupling < 50) {
+      recs.push({
+        priority: 'medium',
+        icon: '🟡',
+        title: 'Reduce overall coupling',
+        detail: `Coupling score is ${state.scores.coupling}/100. Consider introducing interfaces/abstractions between modules. Use the facade pattern to hide internal complexity.`,
+      });
+    }
+
+    if (recs.length === 0) {
+      recs.push({ priority: 'low', icon: '✨', title: 'Codebase looks healthy!', detail: 'No critical refactoring needed. Keep writing clean code.' });
+    }
+
+    el.innerHTML = recs.map(r => `
+      <div class="refactor-item refactor--${r.priority}">
+        <span class="refactor-icon">${r.icon}</span>
+        <div class="refactor-content">
+          <div class="refactor-title">${r.title}</div>
+          <div class="refactor-detail">${r.detail}</div>
+          ${r.file ? `<div class="refactor-file">📄 ${r.file.split('/').pop()}</div>` : ''}
+        </div>
+        <span class="refactor-priority priority-${r.priority}">${r.priority}</span>
+      </div>
+    `).join('');
+  }
+
+  /* --- Download Report as Markdown --- */
+  function downloadReport() {
+    const lines = [
+      `# 🔬 Codebase X-Ray Report`,
+      `**Repository:** ${state.owner}/${state.repo}`,
+      `**Date:** ${new Date().toISOString().split('T')[0]}`,
+      `**Grade:** ${state.grade}`,
+      ``,
+      `## Scores`,
+      `| Metric | Score |`,
+      `|--------|-------|`,
+      `| Architecture | ${state.scores.architecture}/100 |`,
+      `| Complexity | ${state.scores.complexity}/100 |`,
+      `| Coupling | ${state.scores.coupling}/100 |`,
+      `| Modularity | ${state.scores.modularity}/100 |`,
+      `| **Overall** | **${state.scores.overall}/100** |`,
+      ``,
+      `## Stats`,
+      `- Files analyzed: ${state.files.length}`,
+      `- Functions: ${state.nodes.filter(n => n.type === 'function').length}`,
+      `- Classes: ${state.nodes.filter(n => n.type === 'class').length}`,
+      `- Issues found: ${state.issues.length}`,
+      ``,
+      `## Issues`,
+      ...state.issues.map(i => `- **[${i.severity.toUpperCase()}]** ${i.type}: ${i.message}`),
+      ``,
+      `## Language Distribution`,
+    ];
+
+    const langCounts = {};
+    state.files.forEach(f => { langCounts[f.language] = (langCounts[f.language] || 0) + 1; });
+    Object.entries(langCounts).sort((a, b) => b[1] - a[1]).forEach(([lang, count]) => {
+      lines.push(`- ${lang}: ${count} files (${Math.round((count / state.files.length) * 100)}%)`);
+    });
+
+    lines.push('', '---', '*Generated by [AI Mind Map Codebase X-Ray](https://ai-mind-map-website.vercel.app)*');
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `xray-${state.owner}-${state.repo}-${new Date().toISOString().split('T')[0]}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   /* ───────────────────────── EVENTS ───────────────────────── */
   xrayBtn.addEventListener('click', startXray);
   urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') startXray(); });
+
+  const dlBtn = $('xray-download');
+  if (dlBtn) dlBtn.addEventListener('click', downloadReport);
 
 })();

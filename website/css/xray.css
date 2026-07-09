@@ -442,3 +442,375 @@
     gap: 1.5rem;
   }
 }
+
+/* ============================================================
+   DEEP ANALYSIS Section
+   ============================================================ */
+
+.xray-deep {
+  margin-top: 1.5rem;
+}
+
+.deep-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.deep-header h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary, #2C2520);
+}
+
+.download-btn {
+  background: #fff;
+  border: 1px solid var(--border-soft, rgba(44,37,32,0.08));
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.download-btn:hover {
+  background: var(--bg-secondary, #EDE9E3);
+  border-color: var(--accent-primary, #E8611A);
+  color: var(--accent-primary, #E8611A);
+}
+
+.deep-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.deep-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid var(--border-soft, rgba(44,37,32,0.08));
+  padding: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+
+.deep-card--full {
+  grid-column: span 2;
+}
+
+.deep-card-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 0.85rem;
+  color: var(--text-primary, #2C2520);
+}
+
+/* --- Language Bars --- */
+.lang-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.lang-name {
+  width: 80px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  color: var(--text-secondary, #6B6560);
+}
+
+.lang-bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-secondary, #EDE9E3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.lang-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.lang-pct {
+  width: 32px;
+  text-align: right;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary, #2C2520);
+}
+
+.lang-count {
+  width: 50px;
+  font-size: 0.7rem;
+  color: var(--text-secondary, #6B6560);
+}
+
+/* --- Top Functions Table --- */
+.fn-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.fn-table th {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #6B6560);
+  border-bottom: 1px solid var(--border-soft, rgba(44,37,32,0.08));
+}
+
+.fn-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid rgba(44,37,32,0.04);
+}
+
+.fn-row--risky {
+  background: rgba(214, 48, 49, 0.04);
+}
+
+.fn-rank {
+  color: var(--text-secondary, #6B6560);
+  width: 25px;
+}
+
+.fn-name {
+  font-family: 'Geist Mono', 'JetBrains Mono', monospace;
+  font-weight: 500;
+  color: var(--text-primary, #2C2520);
+}
+
+.fn-file {
+  color: var(--text-secondary, #6B6560);
+  font-size: 0.75rem;
+}
+
+.conn-badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  background: rgba(0, 184, 148, 0.1);
+  color: #00b894;
+}
+
+.conn-high {
+  background: rgba(214, 48, 49, 0.1);
+  color: #d63031;
+}
+
+/* --- Dependency Analysis --- */
+.dep-section {
+  margin-bottom: 0.85rem;
+}
+
+.dep-section:last-child {
+  margin-bottom: 0;
+}
+
+.dep-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #6B6560);
+  margin-bottom: 0.4rem;
+}
+
+.dep-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.dep-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.55rem;
+  background: var(--bg-secondary, #EDE9E3);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-family: 'Geist Mono', monospace;
+  color: var(--text-primary, #2C2520);
+}
+
+.dep-tag-count {
+  font-size: 0.65rem;
+  color: var(--accent-primary, #E8611A);
+  font-weight: 600;
+}
+
+.dep-none {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #6B6560);
+  font-style: italic;
+}
+
+.dep-stat {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-primary, #E8611A);
+}
+
+.dep-hot-file {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg-secondary, #EDE9E3);
+  border-radius: 6px;
+  margin-bottom: 0.3rem;
+}
+
+.dep-hot-name {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.dep-hot-count {
+  font-size: 0.7rem;
+  color: var(--text-secondary, #6B6560);
+}
+
+/* --- File Size Distribution --- */
+.size-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.size-label {
+  width: 90px;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #6B6560);
+}
+
+.size-bar-track {
+  flex: 1;
+  height: 10px;
+  background: var(--bg-secondary, #EDE9E3);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.size-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.6s ease;
+}
+
+.size-count {
+  width: 70px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: right;
+  color: var(--text-primary, #2C2520);
+}
+
+.size-warn {
+  color: #d63031;
+  font-weight: 600;
+}
+
+/* --- Refactoring Recommendations --- */
+.refactor-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  border-left: 3px solid transparent;
+  transition: background 0.2s;
+}
+
+.refactor-item:hover {
+  background: var(--bg-secondary, #EDE9E3);
+}
+
+.refactor--high {
+  border-left-color: #d63031;
+  background: rgba(214, 48, 49, 0.03);
+}
+
+.refactor--medium {
+  border-left-color: #fdcb6e;
+  background: rgba(253, 203, 110, 0.05);
+}
+
+.refactor--low {
+  border-left-color: #00b894;
+  background: rgba(0, 184, 148, 0.03);
+}
+
+.refactor-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.refactor-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.refactor-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary, #2C2520);
+  margin-bottom: 0.25rem;
+}
+
+.refactor-detail {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #6B6560);
+  line-height: 1.5;
+}
+
+.refactor-file {
+  font-size: 0.72rem;
+  color: var(--accent-primary, #E8611A);
+  margin-top: 0.3rem;
+  font-family: 'Geist Mono', monospace;
+}
+
+.refactor-priority {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.priority-high { background: rgba(214,48,49,0.1); color: #d63031; }
+.priority-medium { background: rgba(253,203,110,0.2); color: #e17055; }
+.priority-low { background: rgba(0,184,148,0.1); color: #00b894; }
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .deep-grid {
+    grid-template-columns: 1fr;
+  }
+  .deep-card--full {
+    grid-column: span 1;
+  }
+  .deep-header {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+}
