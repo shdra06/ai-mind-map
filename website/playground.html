@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Playground — AI Mind Map</title>
+  <meta name="description" content="Paste any GitHub repo URL and watch the knowledge graph grow in real-time. Explore code structure, dependencies, and architecture visually." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/globals.css" />
+  <link rel="stylesheet" href="css/playground.css" />
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-inner container">
+      <a href="index.html" class="nav-logo">🧠 AI Mind Map</a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="explorer.html" class="nav-link">Explorer</a>
+        <a href="tools.html" class="nav-link">Tools</a>
+        <a href="calculator.html" class="nav-link">Calculator</a>
+        <a href="install.html" class="nav-link">Install</a>
+        <a href="architecture.html" class="nav-link">Architecture</a>
+        <a href="playground.html" class="nav-link active">Playground</a>
+      </div>
+      <a href="https://github.com/shdra06/ai-mind-map" class="github-star-btn" target="_blank" rel="noopener noreferrer">⭐ Star on GitHub</a>
+    </div>
+  </nav>
+
+  <!-- Section 1: URL Input Bar -->
+  <section class="url-input-section">
+    <div class="container">
+      <h1>Live Playground</h1>
+      <p class="subtitle">Paste any GitHub repo URL. Watch the knowledge graph grow in real-time.</p>
+      <div class="url-input-row">
+        <input type="url" id="repo-url-input" placeholder="https://github.com/owner/repo" aria-label="GitHub repository URL" />
+        <button id="index-btn" aria-label="Start indexing repository">🧠 Index Repository</button>
+      </div>
+      <div id="progress-section" class="progress-section" style="display:none">
+        <div class="progress-bar-track"><div id="progress-bar" class="progress-bar-fill"></div></div>
+        <p id="progress-text" class="progress-text">Preparing...</p>
+      </div>
+      <div id="stats-bar" class="stats-bar" style="display:none">
+        <div class="stat-item"><span id="stat-files" class="stat-value">0</span><span class="stat-label">Files</span></div>
+        <div class="stat-item"><span id="stat-functions" class="stat-value">0</span><span class="stat-label">Functions</span></div>
+        <div class="stat-item"><span id="stat-classes" class="stat-value">0</span><span class="stat-label">Classes</span></div>
+        <div class="stat-item"><span id="stat-imports" class="stat-value">0</span><span class="stat-label">Imports</span></div>
+        <div class="stat-item"><span id="stat-edges" class="stat-value">0</span><span class="stat-label">Connections</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 2: Main Workspace -->
+  <section class="workspace">
+    <div class="workspace-grid">
+      <!-- Left: File Browser -->
+      <aside class="file-browser" id="file-browser">
+        <div class="panel-header">📁 Files</div>
+        <div id="file-tree" class="file-tree">
+          <p class="empty-state">Index a repo to see files...</p>
+        </div>
+      </aside>
+      <!-- Center: Knowledge Graph -->
+      <div class="graph-panel">
+        <div class="panel-header">
+          <span>🧠 Knowledge Graph</span>
+          <div class="graph-controls">
+            <button id="zoom-in" class="ctrl-btn" aria-label="Zoom in">+</button>
+            <button id="zoom-out" class="ctrl-btn" aria-label="Zoom out">−</button>
+            <button id="zoom-reset" class="ctrl-btn" aria-label="Reset zoom">⟲</button>
+          </div>
+        </div>
+        <div id="graph-container" class="graph-container">
+          <p class="empty-state graph-empty">Paste a GitHub URL above to see your codebase come alive</p>
+        </div>
+      </div>
+      <!-- Right: Node Detail -->
+      <aside class="detail-panel" id="detail-panel">
+        <div class="panel-header">📋 Details</div>
+        <div id="node-detail" class="node-detail">
+          <p class="empty-state">Click a node to see details</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Section 3: Code Chat -->
+  <section class="chat-section">
+    <div class="container">
+      <div class="chat-panel">
+        <div class="panel-header">🤖 Ask About This Codebase</div>
+        <div id="chat-messages" class="chat-messages">
+          <div class="chat-message chat-message--bot">
+            <span class="chat-avatar">🧠</span>
+            <div class="chat-bubble">Index a repository first, then ask me anything about its code structure, dependencies, or architecture.</div>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="Ask about this codebase..." aria-label="Chat query about indexed codebase" disabled />
+          <button id="chat-send" aria-label="Send chat query" disabled>Send</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/nav.js"></script>
+  <script src="js/playground.js"></script>
+</body>
+</html>

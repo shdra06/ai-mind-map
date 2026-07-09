@@ -1,0 +1,19 @@
+{
+  "projectId": "ba8983c8-b2a5-40ba-b17b-eba7646b8228",
+  "type": "frontend",
+  "name": "Live Playground indexes GitHub repo and answers code queries",
+  "description": "Full playground flow: paste URL, index repo, verify graph, chat query",
+  "priority": "p0",
+  "planSteps": [
+    { "type": "action",    "description": "Navigate to the playground page at the target URL followed by /playground.html" },
+    { "type": "assertion", "description": "Verify the playground page heading 'Live Playground' is visible, with a URL input field and a button labeled 'Index Repository'" },
+    { "type": "assertion", "description": "Verify the URL input is pre-filled with 'https://github.com/shdra06/ai-mind-map'" },
+    { "type": "action",    "description": "Click the 'Index Repository' button to start indexing the pre-filled GitHub repository" },
+    { "type": "assertion", "description": "Verify a progress bar appears and the progress text shows a message about fetching or parsing files" },
+    { "type": "action",    "description": "Wait for the indexing to complete — the progress text should show a checkmark or 'Indexed' message and the stats bar should show non-zero values for Files, Functions, and Connections" },
+    { "type": "assertion", "description": "Verify the knowledge graph in the center panel shows visible nodes (colored circles) connected by lines, representing the indexed codebase" },
+    { "type": "assertion", "description": "Verify the file browser on the left shows a list of parsed files with file icons" },
+    { "type": "action",    "description": "Type 'How many functions?' in the chat input field and press Enter or click Send" },
+    { "type": "assertion", "description": "Verify the chat shows a response from the bot containing a count of functions, classes, and files in the indexed repository" }
+  ]
+}
