@@ -9,27 +9,22 @@
   <link rel="stylesheet" href="css/architecture.css">
 </head>
 <body>
-  <canvas id="particles-canvas"></canvas>
 
   <!-- ═══ Navigation ═══ -->
-  <nav class="nav" role="navigation">
-    <a href="index.html" class="nav__logo">
-      <span class="nav__logo-icon">🧠</span>
-      <span>AI Mind Map</span>
-    </a>
-    <ul class="nav__links">
-      <li><a href="index.html">Home</a></li>
-      <li><a href="tools.html">Tools</a></li>
-      <li><a href="architecture.html" class="active">Architecture</a></li>
-      <li><a href="playground.html">Playground</a></li>
-      <li><a href="calculator.html">Calculator</a></li>
-      <li><a href="install.html">Install</a></li>
-      <li><a href="explorer.html">Explorer</a></li>
-      <li><a href="https://github.com/shdra06/ai-mind-map" target="_blank" class="nav__cta">GitHub ↗</a></li>
-    </ul>
-    <button class="nav__hamburger" aria-label="Menu" aria-expanded="false">
-      <span></span><span></span><span></span>
-    </button>
+  <nav class="nav">
+    <div class="nav-inner container">
+      <a href="index.html" class="nav-logo">🧠 AI Mind Map</a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="explorer.html" class="nav-link">Explorer</a>
+        <a href="tools.html" class="nav-link">Tools</a>
+        <a href="calculator.html" class="nav-link">Calculator</a>
+        <a href="install.html" class="nav-link">Install</a>
+        <a href="architecture.html" class="nav-link active">Architecture</a>
+        <a href="playground.html" class="nav-link">Playground</a>
+      </div>
+      <a href="https://github.com/shdra06/ai-mind-map" class="github-star-btn" target="_blank" rel="noopener noreferrer">⭐ Star on GitHub</a>
+    </div>
   </nav>
 
   <!-- ═══ Hero ═══ -->
@@ -46,25 +41,25 @@
     <div class="pipeline reveal" id="pipeline">
       <!-- Row 1 -->
       <div class="pipeline-row">
-        <div class="pipe-card glass-card" data-pipe="source" data-connects="parser">
+        <div class="pipe-card" data-pipe="source" data-connects="parser">
           <div class="pipe-icon">📂</div>
           <h3>Your Code</h3>
           <p>60+ symbol types</p>
           <p>30+ languages</p>
         </div>
         <div class="pipe-arrow">
-          <svg width="60" height="20"><line x1="0" y1="10" x2="60" y2="10" class="pipe-line"/><polygon points="55,5 60,10 55,15" fill="var(--cyan)"/></svg>
+          <svg width="60" height="20"><line x1="0" y1="10" x2="60" y2="10" class="pipe-line"/><polygon points="55,5 60,10 55,15" fill="var(--accent-primary)"/></svg>
         </div>
-        <div class="pipe-card glass-card" data-pipe="parser" data-connects="graph">
+        <div class="pipe-card" data-pipe="parser" data-connects="graph">
           <div class="pipe-icon">🌳</div>
           <h3>Tree-Sitter AST Parser</h3>
           <p>14 native grammars</p>
           <p>+ 20 regex fallback</p>
         </div>
         <div class="pipe-arrow">
-          <svg width="60" height="20"><line x1="0" y1="10" x2="60" y2="10" class="pipe-line"/><polygon points="55,5 60,10 55,15" fill="var(--cyan)"/></svg>
+          <svg width="60" height="20"><line x1="0" y1="10" x2="60" y2="10" class="pipe-line"/><polygon points="55,5 60,10 55,15" fill="var(--accent-primary)"/></svg>
         </div>
-        <div class="pipe-card glass-card" data-pipe="graph" data-connects="context">
+        <div class="pipe-card" data-pipe="graph" data-connects="context">
           <div class="pipe-icon">🕸️</div>
           <h3>Knowledge Graph</h3>
           <p>Nodes + Edges</p>
@@ -74,25 +69,25 @@
 
       <!-- Row 2 -->
       <div class="pipeline-row">
-        <div class="pipe-card glass-card" data-pipe="watcher" data-connects="tracker">
+        <div class="pipe-card" data-pipe="watcher" data-connects="tracker">
           <div class="pipe-icon">👁️</div>
           <h3>File Watcher</h3>
           <p>chokidar</p>
           <p>real-time sync</p>
         </div>
         <div class="pipe-arrow">
-          <svg width="60" height="20"><line x1="0" y1="10" x2="60" y2="10" class="pipe-line"/><polygon points="55,5 60,10 55,15" fill="var(--cyan)"/></svg>
+          <svg width="60" height="20"><line x1="0" y1="10" x2="60" y2="10" class="pipe-line"/><polygon points="55,5 60,10 55,15" fill="var(--accent-primary)"/></svg>
         </div>
-        <div class="pipe-card glass-card" data-pipe="tracker" data-connects="memory">
+        <div class="pipe-card" data-pipe="tracker" data-connects="memory">
           <div class="pipe-icon">📊</div>
           <h3>Change Tracker</h3>
           <p>git-aware</p>
           <p>symbol-level diffs</p>
         </div>
         <div class="pipe-arrow">
-          <svg width="60" height="20"><line x1="0" y1="10" x2="60" y2="10" class="pipe-line"/><polygon points="55,5 60,10 55,15" fill="var(--cyan)"/></svg>
+          <svg width="60" height="20"><line x1="0" y1="10" x2="60" y2="10" class="pipe-line"/><polygon points="55,5 60,10 55,15" fill="var(--accent-primary)"/></svg>
         </div>
-        <div class="pipe-card glass-card" data-pipe="memory" data-connects="context">
+        <div class="pipe-card" data-pipe="memory" data-connects="context">
           <div class="pipe-icon">💾</div>
           <h3>Persistent Memory</h3>
           <p>SQLite database</p>
@@ -102,12 +97,12 @@
 
       <!-- Vertical connector -->
       <div class="pipeline-vert-connector">
-        <svg width="20" height="60"><line x1="10" y1="0" x2="10" y2="60" class="pipe-line"/><polygon points="5,55 10,60 15,55" fill="var(--cyan)"/></svg>
+        <svg width="20" height="60"><line x1="10" y1="0" x2="10" y2="60" class="pipe-line"/><polygon points="5,55 10,60 15,55" fill="var(--accent-primary)"/></svg>
       </div>
 
       <!-- Row 3: Context Engine -->
       <div class="pipeline-row pipeline-row--center">
-        <div class="pipe-card pipe-card--wide glass-card" data-pipe="context" data-connects="tools">
+        <div class="pipe-card pipe-card--wide" data-pipe="context" data-connects="tools">
           <div class="pipe-icon">⚙️</div>
           <h3>Context Engine</h3>
           <p>Compression · Progressive Disclosure · Smart Retrieval</p>
@@ -115,12 +110,12 @@
       </div>
 
       <div class="pipeline-vert-connector">
-        <svg width="20" height="50"><line x1="10" y1="0" x2="10" y2="50" class="pipe-line"/><polygon points="5,45 10,50 15,45" fill="var(--cyan)"/></svg>
+        <svg width="20" height="50"><line x1="10" y1="0" x2="10" y2="50" class="pipe-line"/><polygon points="5,45 10,50 15,45" fill="var(--accent-primary)"/></svg>
       </div>
 
       <!-- Row 4: Tools -->
       <div class="pipeline-row pipeline-row--center">
-        <div class="pipe-card glass-card" data-pipe="tools" data-connects="agent">
+        <div class="pipe-card" data-pipe="tools" data-connects="agent">
           <div class="pipe-icon">🛠️</div>
           <h3>50+ MCP Tools</h3>
           <p>Search · Explain · Trace · Remember</p>
@@ -130,14 +125,14 @@
       <div class="pipeline-vert-connector">
         <svg width="20" height="50">
           <line x1="10" y1="0" x2="10" y2="50" class="pipe-line"/>
-          <polygon points="5,45 10,50 15,45" fill="var(--cyan)"/>
+          <polygon points="5,45 10,50 15,45" fill="var(--accent-primary)"/>
         </svg>
         <span class="pipe-protocol-label">stdio</span>
       </div>
 
       <!-- Row 5: Agent -->
       <div class="pipeline-row pipeline-row--center">
-        <div class="pipe-card pipe-card--agent glass-card" data-pipe="agent">
+        <div class="pipe-card pipe-card--agent" data-pipe="agent">
           <div class="pipe-icon">🤖</div>
           <h3>Your AI Agent</h3>
           <p>Claude · Cursor · Copilot · Windsurf · Zed</p>
@@ -154,7 +149,7 @@
     <p class="section-subtitle reveal">Like human memory — working, episodic, and semantic</p>
 
     <div class="memory-tiers reveal">
-      <div class="memory-tier glass-card" data-tier="1">
+      <div class="memory-tier" data-tier="1">
         <div class="tier-header">
           <div class="tier-badge badge">Tier 1</div>
           <h3>Working Memory</h3>
@@ -170,9 +165,9 @@
           <li>Immediate dependencies</li>
         </ul>
       </div>
-      <div class="memory-tier glass-card" data-tier="2">
+      <div class="memory-tier" data-tier="2">
         <div class="tier-header">
-          <div class="tier-badge badge badge--cyan">Tier 2</div>
+          <div class="tier-badge badge badge--amber">Tier 2</div>
           <h3>Episodic Memory</h3>
         </div>
         <p class="tier-desc">Recent session history</p>
@@ -181,12 +176,12 @@
           <span class="tier-limit-text">≤ 5,000 tokens</span>
         </div>
         <ul class="tier-features">
-          <li>Recent decisions & context</li>
+          <li>Recent decisions &amp; context</li>
           <li>Session summaries</li>
           <li>Change deltas</li>
         </ul>
       </div>
-      <div class="memory-tier glass-card" data-tier="3">
+      <div class="memory-tier" data-tier="3">
         <div class="tier-header">
           <div class="tier-badge badge badge--green">Tier 3</div>
           <h3>Semantic Memory</h3>
@@ -243,62 +238,62 @@
     <p class="section-subtitle reveal">12 edge types capture every code relationship</p>
 
     <div class="edge-grid reveal">
-      <div class="edge-card glass-card">
+      <div class="edge-card">
         <div class="edge-icon">→</div>
         <h4>calls</h4>
         <p>Function invocations</p>
       </div>
-      <div class="edge-card glass-card">
+      <div class="edge-card">
         <div class="edge-icon">📥</div>
         <h4>imports</h4>
         <p>Module dependencies</p>
       </div>
-      <div class="edge-card glass-card">
+      <div class="edge-card">
         <div class="edge-icon">📤</div>
         <h4>exports</h4>
         <p>Public API surface</p>
       </div>
-      <div class="edge-card glass-card">
+      <div class="edge-card">
         <div class="edge-icon">🧬</div>
         <h4>inherits</h4>
         <p>Class inheritance</p>
       </div>
-      <div class="edge-card glass-card">
+      <div class="edge-card">
         <div class="edge-icon">📋</div>
         <h4>implements</h4>
         <p>Interface contracts</p>
       </div>
-      <div class="edge-card glass-card">
+      <div class="edge-card">
         <div class="edge-icon">🔗</div>
         <h4>uses</h4>
         <p>Variable references</p>
       </div>
-      <div class="edge-card glass-card">
+      <div class="edge-card">
         <div class="edge-icon">🎀</div>
         <h4>decorates</h4>
         <p>Decorators/annotations</p>
       </div>
-      <div class="edge-card glass-card">
+      <div class="edge-card">
         <div class="edge-icon">↻</div>
         <h4>overrides</h4>
         <p>Method overriding</p>
       </div>
-      <div class="edge-card glass-card">
+      <div class="edge-card">
         <div class="edge-icon">📦</div>
         <h4>contains</h4>
         <p>Nested symbols</p>
       </div>
-      <div class="edge-card glass-card">
+      <div class="edge-card">
         <div class="edge-icon">🧪</div>
         <h4>tests</h4>
         <p>Test → implementation</p>
       </div>
-      <div class="edge-card glass-card">
+      <div class="edge-card">
         <div class="edge-icon">⚙️</div>
         <h4>depends_on</h4>
         <p>External packages</p>
       </div>
-      <div class="edge-card glass-card">
+      <div class="edge-card">
         <div class="edge-icon">🛣️</div>
         <h4>routes_to</h4>
         <p>Route → handler</p>
@@ -313,7 +308,7 @@
     <h2 class="section-title reveal">PageRank-Powered Importance</h2>
     <p class="section-subtitle reveal">Not all code is equally important. AI Mind Map knows which symbols matter most.</p>
 
-    <div class="glass-card pagerank-demo reveal">
+    <div class="pagerank-demo reveal">
       <div class="pagerank-visual">
         <div class="pr-node pr-node--large" data-rank="high">
           <span class="pr-label">authenticate()</span>
@@ -340,8 +335,8 @@
         <h3>Why PageRank?</h3>
         <p>Just like Google ranks web pages by incoming links, AI Mind Map ranks code symbols by how many other symbols reference them.</p>
         <ul>
-          <li><strong style="color:var(--green)">High rank</strong> — Called by many functions, critical to architecture</li>
-          <li><strong style="color:var(--cyan)">Medium rank</strong> — Moderate usage, utility functions</li>
+          <li><strong style="color:var(--code-green)">High rank</strong> — Called by many functions, critical to architecture</li>
+          <li><strong style="color:var(--amber)">Medium rank</strong> — Moderate usage, utility functions</li>
           <li><strong style="color:var(--text-muted)">Low rank</strong> — Leaf nodes, called by few or none</li>
         </ul>
         <p class="mt-2" style="color:var(--text-secondary)">Edge weights affect ranking: <code>calls</code> (1.0), <code>inherits</code> (0.8), <code>imports</code> (0.5), <code>uses</code> (0.3)</p>

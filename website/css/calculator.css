@@ -1,6 +1,23 @@
 /* ═══════════════════════════════════════════════════════════════
    AI Mind Map — Calculator Page Styles
+   Oatmeal & Ink light theme
    ═══════════════════════════════════════════════════════════════ */
+
+/* ── Hero ─────────────────────────────────────────────────── */
+.hero {
+  padding: 6rem 0 2rem;
+  text-align: center;
+}
+.hero__title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+.hero__subtitle {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+}
 
 /* ── Calculator Grid ──────────────────────────────────────── */
 .calculator-grid {
@@ -13,11 +30,21 @@
   .calculator-grid { grid-template-columns: 1fr; }
 }
 
+/* ── Card (shared for inputs + results) ───────────────────── */
+.card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
 /* ── Inputs Card ──────────────────────────────────────────── */
 .calc-inputs__title,
 .calc-results__title {
   font-size: 1.3rem;
   font-weight: 700;
+  color: var(--text-primary);
   margin-bottom: 1.8rem;
 }
 
@@ -36,16 +63,28 @@
   color: var(--text-secondary);
 }
 
-/* Custom range slider */
+/* Slider value badge */
+.slider-value {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+/* ── Custom Range Slider ──────────────────────────────────── */
 .slider {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 6px;
   border-radius: 3px;
-  background: linear-gradient(90deg, var(--purple-dim), var(--cyan-dim));
+  background: var(--bg-secondary);
   outline: none;
-  transition: background var(--transition);
+  transition: background 0.25s ease;
 }
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -53,23 +92,23 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--purple);
-  border: 3px solid var(--bg-deep);
-  box-shadow: 0 0 12px var(--purple-glow);
+  background: var(--accent-primary);
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 2px 8px rgba(232, 97, 26, 0.25);
   cursor: pointer;
-  transition: transform var(--transition), box-shadow var(--transition);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 20px var(--purple-glow);
+  transform: scale(1.15);
+  box-shadow: 0 3px 14px rgba(232, 97, 26, 0.35);
 }
 .slider::-moz-range-thumb {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--purple);
-  border: 3px solid var(--bg-deep);
-  box-shadow: 0 0 12px var(--purple-glow);
+  background: var(--accent-primary);
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 2px 8px rgba(232, 97, 26, 0.25);
   cursor: pointer;
 }
 
@@ -81,25 +120,26 @@
   margin-top: 4px;
 }
 
-/* Model select */
+/* ── Model Select ─────────────────────────────────────────── */
 .model-select {
   width: 100%;
   padding: 12px 16px;
-  background: rgba(10, 11, 20, 0.8);
-  border: 1px solid var(--border);
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Geist', sans-serif;
   font-size: 0.9rem;
   outline: none;
-  transition: border-color var(--transition);
+  transition: border-color 0.25s ease;
   cursor: pointer;
 }
 .model-select:focus {
-  border-color: var(--purple);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 .model-select option {
-  background: var(--bg-card);
+  background: #FFFFFF;
   color: var(--text-primary);
 }
 
@@ -119,25 +159,47 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   font-size: 0.9rem;
 }
-.result-row--bad   { background: var(--pink-dim); }
-.result-row--good  { background: var(--green-dim); }
+.result-row--bad {
+  background: rgba(196, 77, 15, 0.06);
+}
+.result-row--good {
+  background: rgba(26, 127, 55, 0.06);
+}
 .result-row--saved {
-  background: linear-gradient(135deg, var(--purple-dim), var(--cyan-dim));
+  background: var(--accent-subtle);
   font-weight: 600;
 }
-.result-label { color: var(--text-secondary); }
-.result-value { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
-.result-row--bad .result-value   { color: var(--pink); }
-.result-row--good .result-value  { color: var(--green); }
-.result-row--saved .result-value { color: var(--cyan); }
+.result-label {
+  color: var(--text-secondary);
+}
+.result-value {
+  font-family: 'Geist Mono', monospace;
+  font-weight: 600;
+}
+.result-row--bad .result-value {
+  color: var(--accent-hover);
+}
+.result-row--good .result-value {
+  color: var(--code-green);
+}
+.result-row--saved .result-value {
+  color: var(--accent-primary);
+}
+
+/* ── Divider ──────────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+}
 
 /* ── Cost Grid ────────────────────────────────────────────── */
 .cost-title {
   font-size: 1.1rem;
   font-weight: 600;
+  color: var(--text-primary);
   margin-bottom: 1rem;
 }
 .cost-grid {
@@ -148,13 +210,13 @@
 .cost-item {
   text-align: center;
   padding: 12px;
-  border-radius: var(--radius-sm);
-  background: rgba(10, 11, 20, 0.5);
-  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
 }
 .cost-item--highlight {
-  border-color: var(--green);
-  background: var(--green-dim);
+  border-color: var(--code-green);
+  background: rgba(26, 127, 55, 0.06);
   grid-column: span 2;
 }
 @media (max-width: 480px) {
@@ -168,14 +230,14 @@
 }
 .cost-value {
   display: block;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   font-size: 1.1rem;
   font-weight: 700;
 }
-.cost-value--bad   { color: var(--pink); }
+.cost-value--bad   { color: var(--accent-hover); }
 .cost-value--good  { color: var(--text-secondary); }
-.cost-value--green { color: var(--green); }
-.cost-value--hero  { color: var(--green); font-size: 1.6rem; }
+.cost-value--green { color: var(--code-green); }
+.cost-value--hero  { color: var(--accent-primary); font-size: 1.6rem; }
 
 /* ── Pie Chart ────────────────────────────────────────────── */
 .pie-container {
@@ -198,14 +260,68 @@
   font-weight: 900;
   line-height: 1;
   margin-bottom: 0.5rem;
+  color: var(--accent-primary);
 }
 .stat-card__label {
   font-size: 0.95rem;
   font-weight: 600;
+  color: var(--text-primary);
   margin-bottom: 0.3rem;
 }
 .stat-card__detail {
   font-size: 0.82rem;
   color: var(--text-muted);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Geist Mono', monospace;
+}
+
+/* ── Token Comparison Bars ────────────────────────────────── */
+.token-bar-group {
+  margin: 1rem 0;
+}
+.token-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.token-bar__label {
+  flex: 0 0 100px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  text-align: right;
+}
+.token-bar__track {
+  flex: 1;
+  height: 14px;
+  background: var(--bg-secondary);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.token-bar__fill--before {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: 7px;
+  transition: width 0.6s ease;
+}
+.token-bar__fill--after {
+  height: 100%;
+  background: #00b894;
+  border-radius: 7px;
+  transition: width 0.6s ease;
+}
+
+/* ── Code Block (formula section) ─────────────────────────── */
+.code-block {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.2rem 1.5rem;
+  overflow-x: auto;
+}
+.code-block pre {
+  margin: 0;
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  line-height: 1.6;
 }
