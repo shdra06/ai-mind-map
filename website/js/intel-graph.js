@@ -273,6 +273,52 @@
 
   /* ──────────────────── main init ──────────────────── */
 
+  const MAX_NODES = 150;  // cap for readability
+
+  /**
+   * Intelligently select the most important nodes when there are too many.
+   * Priority: routes > classes > high-connection functions > middleware > rest
+   */
+  function selectImportantNodes(nodes, edges, maxCount) {
+    if (nodes.length <= maxCount) return { nodes, edges };
+
+    // Count connections per node
+    const connCount = {};
+    edges.forEach(e => {
+      const s = typeof e.source === 'string' ? e.source : e.source.id;
+      const t = typeof e.target === 'string' ? e.target : e.target.id;
+      connCount[s] = (connCount[s] || 0) + 1;
+      connCount[t] = (connCount[t] || 0) + 1;
+    });
+
+    // Score each node by importance
+    const scored = nodes.map(n => {
+      let score = connCount[n.id] || 0;
+      // Boost by type
+      if (n.type === 'route')      score += 100;
+      if (n.type === 'class')      score += 50;
+      if (n.type === 'middleware')  score += 40;
+      if (n.type === 'api-call')   score += 30;
+      if (n.type === 'db-query')   score += 30;
+      if (n.risk === 2)            score += 20;
+      return { ...n, _score: score };
+    });
+
+    // Sort by score descending, keep top N
+    scored.sort((a, b) => b._score - a._score);
+    const kept = scored.slice(0, maxCount);
+    const keptIds = new Set(kept.map(n => n.id));
+
+    // Filter edges to only include those connecting kept nodes
+    const filteredEdges = edges.filter(e => {
+      const s = typeof e.source === 'string' ? e.source : e.source.id;
+      const t = typeof e.target === 'string' ? e.target : e.target.id;
+      return keptIds.has(s) && keptIds.has(t);
+    });
+
+    return { nodes: kept, edges: filteredEdges };
+  }
+
   function init(containerEl, data) {
     if (_svg) destroy(); // cleanup previous
     _destroyed = false;
@@ -280,9 +326,13 @@
     injectStyles();
     _container = containerEl;
 
-    // deep-clone so we don't mutate caller's data
-    _nodes  = (data.nodes  || []).map(n => Object.assign({}, n));
-    _edges  = (data.edges  || []).map(e => Object.assign({}, e));
+    // Select most important nodes if too many
+    const allNodes = (data.nodes || []).map(n => Object.assign({}, n));
+    const allEdges = (data.edges || []).map(e => Object.assign({}, e));
+    const selected = selectImportantNodes(allNodes, allEdges, MAX_NODES);
+
+    _nodes  = selected.nodes;
+    _edges  = selected.edges;
     _routes = data.routes  || [];
     _files  = data.files   || [];
 
@@ -309,7 +359,7 @@
 
     // zoom
     _zoom = d3.zoom()
-      .scaleExtent([0.15, 5])
+      .scaleExtent([0.1, 6])
       .on('zoom', (ev) => _g.attr('transform', ev.transform));
     _svg.call(_zoom);
 
@@ -331,6 +381,7 @@
         })
         .attr('stroke', d => (EDGE_STYLES[d.type] || EDGE_STYLES.calls).stroke)
         .attr('stroke-width', d => (EDGE_STYLES[d.type] || EDGE_STYLES.calls).width)
+        .attr('stroke-opacity', 0.35)
         .attr('stroke-dasharray', d => (EDGE_STYLES[d.type] || EDGE_STYLES.calls).dash)
         .attr('marker-end', d => {
           const s = EDGE_STYLES[d.type] || EDGE_STYLES.calls;
@@ -360,15 +411,20 @@
       .attr('stroke-width', d => d.type === 'route' ? 2.5 : 1.5)
       .attr('opacity', 0.92);
 
-    // labels
+    // labels — bigger, bolder for routes/classes
     _labelEls = _nodeEls.append('text')
       .attr('class', 'ig-label')
       .attr('text-anchor', 'middle')
-      .attr('dy', d => (RADII[d.type] || 8) + 12)
-      .attr('font-size', '9px')
+      .attr('dy', d => (RADII[d.type] || 8) + 14)
+      .attr('font-size', d => {
+        if (d.type === 'route') return '11px';
+        if (d.type === 'class') return '10.5px';
+        return '9.5px';
+      })
+      .attr('font-weight', d => (d.type === 'route' || d.type === 'class') ? '600' : '400')
       .attr('fill', 'var(--text-primary, #2C2520)')
-      .attr('font-family', 'var(--font-mono, monospace)')
-      .text(d => truncateLabel(d.label, 18));
+      .attr('font-family', "'Geist Mono', monospace")
+      .text(d => truncateLabel(d.label, 22));
 
     // events
     _nodeEls
@@ -390,14 +446,28 @@
         traceRoute(d.id);
       });
 
-    // ── simulation ──
+    // ── simulation — tuned for readability ──
+    const nodeCount = _nodes.length;
+    const chargeStrength = nodeCount > 100 ? -800 : nodeCount > 50 ? -600 : -400;
+    const linkDist = nodeCount > 100 ? 160 : nodeCount > 50 ? 130 : 100;
+
     _simulation = d3.forceSimulation(_nodes)
-      .force('link', d3.forceLink(_edges).id(d => d.id).distance(90).strength(0.6))
-      .force('charge', d3.forceManyBody().strength(-260))
+      .force('link', d3.forceLink(_edges).id(d => d.id).distance(linkDist).strength(0.3))
+      .force('charge', d3.forceManyBody().strength(chargeStrength).distanceMax(600))
       .force('center', d3.forceCenter(_width / 2, _height / 2))
-      .force('collide', d3.forceCollide().radius(d => (RADII[d.type] || 8) + 14).strength(0.7))
-      .alphaDecay(0.025)
+      .force('collide', d3.forceCollide().radius(d => (RADII[d.type] || 8) + 20).strength(0.8))
+      .force('x', d3.forceX(_width / 2).strength(0.03))
+      .force('y', d3.forceY(_height / 2).strength(0.03))
+      .alphaDecay(0.02)
       .on('tick', ticked);
+
+    // After simulation settles, auto-zoom to fit all nodes
+    _simulation.on('end', () => {
+      autoZoomToFit();
+    });
+
+    // Also auto-fit after a short delay in case simulation is still running
+    setTimeout(autoZoomToFit, 3000);
 
     // resize observer
     _resizeObserver = new ResizeObserver(entries => {
@@ -410,6 +480,27 @@
       _simulation.alpha(0.15).restart();
     });
     _resizeObserver.observe(_container);
+  }
+
+  /** Auto-zoom so all nodes are visible with padding */
+  function autoZoomToFit() {
+    if (_destroyed || !_nodes.length) return;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    _nodes.forEach(n => {
+      if (n.x != null) { minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x); }
+      if (n.y != null) { minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y); }
+    });
+    const pad = 60;
+    const gw = (maxX - minX) + pad * 2;
+    const gh = (maxY - minY) + pad * 2;
+    if (gw <= 0 || gh <= 0) return;
+    const scale = Math.min(_width / gw, _height / gh, 1.5) * 0.9;
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const tx = _width / 2 - cx * scale;
+    const ty = _height / 2 - cy * scale;
+    _svg.transition().duration(800)
+      .call(_zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
   }
 
   /* ──────────────────── tick ──────────────────── */

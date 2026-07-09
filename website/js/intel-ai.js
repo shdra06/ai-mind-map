@@ -13,7 +13,8 @@
   const GEMINI_MODEL = 'gemini-2.0-flash-lite';
   const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-  let apiKey = null;
+  const DEMO_API_KEY = 'AIzaSyDQ-AQ_Ab8RN6K2j8v5WRqzbXKjv9rST7M4ekPujvLyqMtr3UphfUkFlQ';
+  let apiKey = DEMO_API_KEY;
   let codebaseContext = null;
   let conversationHistory = [];
 
@@ -183,72 +184,20 @@ ${codebaseContext}`;
     const wrapper = document.createElement('div');
     wrapper.className = 'ai-key-setup';
     wrapper.innerHTML = `
-      <div class="ai-key-banner">
-        <div class="ai-key-icon">✨</div>
+      <div class="ai-key-banner ai-key-connected">
+        <div class="ai-key-icon">🧠</div>
         <div class="ai-key-text">
-          <strong>Enable AI-Powered Chat</strong>
-          <span>Free Gemini API key — no credit card needed</span>
+          <strong>AI Chat Active</strong>
+          <span>Gemini Flash • Ask anything about this codebase</span>
         </div>
       </div>
-      <div class="ai-key-row">
-        <input type="password" class="ai-key-input" placeholder="Paste your Gemini API key..." autocomplete="off">
-        <button class="ai-key-btn">Connect</button>
-      </div>
-      <a href="https://aistudio.google.com/apikey" target="_blank" class="ai-key-link">🔑 Get free API key →</a>
     `;
-    
-    const input = wrapper.querySelector('.ai-key-input');
-    const btn = wrapper.querySelector('.ai-key-btn');
-    
-    const handleConnect = async () => {
-      const key = input.value.trim();
-      if (!key) return;
-      
-      btn.textContent = 'Verifying...';
-      btn.disabled = true;
-      
-      try {
-        // Test the key with a simple request
-        apiKey = key;
-        await chat('Say "Connected!" in one word');
-        
-        // Save key to localStorage
-        try { localStorage.setItem('gemini-api-key', key); } catch (e) {}
-        
-        wrapper.innerHTML = `
-          <div class="ai-key-banner ai-key-connected">
-            <div class="ai-key-icon">🧠</div>
-            <div class="ai-key-text">
-              <strong>AI Chat Active</strong>
-              <span>Gemini Flash • Free tier • Ask anything about this codebase</span>
-            </div>
-          </div>
-        `;
-        
-        conversationHistory = []; // Reset after test
-        if (onKeySet) onKeySet();
-      } catch (err) {
-        btn.textContent = 'Connect';
-        btn.disabled = false;
-        input.style.borderColor = '#d63031';
-        input.placeholder = err.message;
-        apiKey = null;
-      }
-    };
-    
-    btn.addEventListener('click', handleConnect);
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') handleConnect(); });
-    
-    // Auto-load saved key
-    try {
-      const saved = localStorage.getItem('gemini-api-key');
-      if (saved) {
-        input.value = saved;
-        setTimeout(handleConnect, 100);
-      }
-    } catch (e) {}
-    
     container.prepend(wrapper);
+    
+    // Auto-connect with demo key
+    apiKey = DEMO_API_KEY;
+    conversationHistory = [];
+    if (onKeySet) setTimeout(onKeySet, 200);
   }
 
   // Inject CSS
