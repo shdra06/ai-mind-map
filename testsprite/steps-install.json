@@ -1,8 +1,8 @@
-{
-  "planSteps": [
-    {"type":"action","description":"Navigate to the Install page at /install.html"},
-    {"type":"assertion","description":"Verify the page heading mentions 'Install' and agent selection buttons including Claude and Cursor are visible"},
-    {"type":"action","description":"Click the Cursor agent button"},
-    {"type":"assertion","description":"Verify the install command code block updates to show Cursor-specific configuration mentioning 'cursor' or a Cursor MCP config snippet"}
-  ]
-}
+[
+  { "type": "action",    "description": "Navigate to the install page at the target URL followed by /install.html" },
+  { "type": "assertion", "description": "Verify the install page heading reads 'Install in 60 Seconds' and 8 agent selection cards are visible including Claude Code, Cursor, VS Code Copilot, Windsurf, Antigravity, Zed, Continue.dev, and Codex" },
+  { "type": "action",    "description": "Click the 'Cursor' agent card" },
+  { "type": "assertion", "description": "Verify the install command text updates to include '--cursor' flag, showing 'npx ai-mind-map install --cursor' in the command box" },
+  { "type": "action",    "description": "Click the 'Antigravity' agent card" },
+  { "type": "assertion", "description": "Verify the install command text updates to show 'npx ai-mind-map install --gemini' reflecting the Antigravity agent selection" }
+]
