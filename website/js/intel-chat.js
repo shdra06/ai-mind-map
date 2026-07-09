@@ -72,6 +72,14 @@ window.IntelChat = (function () {
     _renderShell();
     _bindEvents();
     _welcome();
+
+    // Initialize AI integration if available
+    if (window.IntelAI) {
+      window.IntelAI.setContext(data);
+      window.IntelAI.renderKeyInput(panel, () => {
+        _addMessage('bot', '🧠 **AI Chat activated!** I now use Gemini Flash to understand your codebase deeply. Ask me anything — I\'ll give intelligent, contextual answers about architecture, routes, and code quality.', { html: true });
+      });
+    }
   }
 
   function handleQuery(text) {
@@ -134,8 +142,64 @@ window.IntelChat = (function () {
       return _cmdFind(q, lower);
     }
 
-    // ── fallback ──
-    _suggestQueries(q);
+    // ── AI-powered fallback OR static suggestions ──
+    if (window.IntelAI && window.IntelAI.isReady) {
+      _aiQuery(q);
+    } else {
+      _suggestQueries(q);
+    }
+  }
+
+  /**
+   * Send query to Gemini AI with codebase context
+   */
+  async function _aiQuery(question) {
+    const thinkingId = 'ai-thinking-' + Date.now();
+    _addMessage('bot', '<span class="ai-badge">✨ AI</span> Thinking...', { html: true, id: thinkingId });
+    
+    try {
+      const response = await window.IntelAI.chat(question);
+      
+      // Remove thinking message
+      const thinkingEl = document.getElementById(thinkingId);
+      if (thinkingEl) thinkingEl.remove();
+      
+      // Format the response (convert markdown-lite)
+      const formatted = response
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/^- (.+)$/gm, '• $1')
+        .replace(/^### (.+)$/gm, '<strong>$1</strong>')
+        .replace(/^## (.+)$/gm, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+      
+      _addMessage('bot', `<span class="ai-badge">✨ AI</span> ${formatted}`, { html: true });
+      
+      // Try to highlight mentioned nodes on the graph
+      _highlightMentionedNodes(response);
+      
+    } catch (err) {
+      const thinkingEl = document.getElementById(thinkingId);
+      if (thinkingEl) thinkingEl.remove();
+      _addMessage('bot', `⚠️ AI error: ${err.message}. Falling back to local analysis.`);
+      _suggestQueries(question);
+    }
+  }
+
+  /**
+   * Find node names mentioned in the AI response and highlight them
+   */
+  function _highlightMentionedNodes(text) {
+    if (!graph || !graph.highlightPath) return;
+    const mentioned = [];
+    (data.nodes || []).forEach(n => {
+      if (n.label && n.label.length > 2 && text.includes(n.label)) {
+        mentioned.push(n.id);
+      }
+    });
+    if (mentioned.length > 0 && mentioned.length < 20) {
+      graph.highlightPath(mentioned);
+    }
   }
 
   function addMessage(role, content, options) {
@@ -224,6 +288,9 @@ window.IntelChat = (function () {
   function _addMessage(role, content, options) {
     options = options || {};
     const msg = _el('div', `chat-msg chat-msg--${role}`);
+    
+    // Allow setting an id for later removal (e.g. thinking indicator)
+    if (options.id) msg.id = options.id;
 
     // ── avatar ──
     const avi = _el('div', 'chat-msg__avatar');
@@ -233,10 +300,14 @@ window.IntelChat = (function () {
     // ── body ──
     const body = _el('div', 'chat-msg__body');
 
-    // text content — supports markdown-lite
+    // text content — supports markdown-lite or raw html
     if (content) {
       const textBlock = _el('div', 'chat-msg__text');
-      textBlock.innerHTML = _renderMarkdownLite(content);
+      if (options.html) {
+        textBlock.innerHTML = content;
+      } else {
+        textBlock.innerHTML = _renderMarkdownLite(content);
+      }
       body.appendChild(textBlock);
     }
 
