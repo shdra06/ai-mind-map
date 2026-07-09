@@ -21,7 +21,8 @@
   const state = {
     owner: '', repo: '', branch: 'main',
     files: [], nodes: [], edges: [], nodeMap: new Map(),
-    issues: [], scores: {}, grade: '?'
+    issues: [], scores: {}, grade: '?',
+    advanced: null // Advanced analysis results
   };
 
   /* ───────────────────────── DOM ───────────────────────── */
@@ -450,15 +451,25 @@
     gradeEl.textContent = state.grade;
     gradeEl.className = 'xray-grade-letter grade-' + state.grade.replace(/[+-]/g, '').toLowerCase();
 
-    // Scores
+    // Scores — Advanced 12-category breakdown
     const scoresEl = $('xray-scores');
-    scoresEl.innerHTML = [
+    const scoreItems = state.advanced ? [
+      { label: 'Cyclomatic', val: state.scores.cyclomaticComplexity, icon: '🔀', tip: 'McCabe complexity per function' },
+      { label: 'Cognitive', val: state.scores.cognitiveComplexity, icon: '🧠', tip: 'SonarSource readability metric' },
+      { label: 'Maintain.', val: state.scores.maintainability, icon: '🔧', tip: 'Function size, params, nesting' },
+      { label: 'Security', val: state.scores.security, icon: '🔒', tip: 'OWASP pattern detection' },
+      { label: 'Modularity', val: state.scores.modularity, icon: '📦', tip: 'File size & function count' },
+      { label: 'Coupling', val: state.scores.coupling, icon: '🔗', tip: 'Fan-in/fan-out balance' },
+      { label: 'SOLID', val: state.scores.solidCompliance, icon: '⚡', tip: 'SRP & ISP compliance' },
+      { label: 'Docs', val: state.scores.documentation, icon: '📝', tip: 'JSDoc coverage & README' },
+    ] : [
       { label: 'Architecture', val: state.scores.architecture, icon: '🏗️' },
       { label: 'Complexity', val: state.scores.complexity, icon: '🧩' },
       { label: 'Coupling', val: state.scores.coupling, icon: '🔗' },
       { label: 'Modularity', val: state.scores.modularity, icon: '📦' },
-    ].map(s => `
-      <div class="score-row">
+    ];
+    scoresEl.innerHTML = scoreItems.map(s => `
+      <div class="score-row" ${s.tip ? `title="${s.tip}"` : ''}>
         <span class="score-icon">${s.icon}</span>
         <span class="score-label">${s.label}</span>
         <div class="score-bar-track"><div class="score-bar-fill" style="width:${s.val}%;background:${scoreColor(s.val)}"></div></div>
@@ -638,8 +649,16 @@
       progress(75, 'Building knowledge graph...');
       buildGraph();
 
-      progress(85, 'Running architectural analysis...');
+      progress(80, 'Running architectural analysis...');
       runAnalysis();
+
+      progress(85, 'Running advanced metrics (ISO 25010, McCabe, Halstead)...');
+      if (window.AdvancedXRay) {
+        state.advanced = window.AdvancedXRay.runAdvancedAnalysis(state.files, state.nodes, state.edges);
+        // Override scores with advanced scores
+        state.scores = state.advanced.scores;
+        state.grade = state.advanced.scores.grade;
+      }
 
       progress(92, 'Rendering health report...');
       renderResults();
@@ -647,7 +666,7 @@
       progress(97, 'Building deep analysis...');
       renderDeepAnalysis();
 
-      progress(100, `✅ X-Ray complete — ${state.files.length} files, ${state.issues.length} issues found, Grade: ${state.grade}`);
+      progress(100, `✅ X-Ray complete — ${state.files.length} files, ${state.issues.length + (state.advanced ? state.advanced.security.length : 0)} findings, Grade: ${state.grade}`);
 
     } catch (err) {
       progress(0, '❌ ' + err.message);
@@ -676,6 +695,15 @@
     renderDependencies();
     renderFileSizes();
     renderRefactorings();
+    
+    // Advanced analysis renderers
+    if (state.advanced) {
+      renderComplexityDist();
+      renderSecurityFindings();
+      renderDocHealth();
+      renderTechDebt();
+      renderStandards();
+    }
   }
 
   /* --- Language Distribution --- */
@@ -896,6 +924,163 @@
           ${r.file ? `<div class="refactor-file">📄 ${r.file.split('/').pop()}</div>` : ''}
         </div>
         <span class="refactor-priority priority-${r.priority}">${r.priority}</span>
+      </div>
+    `).join('');
+  }
+
+  /* === ADVANCED RENDERING === */
+
+  /* --- Complexity Distribution (McCabe + Cognitive) --- */
+  function renderComplexityDist() {
+    const el = $('xray-complexity');
+    if (!el || !state.advanced) return;
+    
+    const fm = state.advanced.functionMetrics;
+    const ccBuckets = [
+      { label: '1–10 (Simple)', min: 1, max: 10, count: 0, color: '#00b894' },
+      { label: '11–20 (Moderate)', min: 11, max: 20, count: 0, color: '#fdcb6e' },
+      { label: '21–50 (High)', min: 21, max: 50, count: 0, color: '#e17055' },
+      { label: '50+ (Critical)', min: 51, max: Infinity, count: 0, color: '#d63031' }
+    ];
+    fm.forEach(f => { for (const b of ccBuckets) { if (f.cyclomaticComplexity >= b.min && f.cyclomaticComplexity <= b.max) { b.count++; break; } } });
+    const maxB = Math.max(...ccBuckets.map(b => b.count), 1);
+    
+    const s = state.advanced.summary;
+    el.innerHTML = `
+      <div class="metric-summary">
+        <div class="metric-stat"><span class="metric-val">${s.avgCyclomaticComplexity}</span><span class="metric-lbl">Avg McCabe CC</span></div>
+        <div class="metric-stat"><span class="metric-val">${s.avgCognitiveComplexity}</span><span class="metric-lbl">Avg Cognitive</span></div>
+        <div class="metric-stat"><span class="metric-val">${s.criticalFunctions}</span><span class="metric-lbl">Critical Fns</span></div>
+        <div class="metric-stat"><span class="metric-val">${s.avgLinesPerFunction}</span><span class="metric-lbl">Avg Lines/Fn</span></div>
+      </div>
+      <div class="metric-label">Cyclomatic Complexity Distribution</div>
+      ${ccBuckets.map(b => `<div class="size-row">
+        <span class="size-label">${b.label}</span>
+        <div class="size-bar-track"><div class="size-bar-fill" style="width:${Math.round((b.count/maxB)*100)}%;background:${b.color}"></div></div>
+        <span class="size-count">${b.count}</span>
+      </div>`).join('')}
+    `;
+  }
+
+  /* --- Security Findings (OWASP) --- */
+  function renderSecurityFindings() {
+    const el = $('xray-security');
+    if (!el || !state.advanced) return;
+    
+    const findings = state.advanced.security;
+    if (findings.length === 0) {
+      el.innerHTML = '<div class="security-clean">✅ No security issues detected. OWASP patterns clean.</div>';
+      return;
+    }
+    
+    const critCount = findings.filter(f => f.severity === 'critical').length;
+    const warnCount = findings.filter(f => f.severity === 'warning').length;
+    const infoCount = findings.filter(f => f.severity === 'info').length;
+    
+    el.innerHTML = `
+      <div class="metric-summary">
+        <div class="metric-stat"><span class="metric-val" style="color:#d63031">${critCount}</span><span class="metric-lbl">Critical</span></div>
+        <div class="metric-stat"><span class="metric-val" style="color:#e17055">${warnCount}</span><span class="metric-lbl">Warning</span></div>
+        <div class="metric-stat"><span class="metric-val" style="color:#6B6560">${infoCount}</span><span class="metric-lbl">Info</span></div>
+      </div>
+      ${findings.slice(0, 8).map(f => `
+        <div class="sec-finding sec-finding--${f.severity}">
+          <span class="sec-sev severity-${f.severity}">${f.severity}</span>
+          <div class="sec-content">
+            <span class="sec-cat">${f.category}</span>
+            <span class="sec-file">${f.file.split('/').pop()} (×${f.count})</span>
+          </div>
+        </div>
+      `).join('')}
+      <div class="sec-impact">${findings[0].impact}</div>
+    `;
+  }
+
+  /* --- Documentation Health --- */
+  function renderDocHealth() {
+    const el = $('xray-dochealth');
+    if (!el || !state.advanced) return;
+    
+    const doc = state.advanced.documentation;
+    const checks = [
+      { name: 'README.md', ok: doc.hasReadme },
+      { name: 'LICENSE', ok: doc.hasLicense },
+      { name: 'CONTRIBUTING.md', ok: doc.hasContributing },
+      { name: 'CHANGELOG.md', ok: doc.hasChangelog }
+    ];
+    
+    el.innerHTML = `
+      <div class="metric-summary">
+        <div class="metric-stat"><span class="metric-val">${doc.score}/100</span><span class="metric-lbl">Doc Score</span></div>
+        <div class="metric-stat"><span class="metric-val">${doc.docCoverage}%</span><span class="metric-lbl">JSDoc Coverage</span></div>
+        <div class="metric-stat"><span class="metric-val">${doc.avgCommentDensity}%</span><span class="metric-lbl">Comment Density</span></div>
+      </div>
+      <div class="doc-coverage-bar">
+        <div class="doc-bar-label">JSDoc Coverage: ${doc.documentedFunctions}/${doc.totalFunctions} functions</div>
+        <div class="size-bar-track"><div class="size-bar-fill" style="width:${doc.docCoverage}%;background:${doc.docCoverage > 50 ? '#00b894' : doc.docCoverage > 20 ? '#fdcb6e' : '#d63031'}"></div></div>
+      </div>
+      <div class="doc-checks">
+        ${checks.map(c => `<span class="doc-check ${c.ok ? 'doc-check--pass' : 'doc-check--fail'}">${c.ok ? '✅' : '❌'} ${c.name}</span>`).join('')}
+      </div>
+    `;
+  }
+
+  /* --- Technical Debt (Halstead + SQALE) --- */
+  function renderTechDebt() {
+    const el = $('xray-techdebt');
+    if (!el || !state.advanced) return;
+    
+    const h = state.advanced.halstead;
+    const s = state.advanced.scores;
+    const debtGrade = s.techDebtRatio <= 5 ? 'A' : s.techDebtRatio <= 10 ? 'B' : s.techDebtRatio <= 20 ? 'C' : s.techDebtRatio <= 50 ? 'D' : 'E';
+    
+    el.innerHTML = `
+      <div class="metric-summary">
+        <div class="metric-stat"><span class="metric-val">${s.techDebtRatio}%</span><span class="metric-lbl">Debt Ratio (${debtGrade})</span></div>
+        <div class="metric-stat"><span class="metric-val">${h.bugs}</span><span class="metric-lbl">Predicted Bugs</span></div>
+        <div class="metric-stat"><span class="metric-val">${h.time}m</span><span class="metric-lbl">Dev Effort (min)</span></div>
+      </div>
+      <div class="halstead-grid">
+        <div class="halstead-item"><span class="halstead-label">Volume</span><span class="halstead-val">${h.volume.toLocaleString()}</span></div>
+        <div class="halstead-item"><span class="halstead-label">Difficulty</span><span class="halstead-val">${h.difficulty.toLocaleString()}</span></div>
+        <div class="halstead-item"><span class="halstead-label">Effort</span><span class="halstead-val">${h.effort.toLocaleString()}</span></div>
+        <div class="halstead-item"><span class="halstead-label">Bugs (V/3000)</span><span class="halstead-val">${h.bugs}</span></div>
+      </div>
+      <div class="debt-scale">
+        <span class="debt-grade debt-${debtGrade.toLowerCase()}">${debtGrade}</span>
+        <span class="debt-explain">${debtGrade === 'A' ? 'Excellent — debt under 5%' : debtGrade === 'B' ? 'Good — manageable debt' : debtGrade === 'C' ? 'Moderate — needs attention' : 'High — significant refactoring needed'}</span>
+      </div>
+    `;
+  }
+
+  /* --- Standards Compliance --- */
+  function renderStandards() {
+    const el = $('xray-standards');
+    if (!el || !state.advanced) return;
+    
+    const s = state.advanced.scores;
+    const sm = state.advanced.summary;
+    
+    const standards = [
+      { name: 'ISO 25010 Maintainability', score: s.maintainability, desc: 'Modularity, analyzability, modifiability, testability', icon: '📐' },
+      { name: 'ISO 25010 Reliability', score: Math.max(0, 100 - sm.criticalFunctions * 10), desc: 'Maturity, fault tolerance based on critical function count', icon: '🛡️' },
+      { name: 'ISO 25010 Security', score: s.security, desc: 'OWASP pattern detection, hardcoded secrets, injection risks', icon: '🔒' },
+      { name: 'CISQ Maintainability', score: Math.round((s.cyclomaticComplexity + s.cognitiveComplexity + s.maintainability) / 3), desc: 'Automated source code quality per ISO/IEC 5055', icon: '⚙️' },
+      { name: 'Clean Code (R.C. Martin)', score: s.solidCompliance, desc: 'SRP + ISP compliance, function size, parameter count', icon: '✨' },
+      { name: 'McCabe Testability', score: s.cyclomaticComplexity, desc: 'Cyclomatic complexity thresholds (NIST: max 10/function)', icon: '🧪' },
+      { name: 'SonarQube SQALE', score: Math.max(0, 100 - s.techDebtRatio * 2), desc: 'Technical debt ratio method (A ≤5%, B ≤10%, C ≤20%)', icon: '📊' },
+      { name: 'DRY Compliance', score: s.duplication, desc: 'Code duplication under 3% (SonarQube gate)', icon: '🔄' }
+    ];
+    
+    el.innerHTML = standards.map(std => `
+      <div class="standard-item">
+        <div class="standard-header">
+          <span class="standard-icon">${std.icon}</span>
+          <span class="standard-name">${std.name}</span>
+          <span class="standard-score" style="color:${scoreColor(std.score)}">${std.score}/100</span>
+        </div>
+        <div class="score-bar-track"><div class="score-bar-fill" style="width:${std.score}%;background:${scoreColor(std.score)}"></div></div>
+        <div class="standard-desc">${std.desc}</div>
       </div>
     `).join('');
   }

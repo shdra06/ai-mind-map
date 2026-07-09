@@ -220,6 +220,28 @@
             <div class="deep-card-title">🛠️ Refactoring Recommendations</div>
             <div id="xray-refactors" class="refactor-list"></div>
           </div>
+          <div class="deep-grid">
+            <div class="deep-card">
+              <div class="deep-card-title">📐 Complexity Distribution <span class="deep-subtitle">McCabe + SonarSource Cognitive</span></div>
+              <div id="xray-complexity" class="complexity-dist"></div>
+            </div>
+            <div class="deep-card">
+              <div class="deep-card-title">🔒 Security Findings <span class="deep-subtitle">OWASP Top 10 Pattern Detection</span></div>
+              <div id="xray-security" class="security-findings"></div>
+            </div>
+            <div class="deep-card">
+              <div class="deep-card-title">📝 Documentation Health <span class="deep-subtitle">JSDoc Coverage + README Quality</span></div>
+              <div id="xray-dochealth" class="doc-health"></div>
+            </div>
+            <div class="deep-card">
+              <div class="deep-card-title">💰 Technical Debt <span class="deep-subtitle">Halstead Metrics + SQALE Method</span></div>
+              <div id="xray-techdebt" class="tech-debt"></div>
+            </div>
+          </div>
+          <div class="deep-card deep-card--full" id="xray-standards-card">
+            <div class="deep-card-title">📋 Standards Compliance <span class="deep-subtitle">ISO/IEC 25010 · CISQ · Clean Code</span></div>
+            <div id="xray-standards" class="standards-grid"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1269,6 +1291,7 @@
     });
   }
   </script>
+  <script src="js/xray-advanced.js"></script>
   <script src="js/xray.js"></script>
 </body>
 </html>
