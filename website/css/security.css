@@ -691,3 +691,400 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================
+   JS-GENERATED RESULTS — Stats Bar, Grade, Findings, etc.
+   The security.js creates its own DOM with these class names.
+   ============================================================ */
+
+/* --- Stats Bar (horizontal row of 5 compact cards) --- */
+.security-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.security-stats-bar .stat-card {
+  background: #fff;
+  border: 1px solid rgba(26, 22, 18, 0.1);
+  border-radius: 10px;
+  padding: 0.85rem 0.75rem;
+  text-align: center;
+}
+.security-stats-bar .stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-family: 'Geist Mono', monospace;
+  line-height: 1.2;
+}
+.security-stats-bar .stat-label {
+  font-size: 0.65rem;
+  color: var(--text-secondary, #6B6560);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 0.2rem;
+}
+.security-stats-bar .stat-sub {
+  font-size: 0.7rem;
+  color: var(--text-secondary, #6B6560);
+  margin-top: 0.15rem;
+}
+.security-stats-bar .text-danger { color: #dc2626; }
+.security-stats-bar .text-warning { color: #ea580c; }
+.security-stats-bar .text-safe { color: #16a34a; }
+.security-stats-bar .grade-a { color: #16a34a; }
+.security-stats-bar .grade-b { color: #2563eb; }
+.security-stats-bar .grade-c { color: #d97706; }
+.security-stats-bar .grade-d { color: #ea580c; }
+.security-stats-bar .grade-f { color: #dc2626; }
+
+/* --- Grade Card (compact inline layout) --- */
+.security-grade-section {
+  margin-bottom: 1.5rem;
+}
+.grade-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background: #fff;
+  border: 1px solid rgba(26, 22, 18, 0.1);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+.grade-visual {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+.grade-ring {
+  width: 80px;
+  height: 80px;
+  transform: rotate(-90deg);
+}
+.grade-ring-bg {
+  fill: none;
+  stroke: rgba(26, 22, 18, 0.08);
+  stroke-width: 8;
+}
+.grade-ring-fill {
+  fill: none;
+  stroke: #16a34a;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s ease;
+}
+.grade-card.grade-a .grade-ring-fill { stroke: #16a34a; }
+.grade-card.grade-b .grade-ring-fill { stroke: #2563eb; }
+.grade-card.grade-c .grade-ring-fill { stroke: #d97706; }
+.grade-card.grade-d .grade-ring-fill { stroke: #ea580c; }
+.grade-card.grade-f .grade-ring-fill { stroke: #dc2626; }
+.grade-letter {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 800;
+  font-family: 'Geist Mono', monospace;
+}
+.grade-card.grade-a .grade-letter { color: #16a34a; }
+.grade-card.grade-b .grade-letter { color: #2563eb; }
+.grade-card.grade-c .grade-letter { color: #d97706; }
+.grade-card.grade-d .grade-letter { color: #ea580c; }
+.grade-card.grade-f .grade-letter { color: #dc2626; }
+.grade-info h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary, #2C2520);
+  margin: 0 0 0.25rem;
+}
+.grade-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.3rem;
+}
+.grade-card.grade-a .grade-label { color: #16a34a; }
+.grade-card.grade-b .grade-label { color: #2563eb; }
+.grade-card.grade-c .grade-label { color: #d97706; }
+.grade-card.grade-d .grade-label { color: #ea580c; }
+.grade-card.grade-f .grade-label { color: #dc2626; }
+.grade-description {
+  font-size: 0.82rem;
+  color: var(--text-secondary, #6B6560);
+  line-height: 1.5;
+  margin: 0;
+  max-width: 480px;
+}
+
+/* --- Section Titles --- */
+.security-section {
+  margin-bottom: 1.5rem;
+}
+.section-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary, #2C2520);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.finding-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: 'Geist Mono', monospace;
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+}
+
+/* --- Findings Group --- */
+.findings-group {
+  margin-bottom: 0.75rem;
+}
+.severity-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary, #6B6560);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* --- Severity Badges --- */
+.severity-badge {
+  display: inline-block;
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: 'Geist Mono', monospace;
+}
+.severity-badge.critical { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
+.severity-badge.high     { background: rgba(234, 88, 12, 0.1); color: #ea580c; }
+.severity-badge.medium   { background: rgba(217, 119, 6, 0.1); color: #d97706; }
+.severity-badge.low      { background: rgba(22, 163, 74, 0.1); color: #16a34a; }
+
+/* --- Finding Cards (compact) --- */
+.finding-card {
+  background: #fff;
+  border: 1px solid rgba(26, 22, 18, 0.1);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.4rem;
+  transition: border-color 0.2s;
+}
+.finding-card:hover {
+  border-color: rgba(232, 97, 26, 0.3);
+}
+.severity-border-critical { border-left: 3px solid #dc2626; }
+.severity-border-high     { border-left: 3px solid #ea580c; }
+.severity-border-medium   { border-left: 3px solid #d97706; }
+.severity-border-low      { border-left: 3px solid #16a34a; }
+.finding-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.2rem;
+}
+.finding-name {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--text-primary, #2C2520);
+}
+.finding-name.vuln-link {
+  color: var(--accent-primary, #E8611A);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.finding-name.vuln-link:hover {
+  text-decoration: underline;
+}
+.finding-description {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #6B6560);
+  line-height: 1.4;
+  margin: 0 0 0.25rem;
+}
+.finding-details {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  font-size: 0.72rem;
+  color: var(--text-secondary, #6B6560);
+  font-family: 'Geist Mono', monospace;
+}
+.finding-details svg {
+  vertical-align: -2px;
+  opacity: 0.5;
+  margin-right: 2px;
+}
+.finding-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.finding-line {
+  color: var(--accent-primary, #E8611A);
+}
+.finding-package {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.finding-ecosystem {
+  background: rgba(26, 22, 18, 0.05);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+}
+.finding-fix {
+  background: rgba(22, 163, 74, 0.08);
+  color: #16a34a;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+.finding-value {
+  margin-top: 0.3rem;
+  padding: 0.3rem 0.5rem;
+  background: rgba(26, 22, 18, 0.03);
+  border-radius: 5px;
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.finding-value code {
+  color: #dc2626;
+  word-break: break-all;
+}
+.finding-length {
+  color: var(--text-secondary, #6B6560);
+  font-size: 0.65rem;
+  white-space: nowrap;
+}
+.finding-aliases,
+.finding-published {
+  font-size: 0.68rem;
+  color: var(--text-secondary, #6B6560);
+  margin-top: 0.2rem;
+  font-family: 'Geist Mono', monospace;
+}
+
+/* --- Empty State --- */
+.security-empty-state {
+  text-align: center;
+  padding: 2rem;
+  background: #fff;
+  border: 1px solid rgba(26, 22, 18, 0.1);
+  border-radius: 10px;
+}
+.security-empty-state.success {
+  border-color: rgba(22, 163, 74, 0.2);
+  background: rgba(22, 163, 74, 0.02);
+}
+.security-empty-state .empty-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+.security-empty-state h3 {
+  font-size: 0.95rem;
+  color: var(--text-primary, #2C2520);
+  margin: 0 0 0.25rem;
+}
+.security-empty-state p {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #6B6560);
+  margin: 0;
+}
+
+/* --- Scan Metadata Footer --- */
+.security-meta {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(26, 22, 18, 0.08);
+}
+.meta-info {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #6B6560);
+}
+.meta-info a {
+  color: var(--accent-primary, #E8611A);
+  text-decoration: none;
+}
+.meta-info a:hover {
+  text-decoration: underline;
+}
+
+/* --- Button Spinner --- */
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: secSpin 0.6s linear infinite;
+  vertical-align: -2px;
+  margin-right: 4px;
+}
+@keyframes secSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Input Error State --- */
+.sec-input-row input.input-error {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+/* --- Responsive: Stats & Grade --- */
+@media (max-width: 900px) {
+  .security-stats-bar {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .grade-card {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+@media (max-width: 600px) {
+  .security-stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  .security-stats-bar .stat-value {
+    font-size: 1.3rem;
+  }
+  .grade-visual {
+    width: 64px;
+    height: 64px;
+  }
+  .grade-ring {
+    width: 64px;
+    height: 64px;
+  }
+  .grade-letter {
+    font-size: 1.4rem;
+  }
+}
