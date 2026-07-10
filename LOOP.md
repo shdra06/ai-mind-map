@@ -5,7 +5,7 @@
 **Target URL:** https://ai-mind-map-website.vercel.app  
 **Hackathon:** TestSprite Season 3  
 **Agent:** Google Antigravity  
-**Final Result:** ✅ 8/9 tests passing · 1 blocked (Homepage D3 render overhead) · **4 rounds · 6 real bugs found and fixed**
+**Final Result:** ✅ 8/9 tests passing · 1 blocked (Homepage D3 render overhead) · **5 rounds · 6 bugs found and fixed**
 
 ---
 
@@ -21,7 +21,7 @@
 | `3e46e983` | Token calculator updates dynamically with sliders | P1 | ✅ passed |
 | `7b68bb8c` | Install wizard shows correct command per agent | P1 | ✅ passed |
 | `7664bd14` | Full site navigation — all pages load and links work | P2 | ✅ passed |
-| *(pending)* | Security scanner scan button works and produces results | P0 | 🔄 running |
+| `f5d261b2` | Security scanner scan button works and produces results | P0 | ✅ passed |
 
 ---
 
@@ -139,11 +139,13 @@ D3's `forceLink` mutates edge `source`/`target` from string IDs to node object r
 
 ---
 
-## Round 5 — Security Scanner feature + deliberate bug loop
+## Round 5 — Security Scanner feature + bug loop
 
 **New feature:** Added Security Check page (`security.html`) with 116 secret-detection regex patterns and OSV.dev dependency vulnerability scanning.
 
-**Deliberate bug introduced:** Called undefined function `validateInput()` in scan button handler → `ReferenceError` crashes scan on click.
+### 5a — FAIL (deliberate bug)
+
+**Bug introduced:** Called undefined function `validateInput()` in scan button handler → `ReferenceError` crashes scan on click.
 
 ```diff
   scanBtn.addEventListener('click', async () => {
@@ -152,10 +154,43 @@ D3's `forceLink` mutates edge `source`/`target` from string IDs to node object r
 +   validateInput(urlInput);
 ```
 
-**TestSprite test created:** `Security scanner scan button works and produces results` (P0)  
-**Expected result:** FAIL — scan button crashes with JS error, no results appear.
+```bash
+testsprite test create --plan-from testsprite/plan-security.json --run --wait --timeout 600
+```
 
-*(Awaiting test verdict → fix → re-verify → update this section)*
+| Test | Run ID | Status | Steps |
+|------|--------|--------|-------|
+| Security Scanner | `d7ffa551` | ❌ **failed** | 29/30 passed, 1 failed |
+
+**TestSprite verdict:**
+> *"The repository scan did not start visibly — clicking the Scan button and pressing Enter did not produce persistent progress or results."*
+
+**Failure bundle:** Saved to `.testsprite/failure/` (9 files including video, snapshots, evidence)
+
+### Bug 6 — Scan button crashes with ReferenceError
+**File:** `website/js/security.js`  
+**Severity:** Critical — entire security scan feature non-functional  
+**Root cause:** `validateInput(urlInput)` called before scan logic, but `validateInput` was never defined. Throws `ReferenceError`, preventing scan from executing.  
+**Fix:** Removed the undefined function call.
+
+```diff
+  scanBtn.addEventListener('click', async () => {
+    if (state.scanning) return;
+-   // BUG: validateInput is not defined
+-   validateInput(urlInput);
+```
+
+### 5b — PASS (fix verified)
+
+```bash
+testsprite test run f5d261b2 --target-url https://ai-mind-map-website.vercel.app --wait --timeout 600
+```
+
+| Test | Run ID | Status | Steps |
+|------|--------|--------|-------|
+| Security Scanner | `b075a09f` | ✅ **passed** | 9/9 |
+
+**Full loop complete:** Write → Verify (FAIL) → Fix → Verify (PASS) ✅
 
 ---
 
@@ -171,3 +206,4 @@ D3's `forceLink` mutates edge `source`/`target` from string IDs to node object r
 | Token Calculator | `3e46e983` | [View](https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/3e46e983-64b3-49be-92a3-68cd082116bf) |
 | Install Wizard | `7b68bb8c` | [View](https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/7b68bb8c-3bcb-4370-9eb6-04c4097a7157) |
 | Site Navigation | `7664bd14` | [View](https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/7664bd14-eb87-492c-bf47-2d218d91b732) |
+| Security Scanner | `f5d261b2` | [View](https://www.testsprite.com/dashboard/tests/ba8983c8-b2a5-40ba-b17b-eba7646b8228/test/f5d261b2-2404-45dd-82ed-2eb8984d7bb4) |
