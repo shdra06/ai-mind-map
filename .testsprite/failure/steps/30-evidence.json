@@ -1,0 +1,8 @@
+[
+  {
+    "kind": "snapshot",
+    "stepIndex": 30,
+    "summary": "Step 30 'Expected the Scan button to be visible on the page.' failed. Error: TEST FAILURE\n\nThe repository scan did not start visibly — clicking the Scan button and pressing Enter did not produce persistent progress or results.\n\nObservations:\n- The GitHub URL input and the 'Scan →' button are present on the page.\n- Clicking the 'Scan →' button, pressing Enter, and retyping the URL multiple times did not display a persistent 'Scanning' indicator or a final security grade/results area.\n- The page content remained unchanged after repeated attempts and waits, so the scan outcome could not be observed.",
+    "path": "steps/30-snapshot.html"
+  }
+]

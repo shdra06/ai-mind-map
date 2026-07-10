@@ -1,0 +1,18 @@
+{
+  "testId": "f5d261b2-2404-45dd-82ed-2eb8984d7bb4",
+  "status": "failed",
+  "startedAt": "2026-07-10T06:29:20.502Z",
+  "finishedAt": "2026-07-10T06:39:09.645Z",
+  "videoUrl": "https://testsprite-videos.s3.us-east-1.amazonaws.com/14d8b4c8-3011-70b3-6365-ae8daa3819f9/178366554717831//tmp/95842f1d-960d-4dbd-aa0b-ab15ea38fb19/result.webm",
+  "failureAnalysisUrl": null,
+  "snapshotId": "snap_a708287cdb24e2dc",
+  "runIdIfAvailable": "d7ffa551-725f-47c2-9e6c-82fe9b4d2f77",
+  "codeVersion": "v1",
+  "targetUrl": "https://ai-mind-map-website.vercel.app",
+  "targetUrlSource": "run",
+  "failedStepIndex": 30,
+  "failureKind": "unknown",
+  "verdict": "failed",
+  "executionStatus": "completed",
+  "summary": "Failed: TEST FAILURE\n\nThe repository scan did not start visibly — clicking the Scan button and pressing Enter did not produce persistent progress or results.\n\nObservations:\n- The GitHub URL input and the 'Scan →' button are present on the page.\n- Clicking the 'Scan →' button, pressing Enter, and retyping the URL multiple times did not display a persistent 'Scanning' indicator or a final security grade/results area.\n- The page content remained unchanged after repeated attempts and waits, so the …"
+}
