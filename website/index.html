@@ -16,14 +16,12 @@
   <link rel="stylesheet" href="css/xray.css">
   <link rel="stylesheet" href="css/intel.css">
   <style>
-    .hero { min-height:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:7rem 2rem 3rem;position:relative;overflow:hidden; }
+    .hero { min-height:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:5.5rem 2rem 2.5rem;position:relative;overflow:hidden; }
     .hero-content { position:relative;z-index:2;max-width:860px;margin:0 auto; }
-    .hero-badge { display:inline-flex;align-items:center;gap:0.5rem;padding:0.45rem 1.1rem;background:rgba(232,97,26,0.1);border:1px solid rgba(232,97,26,0.3);border-radius:99px;font-size:0.8rem;color:#C44D0F;font-family:'Geist Mono',monospace;margin-bottom:2rem;box-shadow:0 0 12px rgba(232,97,26,0.08); }
-    .hero-badge .pulse-dot { width:7px;height:7px;background:#1A7F37;border-radius:50%;box-shadow:0 0 6px #1A7F37;animation:pulse-glow 2s ease infinite; }
-    .hero h1 { font-size:clamp(2.8rem,6vw,5rem);font-family:'Geist',sans-serif;font-weight:600;line-height:1.05;margin-bottom:1.5rem;letter-spacing:-0.03em; }
-    .hero-sub { font-size:1.1rem;color:#5C5248;max-width:640px;margin:0 auto 2.5rem;line-height:1.75; }
-    .hero-actions { display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:2.5rem; }
-    .install-box { display:inline-flex;align-items:center;gap:1rem;background:#1A1614;border:1px solid rgba(232,97,26,0.3);border-radius:10px;padding:0.85rem 1.5rem;font-family:'Geist Mono',monospace;font-size:0.95rem;color:#FFB347;margin-bottom:2rem;position:relative;overflow:hidden; }
+    .hero h1 { font-size:clamp(2.8rem,6vw,5rem);font-family:'Geist',sans-serif;font-weight:600;line-height:1.05;margin-bottom:1rem;letter-spacing:-0.03em; }
+    .hero-sub { font-size:1.05rem;color:#5C5248;max-width:600px;margin:0 auto 1.75rem;line-height:1.7; }
+    .hero-actions { display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.5rem; }
+    .install-box { display:inline-flex;align-items:center;gap:1rem;background:#1A1614;border:1px solid rgba(232,97,26,0.3);border-radius:10px;padding:0.85rem 1.5rem;font-family:'Geist Mono',monospace;font-size:0.95rem;color:#FFB347;margin-bottom:1.25rem;position:relative;overflow:hidden; }
     .install-box::before { content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#E8611A,transparent); }
     .install-box .prompt { color:#8C8278; }
     .install-copy-btn { background:rgba(232,97,26,0.12);border:1px solid rgba(232,97,26,0.28);color:#FF7A35;border-radius:6px;padding:0.3rem 0.75rem;font-size:0.78rem;cursor:pointer;font-family:'Geist',sans-serif;transition:all 0.2s; }
@@ -117,10 +115,6 @@
     <div class="orb orb-pink" style="top:40%;right:15%;"></div>
 
     <div class="hero-content">
-      <div class="hero-badge">
-        <span class="pulse-dot"></span>
-        v1.21.2 &nbsp;&middot;&nbsp; 50+ MCP Tools &nbsp;&middot;&nbsp; 4,977 Nodes Indexed
-      </div>
       <h1>Your AI Agent&apos;s<br><span class="text-gradient">Permanent Brain.</span></h1>
       <p class="hero-sub">
         Parse every function. Trace every relationship. Remember every decision.<br>
