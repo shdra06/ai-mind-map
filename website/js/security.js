@@ -1009,6 +1009,8 @@
 
   scanBtn.addEventListener('click', async () => {
     if (state.scanning) return;
+    // BUG: validateInput is not defined — this will crash the scan
+    validateInput(urlInput);
 
     const url = urlInput.value.trim();
     if (!url) {
