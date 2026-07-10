@@ -1,0 +1,693 @@
+/* ============================================================
+   SECURITY CHECK — Clean Professional Styles
+   Oatmeal & Ink Theme · AI Mind Map
+   ============================================================ */
+
+/* --- Section --- */
+.sec-section {
+  padding: 6rem 0 4rem;
+  background: var(--bg-primary, #FAF6F1);
+}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.sec-hero {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 4rem;
+  align-items: center;
+  margin-bottom: 3rem;
+}
+
+/* --- Label --- */
+.sec-label {
+  display: inline-block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--accent-primary, #E8611A);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 1rem;
+}
+
+/* --- Title --- */
+.sec-title {
+  font-size: 4rem;
+  font-weight: 800;
+  color: var(--text-primary, #2C2520);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.2rem;
+}
+
+/* --- Description --- */
+.sec-desc {
+  font-size: 1rem;
+  color: var(--text-secondary, #6B6560);
+  line-height: 1.65;
+  margin-bottom: 2rem;
+  max-width: 500px;
+}
+
+/* ============================================================
+   INPUT ROW
+   ============================================================ */
+.sec-input-row {
+  display: flex;
+  gap: 0.5rem;
+  max-width: 520px;
+  margin-bottom: 0.8rem;
+}
+
+.sec-input-row input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--border-soft, rgba(44, 37, 32, 0.12));
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-family: 'Geist Mono', 'SF Mono', monospace;
+  background: #fff;
+  color: var(--text-primary, #2C2520);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sec-input-row input::placeholder {
+  color: var(--text-muted, #9B9590);
+}
+
+.sec-input-row input:focus {
+  border-color: var(--accent-primary, #E8611A);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(232, 97, 26, 0.08);
+}
+
+.sec-input-row button {
+  background: var(--text-primary, #2C2520);
+  color: #FAF6F1;
+  border: none;
+  padding: 0.75rem 1.3rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.sec-input-row button:hover {
+  background: var(--accent-primary, #E8611A);
+  transform: translateY(-1px);
+}
+
+.sec-input-row button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* --- Meta line below input --- */
+.sec-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  color: var(--text-muted, #9B9590);
+}
+
+.sec-meta-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-muted, #9B9590);
+}
+
+/* ============================================================
+   PREVIEW CARD (right side of hero)
+   ============================================================ */
+.sec-preview {
+  background: #fff;
+  border: 1px solid var(--border-soft, rgba(26, 22, 18, 0.1));
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
+}
+
+.sec-preview-header {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--text-primary, #2C2520);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sec-check-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(26, 22, 18, 0.06);
+  font-size: 0.88rem;
+  color: var(--text-secondary, #6B6560);
+  transition: color 0.2s;
+}
+
+.sec-check-item:last-child {
+  border-bottom: none;
+}
+
+.sec-check-item:hover {
+  color: var(--text-primary, #2C2520);
+}
+
+.sec-check-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   PROGRESS BAR
+   ============================================================ */
+.sec-progress {
+  max-width: 600px;
+  margin: 0 auto 2rem;
+  text-align: center;
+  display: none;
+}
+
+.sec-progress.active {
+  display: block;
+}
+
+.sec-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(26, 22, 18, 0.08);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.sec-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #E8611A, #FF7A35);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+.sec-progress-text {
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary, #6B6560);
+  font-family: 'Geist Mono', 'SF Mono', monospace;
+}
+
+/* ============================================================
+   RESULTS CONTAINER
+   ============================================================ */
+.sec-results {
+  display: none;
+}
+
+.sec-results.active {
+  display: block;
+  animation: secFadeIn 0.5s ease;
+}
+
+@keyframes secFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   STATS BAR
+   ============================================================ */
+.sec-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.sec-stat-card {
+  background: #fff;
+  border: 1px solid var(--border-soft, rgba(26, 22, 18, 0.1));
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sec-stat-card:hover {
+  border-color: rgba(232, 97, 26, 0.2);
+  box-shadow: 0 2px 12px rgba(26, 22, 18, 0.06);
+}
+
+.sec-stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: 'Geist Mono', 'SF Mono', monospace;
+  line-height: 1;
+  color: var(--text-primary, #2C2520);
+}
+
+.sec-stat-label {
+  font-size: 0.72rem;
+  color: var(--text-secondary, #6B6560);
+  margin-top: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* --- Stat value severity colors --- */
+.sec-stat-value.critical { color: #dc2626; }
+.sec-stat-value.high     { color: #ea580c; }
+.sec-stat-value.medium   { color: #d97706; }
+.sec-stat-value.low      { color: #16a34a; }
+.sec-stat-value.safe     { color: #2563eb; }
+
+/* ============================================================
+   GRADE CIRCLE
+   ============================================================ */
+.sec-grade-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.sec-grade-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 800;
+  font-family: 'Geist Mono', 'SF Mono', monospace;
+  color: #fff;
+  transition: transform 0.3s ease;
+}
+
+.sec-grade-circle:hover {
+  transform: scale(1.05);
+}
+
+/* Grade color variants */
+.sec-grade-circle.grade-a {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  box-shadow: 0 4px 20px rgba(22, 163, 74, 0.3);
+}
+
+.sec-grade-circle.grade-b {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
+}
+
+.sec-grade-circle.grade-c {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  box-shadow: 0 4px 20px rgba(217, 119, 6, 0.3);
+}
+
+.sec-grade-circle.grade-d {
+  background: linear-gradient(135deg, #ea580c, #f97316);
+  box-shadow: 0 4px 20px rgba(234, 88, 12, 0.3);
+}
+
+.sec-grade-circle.grade-f {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3);
+}
+
+.sec-grade-label {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary, #6B6560);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ============================================================
+   FINDINGS SECTIONS
+   ============================================================ */
+.sec-findings {
+  margin-top: 2rem;
+}
+
+.sec-findings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.sec-findings-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary, #2C2520);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sec-findings-count {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: 'Geist Mono', 'SF Mono', monospace;
+}
+
+.sec-findings-count.safe {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.sec-findings-count.warning {
+  background: rgba(217, 119, 6, 0.1);
+  color: #d97706;
+}
+
+/* ============================================================
+   SECRET FINDING CARDS
+   ============================================================ */
+.sec-secret-card {
+  background: #fff;
+  border: 1px solid var(--border-soft, rgba(26, 22, 18, 0.1));
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 0.75rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sec-secret-card:hover {
+  border-color: rgba(232, 97, 26, 0.3);
+  box-shadow: 0 2px 12px rgba(26, 22, 18, 0.06);
+}
+
+/* Severity left border */
+.sec-secret-card.severity-critical { border-left: 4px solid #dc2626; }
+.sec-secret-card.severity-high    { border-left: 4px solid #ea580c; }
+.sec-secret-card.severity-medium  { border-left: 4px solid #d97706; }
+.sec-secret-card.severity-low     { border-left: 4px solid #16a34a; }
+
+.sec-secret-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.sec-secret-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary, #2C2520);
+}
+
+/* --- Severity badge --- */
+.sec-severity-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.sec-severity-badge.critical {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.sec-severity-badge.high {
+  background: rgba(234, 88, 12, 0.1);
+  color: #ea580c;
+}
+
+.sec-severity-badge.medium {
+  background: rgba(217, 119, 6, 0.1);
+  color: #d97706;
+}
+
+.sec-severity-badge.low {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.sec-severity-badge.info {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+}
+
+/* Secret metadata (file, line number) */
+.sec-secret-meta {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #6B6560);
+  font-family: 'Geist Mono', 'SF Mono', monospace;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Redacted / partially visible secret value */
+.sec-secret-value {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(26, 22, 18, 0.04);
+  border-radius: 6px;
+  font-family: 'Geist Mono', 'SF Mono', monospace;
+  font-size: 0.8rem;
+  color: #dc2626;
+  word-break: break-all;
+  border: 1px solid rgba(220, 38, 38, 0.08);
+}
+
+/* ============================================================
+   VULNERABILITY CARDS
+   ============================================================ */
+.sec-vuln-card {
+  background: #fff;
+  border: 1px solid var(--border-soft, rgba(26, 22, 18, 0.1));
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 0.75rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sec-vuln-card:hover {
+  border-color: rgba(232, 97, 26, 0.3);
+  box-shadow: 0 2px 12px rgba(26, 22, 18, 0.06);
+}
+
+/* Severity left border */
+.sec-vuln-card.severity-critical { border-left: 4px solid #dc2626; }
+.sec-vuln-card.severity-high    { border-left: 4px solid #ea580c; }
+.sec-vuln-card.severity-medium  { border-left: 4px solid #d97706; }
+.sec-vuln-card.severity-low     { border-left: 4px solid #16a34a; }
+
+.sec-vuln-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.sec-vuln-pkg {
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: 'Geist Mono', 'SF Mono', monospace;
+  color: var(--text-primary, #2C2520);
+}
+
+.sec-vuln-summary {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #6B6560);
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.sec-vuln-meta {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.sec-vuln-tag {
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-family: 'Geist Mono', 'SF Mono', monospace;
+  background: rgba(26, 22, 18, 0.05);
+  color: var(--text-secondary, #6B6560);
+}
+
+.sec-vuln-tag.fix {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.sec-vuln-tag.cve {
+  background: rgba(220, 38, 38, 0.06);
+  color: #dc2626;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+.sec-empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary, #6B6560);
+}
+
+.sec-empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+  opacity: 0.6;
+}
+
+.sec-empty-text {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   SCAN ANIMATION
+   ============================================================ */
+@keyframes secPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+.sec-scanning {
+  animation: secPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes secSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.sec-secret-card,
+.sec-vuln-card {
+  animation: secSlideUp 0.35s ease both;
+}
+
+.sec-secret-card:nth-child(1),
+.sec-vuln-card:nth-child(1) { animation-delay: 0s; }
+.sec-secret-card:nth-child(2),
+.sec-vuln-card:nth-child(2) { animation-delay: 0.05s; }
+.sec-secret-card:nth-child(3),
+.sec-vuln-card:nth-child(3) { animation-delay: 0.1s; }
+.sec-secret-card:nth-child(4),
+.sec-vuln-card:nth-child(4) { animation-delay: 0.15s; }
+.sec-secret-card:nth-child(5),
+.sec-vuln-card:nth-child(5) { animation-delay: 0.2s; }
+.sec-secret-card:nth-child(6),
+.sec-vuln-card:nth-child(6) { animation-delay: 0.25s; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .sec-hero {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .sec-preview {
+    display: none;
+  }
+
+  .sec-title {
+    font-size: 2.4rem;
+  }
+
+  .sec-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .sec-input-row {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .sec-section {
+    padding: 4rem 0 3rem;
+  }
+
+  .sec-title {
+    font-size: 2rem;
+  }
+
+  .sec-desc {
+    font-size: 0.92rem;
+  }
+
+  .sec-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sec-input-row {
+    flex-direction: column;
+  }
+
+  .sec-input-row button {
+    width: 100%;
+    text-align: center;
+  }
+
+  .sec-grade-circle {
+    width: 80px;
+    height: 80px;
+    font-size: 2rem;
+  }
+
+  .sec-stat-value {
+    font-size: 1.5rem;
+  }
+
+  .sec-secret-header,
+  .sec-vuln-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  .sec-vuln-meta {
+    gap: 0.5rem;
+  }
+
+  .sec-findings-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+/* --- Findings Grid (two-column layout) --- */
+.sec-findings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .sec-findings-grid {
+    grid-template-columns: 1fr;
+  }
+}

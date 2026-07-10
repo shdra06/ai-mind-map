@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Check — AI Mind Map | Scan Any GitHub Repo for Secrets & Vulnerabilities</title>
+  <meta name="description" content="Free browser-based security scanner. Detect leaked API keys, passwords, and vulnerable dependencies in any public GitHub repository. 200+ secret patterns. CVE scanning via OSV.dev.">
+  <meta property="og:title" content="Security Check — AI Mind Map">
+  <meta property="og:description" content="Scan any GitHub repo for leaked secrets and vulnerable dependencies. Free, instant, browser-based.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/globals.css">
+  <link rel="stylesheet" href="css/security.css">
+</head>
+<body class="neural-bg">
+  <div class="cursor-glow" id="cursorGlow"></div>
+
+  <!-- NAV -->
+  <nav class="navbar" id="navbar">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;">
+      <a href="index.html" class="nav-logo">&#x1F9E0; AI Mind Map</a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="explorer.html" class="nav-link">Explorer</a>
+        <a href="tools.html" class="nav-link">Tools</a>
+        <a href="calculator.html" class="nav-link">Calculator</a>
+        <a href="install.html" class="nav-link">Install</a>
+        <a href="architecture.html" class="nav-link">Architecture</a>
+        <a href="playground.html" class="nav-link">Playground</a>
+        <a href="security.html" class="nav-link active">Security</a>
+      </div>
+      <div class="nav-actions">
+        <a href="https://github.com/shdra06/ai-mind-map" target="_blank" class="btn btn-secondary" style="padding:0.45rem 1rem;font-size:0.85rem;">&#x2B50; GitHub</a>
+      </div>
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="mobile-nav" id="mobileNav">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="explorer.html" class="nav-link">Explorer</a>
+    <a href="tools.html" class="nav-link">Tools</a>
+    <a href="calculator.html" class="nav-link">Calculator</a>
+    <a href="install.html" class="nav-link">Install</a>
+    <a href="architecture.html" class="nav-link">Architecture</a>
+    <a href="playground.html" class="nav-link">Playground</a>
+    <a href="security.html" class="nav-link">Security</a>
+  </div>
+
+  <!-- HERO -->
+  <section class="sec-section" id="security-hero">
+    <div class="container">
+      <div class="sec-hero">
+        <!-- Left -->
+        <div class="sec-hero-left">
+          <span class="sec-label">Security Scanner</span>
+          <h1 class="sec-title">Scan any repo.<br>Find every secret.</h1>
+          <p class="sec-desc">Paste a GitHub URL. We'll scan for leaked API keys, hardcoded passwords, exposed tokens, and vulnerable dependencies — all in your browser, nothing leaves your machine.</p>
+
+          <div class="sec-input-row">
+            <input type="url" id="security-url" placeholder="https://github.com/owner/repo" aria-label="GitHub repository URL" value="https://github.com/shdra06/ai-mind-map">
+            <button id="security-scan-btn" aria-label="Start security scan">Scan →</button>
+          </div>
+
+          <div class="sec-meta">
+            <span>🔐 200+ secret patterns</span>
+            <span class="sec-meta-dot">·</span>
+            <span>📦 6 package managers</span>
+            <span class="sec-meta-dot">·</span>
+            <span>🛡️ CVE database</span>
+          </div>
+        </div>
+
+        <!-- Right: What we scan preview -->
+        <div class="sec-preview">
+          <div class="sec-preview-header">
+            <span style="font-size:1.1rem;">🛡️</span>
+            <span>What We Scan</span>
+          </div>
+          <div class="sec-check-item">
+            <span class="sec-check-icon" style="background:rgba(220,38,38,0.1);color:#dc2626;">🔑</span>
+            <div>
+              <div style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">API Keys & Tokens</div>
+              <div style="font-size:0.78rem;">AWS, Stripe, GitHub, Google, Slack, Discord</div>
+            </div>
+          </div>
+          <div class="sec-check-item">
+            <span class="sec-check-icon" style="background:rgba(234,88,12,0.1);color:#ea580c;">🔒</span>
+            <div>
+              <div style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">Private Keys & Certs</div>
+              <div style="font-size:0.78rem;">RSA, SSH, PGP, EC private keys</div>
+            </div>
+          </div>
+          <div class="sec-check-item">
+            <span class="sec-check-icon" style="background:rgba(217,119,6,0.1);color:#d97706;">🗄️</span>
+            <div>
+              <div style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">Database Credentials</div>
+              <div style="font-size:0.78rem;">PostgreSQL, MySQL, MongoDB, Redis URLs</div>
+            </div>
+          </div>
+          <div class="sec-check-item">
+            <span class="sec-check-icon" style="background:rgba(37,99,235,0.1);color:#2563eb;">📦</span>
+            <div>
+              <div style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">Vulnerable Dependencies</div>
+              <div style="font-size:0.78rem;">npm, PyPI, Go, Cargo, Maven, RubyGems</div>
+            </div>
+          </div>
+          <div class="sec-check-item" style="border-bottom:none;">
+            <span class="sec-check-icon" style="background:rgba(22,163,74,0.1);color:#16a34a;">🔍</span>
+            <div>
+              <div style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">Generic Secrets</div>
+              <div style="font-size:0.78rem;">Passwords, tokens, auth headers in code</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div id="security-progress" class="sec-progress" style="display:none">
+        <div class="sec-progress-track">
+          <div id="security-progress-bar" class="sec-progress-fill"></div>
+        </div>
+        <p id="security-progress-text" class="sec-progress-text">Preparing scan...</p>
+      </div>
+
+      <!-- Error -->
+      <div id="security-error" style="display:none;max-width:600px;margin:0 auto 2rem;padding:1rem 1.25rem;background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.2);border-radius:10px;color:#dc2626;font-size:0.88rem;text-align:center;"></div>
+
+      <!-- RESULTS -->
+      <div id="security-results" class="sec-results">
+
+        <!-- Stats Bar -->
+        <div id="sec-stats" class="sec-stats">
+          <div class="sec-stat-card">
+            <div id="security-stat-grade" class="sec-grade-wrap">
+              <div id="security-grade-circle" class="sec-grade-circle grade-a">A</div>
+            </div>
+            <div class="sec-stat-label" style="margin-top:0.6rem;">Security Grade</div>
+          </div>
+          <div class="sec-stat-card">
+            <div id="security-stat-secrets" class="sec-stat-value" style="color:#dc2626;">0</div>
+            <div class="sec-stat-label">Secrets Found</div>
+          </div>
+          <div class="sec-stat-card">
+            <div id="security-stat-vulns" class="sec-stat-value" style="color:#ea580c;">0</div>
+            <div class="sec-stat-label">Vulnerabilities</div>
+          </div>
+          <div class="sec-stat-card">
+            <div id="security-stat-deps" class="sec-stat-value" style="color:#16a34a;">0</div>
+            <div class="sec-stat-label">Dependencies</div>
+          </div>
+          <div class="sec-stat-card">
+            <div id="security-stat-files" class="sec-stat-value" style="color:#2563eb;">0</div>
+            <div class="sec-stat-label">Files Scanned</div>
+          </div>
+        </div>
+
+        <!-- Two-column findings -->
+        <div class="sec-findings-grid">
+          <!-- Secrets -->
+          <div class="sec-findings">
+            <div class="sec-findings-header">
+              <div class="sec-findings-title">🔐 Secrets & Credentials</div>
+              <span id="security-secrets-count" class="sec-findings-count">0</span>
+            </div>
+            <div id="security-secrets-list"></div>
+          </div>
+
+          <!-- Vulnerabilities -->
+          <div class="sec-findings">
+            <div class="sec-findings-header">
+              <div class="sec-findings-title">📦 Dependency Vulnerabilities</div>
+              <span id="security-vulns-count" class="sec-findings-count">0</span>
+            </div>
+            <div id="security-vulns-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="section" style="padding:3rem 0;border-top:1px solid rgba(26,22,18,0.08);">
+    <div class="container" style="text-align:center;">
+      <p style="color:var(--text-secondary);font-size:0.85rem;">&copy; 2026 shdra06 · AI Mind Map · Built with Tree-sitter, SQLite & MCP Protocol</p>
+      <p style="color:var(--text-muted,#8C8278);font-size:0.78rem;margin-top:0.5rem;">Security scanning is performed entirely in your browser. No code is sent to any server. Vulnerability data from <a href="https://osv.dev" target="_blank" style="color:var(--accent-primary);">OSV.dev</a> (Google).</p>
+    </div>
+  </footer>
+
+  <script src="js/nav.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/security.js"></script>
+</body>
+</html>
