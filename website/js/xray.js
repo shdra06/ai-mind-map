@@ -586,7 +586,10 @@
     return '#00b894';
   }
 
-  /* --- D3 Heatmap Graph --- */
+  /* --- D3 Interactive Risk Heatmap --- */
+  let _hmTooltip = null;
+  let _hmHighlightActive = false;
+
   function renderHeatmap() {
     const container = $('xray-graph');
     if (!container) return;
@@ -595,7 +598,7 @@
     const width = container.offsetWidth || 500;
     const height = container.offsetHeight || 350;
 
-    // Only show file + function nodes for readability
+    // Only show file + function + class nodes
     const visNodes = state.nodes.filter(n => n.type === 'file' || n.type === 'function' || n.type === 'class');
     const visIds = new Set(visNodes.map(n => n.id));
     const visEdges = state.edges.filter(e => {
@@ -604,6 +607,16 @@
       return visIds.has(s) && visIds.has(t);
     });
 
+    // Pre-compute connection counts for sizing
+    const connCounts = {};
+    visEdges.forEach(e => {
+      const s = typeof e.source === 'string' ? e.source : e.source.id;
+      const t = typeof e.target === 'string' ? e.target : e.target.id;
+      connCounts[s] = (connCounts[s] || 0) + 1;
+      connCounts[t] = (connCounts[t] || 0) + 1;
+    });
+    visNodes.forEach(n => { n._conns = connCounts[n.id] || 0; });
+
     if (typeof d3 === 'undefined') {
       container.innerHTML = '<p style="text-align:center;color:#6B6560;padding:2rem">D3.js not loaded</p>';
       return;
@@ -611,51 +624,255 @@
 
     const svg = d3.select(container).append('svg')
       .attr('width', '100%').attr('height', '100%')
-      .attr('viewBox', `0 0 ${width} ${height}`);
+      .attr('viewBox', `0 0 ${width} ${height}`)
+      .style('cursor', 'grab');
+
+    // Defs for arrows and glow
+    const defs = svg.append('defs');
+    defs.append('marker')
+      .attr('id', 'hm-arrow')
+      .attr('viewBox', '0 0 10 10').attr('refX', 20).attr('refY', 5)
+      .attr('markerWidth', 6).attr('markerHeight', 6).attr('orient', 'auto')
+      .append('path').attr('d', 'M0,0 L10,5 L0,10 Z').attr('fill', 'rgba(49,120,198,0.5)');
+
+    const glow = defs.append('filter').attr('id', 'hm-glow');
+    glow.append('feGaussianBlur').attr('stdDeviation', 3).attr('result', 'blur');
+    glow.append('feMerge').selectAll('feMergeNode').data(['blur', 'SourceGraphic']).enter()
+      .append('feMergeNode').attr('in', d => d);
 
     const g = svg.append('g');
-    svg.call(d3.zoom().scaleExtent([0.2, 4]).on('zoom', e => g.attr('transform', e.transform)));
+    const zoom = d3.zoom().scaleExtent([0.15, 5])
+      .on('zoom', e => g.attr('transform', e.transform))
+      .on('start', () => svg.style('cursor', 'grabbing'))
+      .on('end', () => svg.style('cursor', 'grab'));
+    svg.call(zoom);
+
+    // Build adjacency for highlight
+    const adjOut = {}, adjIn = {};
+    visEdges.forEach(e => {
+      const s = typeof e.source === 'string' ? e.source : e.source.id;
+      const t = typeof e.target === 'string' ? e.target : e.target.id;
+      (adjOut[s] = adjOut[s] || []).push(t);
+      (adjIn[t] = adjIn[t] || []).push(s);
+    });
+
+    // Edge styles
+    const edgeStroke = d => {
+      if (d.type === 'imports') return 'rgba(149,165,166,0.35)';
+      if (d.type === 'calls')   return 'rgba(49,120,198,0.35)';
+      return 'rgba(44,37,32,0.12)';
+    };
+    const edgeDash = d => {
+      if (d.type === 'imports') return '4,3';
+      if (d.type === 'defines') return '2,2';
+      return null;
+    };
 
     // Links
-    const link = g.append('g').selectAll('line').data(visEdges).enter().append('line')
-      .attr('stroke', d => d.type === 'imports' ? 'rgba(225,112,85,0.3)' : d.type === 'calls' ? 'rgba(108,92,231,0.3)' : 'rgba(44,37,32,0.08)')
-      .attr('stroke-width', 0.8);
+    const link = g.append('g').attr('class', 'hm-links')
+      .selectAll('line').data(visEdges).enter().append('line')
+      .attr('stroke', edgeStroke)
+      .attr('stroke-dasharray', edgeDash)
+      .attr('stroke-width', d => d.type === 'calls' ? 1.2 : 0.8)
+      .attr('marker-end', d => d.type === 'calls' ? 'url(#hm-arrow)' : null);
+
+    // Node radius based on connections
+    function nodeRadius(d) {
+      const base = d.type === 'file' ? 7 : d.type === 'class' ? 6 : 4;
+      return base + Math.min(d._conns * 0.8, 10);
+    }
+
+    // Shape path for each node type
+    function nodeShape(d) {
+      const r = nodeRadius(d);
+      if (d.type === 'file') {
+        // Rounded square
+        const s = r * 0.85;
+        return `M${-s},${-s} L${s},${-s} L${s},${s} L${-s},${s} Z`;
+      } else if (d.type === 'class') {
+        // Diamond
+        return `M0,${-r} L${r},0 L0,${r} L${-r},0 Z`;
+      }
+      // Circle (function) — use polygon approximation
+      const pts = [];
+      for (let i = 0; i < 16; i++) {
+        const a = (2 * Math.PI * i) / 16;
+        pts.push(`${Math.cos(a) * r},${Math.sin(a) * r}`);
+      }
+      return `M${pts.join(' L')} Z`;
+    }
 
     // Nodes
-    const node = g.append('g').selectAll('circle').data(visNodes).enter().append('circle')
-      .attr('r', d => d.type === 'file' ? 7 : d.type === 'class' ? 6 : 4)
-      .attr('fill', d => riskColor(d.risk))
-      .attr('stroke', d => d.risk >= 2 ? riskColor(d.risk) : '#fff')
-      .attr('stroke-width', d => d.risk >= 2 ? 2 : 1)
-      .attr('opacity', 0.9)
+    const nodeGroup = g.append('g').attr('class', 'hm-nodes');
+    const nodeEls = nodeGroup.selectAll('g').data(visNodes).enter().append('g')
+      .attr('class', 'hm-node')
       .style('cursor', 'pointer');
 
-    // Pulsing animation for critical nodes
-    node.filter(d => d.risk >= 3)
-      .attr('class', 'pulse-node');
+    nodeEls.append('path')
+      .attr('d', nodeShape)
+      .attr('fill', d => riskColor(d.risk))
+      .attr('stroke', d => d.risk >= 2 ? '#fff' : riskColor(d.risk))
+      .attr('stroke-width', d => d.risk >= 2 ? 2 : 1)
+      .attr('opacity', 0.9)
+      .attr('filter', d => d.risk >= 3 ? 'url(#hm-glow)' : null);
 
-    // Labels for high-risk nodes only
-    const labels = g.append('g').selectAll('text')
-      .data(visNodes.filter(n => n.risk >= 2))
-      .enter().append('text')
-      .text(d => d.label.length > 14 ? d.label.substring(0, 12) + '…' : d.label)
-      .attr('font-size', '8px')
+    // Pulsing for critical
+    nodeEls.filter(d => d.risk >= 3).select('path').attr('class', 'pulse-node');
+
+    // Labels — show for risk >= 1 or high connections
+    const labelData = visNodes.filter(n => n.risk >= 2 || n._conns >= 4);
+    const labels = g.append('g').attr('class', 'hm-labels')
+      .selectAll('text').data(labelData).enter().append('text')
+      .text(d => {
+        const name = d.label || '';
+        return name.length > 16 ? name.substring(0, 14) + '…' : name;
+      })
+      .attr('font-size', '7.5px')
       .attr('fill', '#2C2520')
-      .attr('font-family', "'JetBrains Mono', monospace")
-      .attr('dx', 10).attr('dy', 3);
+      .attr('font-family', "'Geist Mono', 'JetBrains Mono', monospace")
+      .attr('text-anchor', 'start')
+      .attr('pointer-events', 'none')
+      .attr('opacity', 0.85)
+      .attr('dx', d => nodeRadius(d) + 4)
+      .attr('dy', 3);
 
-    // Simulation
+    // ─── Drag ───
+    const drag = d3.drag()
+      .on('start', (ev, d) => {
+        if (!ev.active) sim.alphaTarget(0.3).restart();
+        d.fx = d.x; d.fy = d.y;
+        svg.style('cursor', 'grabbing');
+      })
+      .on('drag', (ev, d) => { d.fx = ev.x; d.fy = ev.y; })
+      .on('end', (ev, d) => {
+        if (!ev.active) sim.alphaTarget(0);
+        d.fx = null; d.fy = null;
+        svg.style('cursor', 'grab');
+      });
+    nodeEls.call(drag);
+
+    // ─── Tooltip ───
+    if (!_hmTooltip) {
+      _hmTooltip = document.createElement('div');
+      _hmTooltip.className = 'hm-tooltip';
+      document.body.appendChild(_hmTooltip);
+    }
+    const typeIcons = { file: '📄', function: 'ƒ', class: '◆' };
+
+    nodeEls
+      .on('mouseover', (ev, d) => {
+        const icon = typeIcons[d.type] || '●';
+        const riskLabel = d.risk >= 3 ? '🔴 Critical' : d.risk >= 2 ? '🟠 Warning' : d.risk >= 1 ? '🟡 Low' : '🟢 Healthy';
+        const fileName = (d.file || '').split('/').pop();
+        const inCount = (adjIn[d.id] || []).length;
+        const outCount = (adjOut[d.id] || []).length;
+        _hmTooltip.innerHTML =
+          `<strong>${icon} ${d.label}</strong>` +
+          (d.summary ? `\n<span style="color:#E8611A;font-style:italic;font-size:11px">${d.summary}</span>` : '') +
+          `\n<span style="opacity:.6;font-size:10px">${d.type} · ${fileName} · ${riskLabel}</span>` +
+          `\n<span style="opacity:.6;font-size:10px">${inCount}↙ in · ${outCount}↗ out · ${d._conns} total</span>`;
+        _hmTooltip.style.opacity = '1';
+        _hmTooltip.style.left = (ev.pageX + 14) + 'px';
+        _hmTooltip.style.top = (ev.pageY + 14) + 'px';
+
+        // Soft highlight on hover (if no click-focus active)
+        if (!_hmHighlightActive) {
+          d3.select(ev.currentTarget).select('path')
+            .attr('filter', 'url(#hm-glow)');
+        }
+      })
+      .on('mousemove', (ev) => {
+        if (!_hmTooltip) return;
+        let x = ev.pageX + 14, y = ev.pageY + 14;
+        const r = _hmTooltip.getBoundingClientRect();
+        if (x + r.width > window.innerWidth) x = ev.pageX - r.width - 14;
+        if (y + r.height > window.innerHeight) y = ev.pageY - r.height - 14;
+        _hmTooltip.style.left = x + 'px';
+        _hmTooltip.style.top = y + 'px';
+      })
+      .on('mouseout', (ev, d) => {
+        _hmTooltip.style.opacity = '0';
+        if (!_hmHighlightActive) {
+          d3.select(ev.currentTarget).select('path')
+            .attr('filter', d.risk >= 3 ? 'url(#hm-glow)' : null);
+        }
+      });
+
+    // ─── Click to highlight connections ───
+    nodeEls.on('click', (ev, d) => {
+      ev.stopPropagation();
+      _hmHighlightActive = true;
+
+      const connected = new Set([d.id]);
+      (adjOut[d.id] || []).forEach(id => connected.add(id));
+      (adjIn[d.id] || []).forEach(id => connected.add(id));
+
+      nodeEls.transition().duration(300)
+        .attr('opacity', n => connected.has(n.id) ? 1 : 0.1);
+      nodeEls.select('path')
+        .attr('filter', n => n.id === d.id ? 'url(#hm-glow)' : null);
+      labels.transition().duration(300)
+        .attr('opacity', n => connected.has(n.id) ? 1 : 0.05);
+      link.transition().duration(300)
+        .attr('opacity', e => {
+          const s = typeof e.source === 'string' ? e.source : e.source.id;
+          const t = typeof e.target === 'string' ? e.target : e.target.id;
+          return (s === d.id || t === d.id) ? 1 : 0.04;
+        })
+        .attr('stroke-width', e => {
+          const s = typeof e.source === 'string' ? e.source : e.source.id;
+          const t = typeof e.target === 'string' ? e.target : e.target.id;
+          return (s === d.id || t === d.id) ? 2.5 : 0.8;
+        });
+    });
+
+    // Click background to clear
+    svg.on('click', () => {
+      if (!_hmHighlightActive) return;
+      _hmHighlightActive = false;
+      nodeEls.transition().duration(300).attr('opacity', 1);
+      nodeEls.select('path').attr('filter', d => d.risk >= 3 ? 'url(#hm-glow)' : null);
+      labels.transition().duration(300).attr('opacity', 0.85);
+      link.transition().duration(300)
+        .attr('opacity', 1).attr('stroke-width', d => d.type === 'calls' ? 1.2 : 0.8);
+    });
+
+    // ─── Simulation ───
+    const nc = visNodes.length;
+    const chargeStr = nc > 80 ? -180 : nc > 40 ? -120 : -80;
+    const linkDist = nc > 80 ? 70 : nc > 40 ? 55 : 40;
+
     const sim = d3.forceSimulation(visNodes)
-      .force('link', d3.forceLink(visEdges).id(d => d.id).distance(35))
-      .force('charge', d3.forceManyBody().strength(-40))
+      .force('link', d3.forceLink(visEdges).id(d => d.id).distance(linkDist).strength(0.4))
+      .force('charge', d3.forceManyBody().strength(chargeStr).distanceMax(400))
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide(10))
+      .force('collision', d3.forceCollide().radius(d => nodeRadius(d) + 6).strength(0.7))
       .on('tick', () => {
         link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
             .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
-        node.attr('cx', d => d.x).attr('cy', d => d.y);
+        nodeEls.attr('transform', d => `translate(${d.x},${d.y})`);
         labels.attr('x', d => d.x).attr('y', d => d.y);
       });
+
+    // Auto-zoom to fit after settling
+    sim.on('end', () => {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      visNodes.forEach(n => {
+        if (n.x != null) { minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x); }
+        if (n.y != null) { minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y); }
+      });
+      const pad = 40;
+      const gw = (maxX - minX) + pad * 2;
+      const gh = (maxY - minY) + pad * 2;
+      if (gw <= 0 || gh <= 0) return;
+      const scale = Math.min(width / gw, height / gh, 1.5) * 0.85;
+      const cx = (minX + maxX) / 2;
+      const cy = (minY + maxY) / 2;
+      const tx = width / 2 - cx * scale;
+      const ty = height / 2 - cy * scale;
+      svg.transition().duration(800)
+        .call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+    });
   }
 
   function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }

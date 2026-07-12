@@ -407,6 +407,29 @@
   animation: pulse-risk 2s ease-in-out infinite;
 }
 
+/* Heatmap tooltip */
+.hm-tooltip {
+  position: absolute;
+  pointer-events: none;
+  z-index: 9999;
+  background: var(--bg-secondary, #EDE9E3);
+  color: var(--text-primary, #2C2520);
+  border: 1px solid var(--accent-primary, #E8611A);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  transition: opacity 0.15s;
+  max-width: 320px;
+  white-space: pre-line;
+}
+
+.hm-node path {
+  transition: opacity 0.2s, filter 0.2s;
+}
+
 /* --- Issues Panel --- */
 .xray-issues-panel {
   background: #fff;
