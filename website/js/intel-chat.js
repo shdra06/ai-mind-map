@@ -928,15 +928,18 @@ window.IntelChat = (function () {
     const { callers, callees } = _getConnections(node.id);
     const summaryText = _buildNodeSummary(node, callers, callees);
 
-    let text = `📝 **Summary of \`${node.label}\`** (${node.type})\n\n`;
-    if (node.file) text += `📁 **File:** \`${node.file}\`${node.line ? ' line ' + node.line : ''}\n`;
-    text += `📥 **Incoming:** ${callers.length} callers\n`;
-    text += `📤 **Outgoing:** ${callees.length} callees\n`;
+    // Type icons for instant recognition
+    const typeIcons = { 'route': '🔹', 'function': 'ƒ', 'class': '◆', 'middleware': '⬡', 'file': '📄', 'api-call': '🌐', 'db-query': '🗄' };
+    const icon = typeIcons[node.type] || '●';
+
+    let text = `${icon} **${node.label}**`;
+    if (node.summary) text += `\n*${node.summary}*`;
+    text += `\n\n\`${node.type}\`${node.file ? ' · \`' + node.file.split('/').pop() + '\`' : ''}${node.line ? ':' + node.line : ''}${node.language ? ' · ' + node.language : ''} · ${callers.length}↙ ${callees.length}↗`;
 
     const relatedFiles = new Set();
     [...callers, ...callees].forEach(n => { if (n.file) relatedFiles.add(n.file); });
     if (relatedFiles.size > 0) {
-      text += `📂 **Related files:** ${[...relatedFiles].map(_basename).join(', ')}\n`;
+      text += `\n📂 ${[...relatedFiles].slice(0, 6).map(_basename).join(', ')}${relatedFiles.size > 6 ? ` +${relatedFiles.size - 6} more` : ''}`;
     }
 
     _addMessage('bot', text, {
@@ -956,31 +959,28 @@ window.IntelChat = (function () {
 
     const { callers, callees } = _getConnections(node.id);
 
-    let text = `ℹ️ **${node.label}**\n\n`;
-    text += `• **Type:** ${node.type || 'unknown'}\n`;
-    text += `• **ID:** \`${node.id}\`\n`;
-    if (node.file) text += `• **File:** \`${node.file}\`\n`;
-    if (node.line) text += `• **Line:** ${node.line}\n`;
-    if (node.language) text += `• **Language:** ${node.language}\n`;
-    text += `• **Incoming edges:** ${callers.length}\n`;
-    text += `• **Outgoing edges:** ${callees.length}\n`;
+    // Type icons for instant recognition
+    const typeIcons = { 'route': '🔹', 'function': 'ƒ', 'class': '◆', 'middleware': '⬡', 'file': '📄', 'api-call': '🌐', 'db-query': '🗄' };
+    const icon = typeIcons[node.type] || '●';
 
-    if (node.code) {
-      _addMessage('bot', text, {
-        nodes: [node, ...callers.slice(0, 3), ...callees.slice(0, 3)],
-        code: node.code,
-        actions: [
-          { label: '🔍 Focus', onClick: () => { if (graph && graph.focusNode) graph.focusNode(node.id); } },
-        ],
-      });
-    } else {
-      _addMessage('bot', text, {
-        nodes: [node, ...callers.slice(0, 5), ...callees.slice(0, 5)],
-        actions: [
-          { label: '🔍 Focus', onClick: () => { if (graph && graph.focusNode) graph.focusNode(node.id); } },
-        ],
-      });
+    let text = `${icon} **${node.label}**`;
+    if (node.summary) text += `\n*${node.summary}*`;
+    text += `\n\n\`${node.type}\`${node.file ? ' · \`' + node.file.split('/').pop() + '\`' : ''}${node.line ? ':' + node.line : ''}${node.language ? ' · ' + node.language : ''} · ${callers.length}↙ ${callees.length}↗`;
+
+    if (callers.length > 0) {
+      text += `\n\n**Called by:** ${callers.slice(0, 5).map(c => c.label).join(', ')}${callers.length > 5 ? ` +${callers.length - 5} more` : ''}`;
     }
+    if (callees.length > 0) {
+      text += `\n**Calls:** ${callees.slice(0, 5).map(c => c.label).join(', ')}${callees.length > 5 ? ` +${callees.length - 5} more` : ''}`;
+    }
+
+    _addMessage('bot', text, {
+      nodes: [node, ...callers.slice(0, 3), ...callees.slice(0, 3)],
+      code: node.code || undefined,
+      actions: [
+        { label: '🔍 Focus', onClick: () => { if (graph && graph.focusNode) graph.focusNode(node.id); } },
+      ],
+    });
     _highlightNodes([node]);
   }
 

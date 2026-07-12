@@ -118,6 +118,19 @@
       .ig-node { cursor: pointer; transition: opacity .3s; }
       .ig-edge { transition: opacity .3s, stroke .3s, stroke-width .3s; }
       .ig-label { pointer-events: none; user-select: none; }
+
+      .ig-legend {
+        display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px;
+        padding: 8px 16px; margin-top: 4px;
+        background: rgba(237,233,227,0.85); border-radius: 8px;
+        border: 1px solid rgba(232,97,26,0.12);
+        font-size: 11px; font-family: 'Geist', sans-serif;
+        color: var(--text-secondary, #5C5248);
+      }
+      .ig-legend-item {
+        display: inline-flex; align-items: center; gap: 3px;
+        white-space: nowrap; letter-spacing: 0.02em;
+      }
     `;
     document.head.appendChild(style);
   }
@@ -542,6 +555,23 @@
       _simulation.alpha(0.15).restart();
     });
     _resizeObserver.observe(_container);
+
+    // ── Legend bar ──
+    let legend = _container.querySelector('.ig-legend');
+    if (!legend) {
+      legend = document.createElement('div');
+      legend.className = 'ig-legend';
+      legend.innerHTML = [
+        ['🔹', 'Route'],
+        ['ƒ', 'Function'],
+        ['◆', 'Class'],
+        ['⬡', 'Middleware'],
+        ['🌐', 'API Call'],
+        ['🗄', 'DB Query'],
+        ['📄', 'File'],
+      ].map(([icon, label]) => `<span class="ig-legend-item">${icon} ${label}</span>`).join('');
+      _container.appendChild(legend);
+    }
   }
 
   /** Auto-zoom so all nodes are visible with padding */
@@ -657,8 +687,7 @@
         return s.arrow ? `url(#arrow-${d.type})` : null;
       })());
 
-    // auto-clear
-    _highlightTimer = setTimeout(clearHighlight, HIGHLIGHT_DURATION);
+    // Focus stays until user clicks background (clearHighlight on svg click at line 434)
   }
 
   function clearHighlight() {
