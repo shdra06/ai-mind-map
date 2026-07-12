@@ -285,7 +285,7 @@
     });
   }
 
-  /* --- God Function Detection (high fan-out) --- */
+  /* --- God Function Detection (high fan-out = actual complexity) --- */
   function detectGodFunctions() {
     state.nodes.filter(n => n.type === 'function').forEach(fn => {
       const outgoing = state.edges.filter(e => {
@@ -296,15 +296,18 @@
         const tgt = typeof e.target === 'string' ? e.target : e.target.id;
         return tgt === fn.id;
       });
-      const connections = outgoing.length + incoming.length;
-      if (connections >= 6) {
+      // Only flag on high fan-OUT (outgoing calls) — high fan-in just means popular, not complex
+      // A simple getter called 20 times is NOT a God Function
+      const fanOut = outgoing.length;
+      const totalConns = outgoing.length + incoming.length;
+      if (fanOut >= 8 || totalConns >= 12) {
         state.issues.push({
-          severity: connections >= 10 ? 'critical' : 'warning',
+          severity: totalConns >= 18 ? 'critical' : 'warning',
           type: 'God Function',
           icon: '👹',
-          message: `${fn.label}() has ${connections} connections (${incoming.length} in, ${outgoing.length} out)`,
+          message: `${fn.label}() has ${totalConns} connections (${incoming.length} in, ${outgoing.length} out)`,
           files: [fn.file],
-          impact: 'High coupling makes this function a change bottleneck — modifications here ripple across the codebase'
+          impact: 'High fan-out makes this function a change bottleneck — consider breaking it into focused helpers'
         });
       }
     });
@@ -526,24 +529,40 @@
     $('xray-stat-issues').textContent = state.issues.length;
     $('xray-issue-count').textContent = state.issues.length;
 
-    // Issues
+    // Issues — group by type for compact display
     const issuesEl = $('xray-issues');
     const sorted = [...state.issues].sort((a, b) => {
       const sev = { critical: 0, warning: 1, info: 2 };
       return (sev[a.severity] || 3) - (sev[b.severity] || 3);
     });
 
-    issuesEl.innerHTML = sorted.slice(0, 12).map(issue => `
-      <div class="xray-issue xray-issue--${issue.severity}">
-        <span class="issue-icon">${issue.icon}</span>
-        <div class="issue-content">
-          <div class="issue-type">${issue.type}</div>
-          <div class="issue-msg">${escapeHtml(issue.message)}</div>
-          <div class="issue-impact">${issue.impact}</div>
-        </div>
-        <span class="issue-severity severity-${issue.severity}">${issue.severity}</span>
-      </div>
-    `).join('');
+    // Group issues by type
+    const grouped = {};
+    sorted.forEach(issue => {
+      if (!grouped[issue.type]) {
+        grouped[issue.type] = { icon: issue.icon, severity: issue.severity, impact: issue.impact, items: [] };
+      }
+      // Keep highest severity
+      if (issue.severity === 'critical') grouped[issue.type].severity = 'critical';
+      const fnName = issue.message.match(/^(\w+)[\(\s—]/)?.[1] || issue.message.split(' — ')[0];
+      grouped[issue.type].items.push(fnName);
+    });
+
+    const groupKeys = Object.keys(grouped);
+    issuesEl.innerHTML = groupKeys.map(type => {
+      const g = grouped[type];
+      const names = g.items.slice(0, 6).join(', ') + (g.items.length > 6 ? ` +${g.items.length - 6} more` : '');
+      return `
+        <div class="xray-issue xray-issue--${g.severity}">
+          <span class="issue-icon">${g.icon}</span>
+          <div class="issue-content">
+            <div class="issue-type">${type} <span style="opacity:.6;font-size:0.7rem">(${g.items.length})</span></div>
+            <div class="issue-msg" style="font-size:0.72rem">${names}</div>
+            <div class="issue-impact">${g.impact}</div>
+          </div>
+          <span class="issue-severity severity-${g.severity}">${g.severity}</span>
+        </div>`;
+    }).join('');
 
     if (state.issues.length === 0) {
       issuesEl.innerHTML = '<div class="xray-clean">✨ No issues found — this codebase is clean!</div>';
@@ -905,40 +924,41 @@
 
     const recs = [];
 
-    // Based on issues
+    // Based on issues — group into single compact entries
     const godFunctions = state.issues.filter(i => i.type === 'God Function');
-    godFunctions.slice(0, 3).forEach(issue => {
-      const fnName = issue.message.match(/^(\w+)\(/)?.[1] || 'this function';
+    if (godFunctions.length > 0) {
+      const names = godFunctions.map(i => i.message.match(/^(\w+)\(/)?.[1] || '?').join(', ');
       recs.push({
         priority: 'high',
         icon: '🔴',
-        title: `Split ${fnName}() into smaller functions`,
-        detail: `This function has too many connections. Break it into focused helper functions with single responsibilities. Consider extracting common patterns into a utility module.`,
-        file: issue.files[0]
+        title: `Split ${godFunctions.length} God Function${godFunctions.length > 1 ? 's' : ''}`,
+        detail: `${names} — have too many connections. Break into focused helpers with single responsibilities.`,
+        file: godFunctions[0].files[0]
       });
-    });
+    }
 
     const circular = state.issues.filter(i => i.type === 'Circular Dependency');
-    circular.slice(0, 2).forEach(issue => {
+    if (circular.length > 0) {
       recs.push({
         priority: 'high',
         icon: '🔴',
-        title: `Break circular dependency cycle`,
-        detail: `${issue.message} — Extract shared types/interfaces into a separate file that both modules import. Consider using dependency injection or an event-driven pattern.`,
-        file: issue.files[0]
+        title: `Break ${circular.length} circular dependency cycle${circular.length > 1 ? 's' : ''}`,
+        detail: `Extract shared types into separate files. Consider dependency injection or event-driven patterns.`,
+        file: circular[0].files[0]
       });
-    });
+    }
 
     const largeFiles = state.issues.filter(i => i.type === 'Large File');
-    largeFiles.slice(0, 2).forEach(issue => {
+    if (largeFiles.length > 0) {
+      const names = largeFiles.map(i => i.files[0]?.split('/').pop()).join(', ');
       recs.push({
         priority: 'medium',
         icon: '🟡',
-        title: `Decompose ${issue.files[0]?.split('/').pop() || 'large file'}`,
-        detail: `${issue.message}. Group related functions and extract them into feature-specific modules. Aim for files under 200 lines.`,
-        file: issue.files[0]
+        title: `Decompose ${largeFiles.length} large file${largeFiles.length > 1 ? 's' : ''}`,
+        detail: `${names} — group related functions into feature-specific modules. Aim for files under 200 lines.`,
+        file: largeFiles[0].files[0]
       });
-    });
+    }
 
     const orphans = state.issues.filter(i => i.type === 'Orphan File');
     if (orphans.length > 0) {
@@ -946,7 +966,7 @@
         priority: 'low',
         icon: '🟢',
         title: `Review ${orphans.length} orphan file${orphans.length > 1 ? 's' : ''}`,
-        detail: `These files aren't imported by anything. Either they're entry points (which is fine), dead code (delete them), or missing integration (add imports where needed).`,
+        detail: `These files aren't imported by anything. Either entry points (fine), dead code (delete), or missing integration.`,
         file: orphans[0].files[0]
       });
     }
@@ -956,7 +976,7 @@
         priority: 'medium',
         icon: '🟡',
         title: 'Reduce overall coupling',
-        detail: `Coupling score is ${state.scores.coupling}/100. Consider introducing interfaces/abstractions between modules. Use the facade pattern to hide internal complexity.`,
+        detail: `Coupling score is ${state.scores.coupling}/100. Introduce interfaces/abstractions between modules.`,
       });
     }
 
