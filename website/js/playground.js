@@ -267,6 +267,41 @@
     });
   }
 
+
+  /* ───────────────────────── SMART SUMMARIES ───────────────────────── */
+
+  function generateFunctionSummary(name, code) {
+    const patterns = [
+      { regex: /^(get|fetch|load|read|find|query|search|list|retrieve)/i, desc: 'Retrieves/reads data' },
+      { regex: /^(set|update|modify|change|edit|patch)/i, desc: 'Updates/modifies data' },
+      { regex: /^(create|add|insert|new|register|save|store|write)/i, desc: 'Creates/adds new data' },
+      { regex: /^(delete|remove|destroy|drop|clear|purge)/i, desc: 'Deletes/removes data' },
+      { regex: /^(validate|check|verify|assert|ensure|test|is|has|can)/i, desc: 'Validates or checks a condition' },
+      { regex: /^(parse|transform|convert|format|serialize|map|reduce)/i, desc: 'Transforms/converts data' },
+      { regex: /^(send|emit|dispatch|publish|broadcast|notify|trigger)/i, desc: 'Sends data or triggers an event' },
+      { regex: /^(handle|on|process|receive|listen)/i, desc: 'Handles an incoming event or request' },
+      { regex: /^(init|setup|configure|bootstrap|mount|connect)/i, desc: 'Initializes or sets up a component' },
+      { regex: /^(render|display|show|draw|paint|print)/i, desc: 'Renders or displays output' },
+      { regex: /^(auth|login|logout|signup|signin)/i, desc: 'Handles authentication' },
+      { regex: /^(log|debug|trace|warn|error|info)/i, desc: 'Logs information for debugging' },
+      { regex: /^(cache|memo|buffer|queue)/i, desc: 'Manages caching or buffering' },
+      { regex: /^(encrypt|decrypt|hash|sign|token)/i, desc: 'Handles encryption or tokens' },
+      { regex: /^(upload|download|stream|pipe)/i, desc: 'Handles file transfer' },
+      { regex: /^(sort|filter|group|aggregate|count|sum)/i, desc: 'Performs data aggregation/filtering' },
+      { regex: /^(schedule|cron|timer|interval|delay)/i, desc: 'Schedules or delays an operation' },
+      { regex: /^(middleware|use|pipe|chain)/i, desc: 'Processes data in a pipeline' },
+      { regex: /^(run|execute|start|begin|launch|spawn)/i, desc: 'Starts or executes a process' },
+      { regex: /^(stop|end|close|shutdown|terminate|kill)/i, desc: 'Stops or terminates a process' },
+      { regex: /^(build|compile|generate|make|produce)/i, desc: 'Builds or generates output' },
+      { regex: /^(reset|restore|revert|undo|rollback)/i, desc: 'Resets or restores to previous state' },
+    ];
+    const readable = name.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim().toLowerCase();
+    for (const p of patterns) {
+      if (p.regex.test(name)) return `${p.desc} — ${readable}`;
+    }
+    return `Executes the ${readable} operation`;
+  }
+
   /* ───────────────────────── GRAPH BUILDER ───────────────────────── */
 
   function buildGraph() {
@@ -319,7 +354,7 @@
       file.parsed.functions.forEach(fn => {
         const fnId = fileId + ':fn:' + fn.name;
         if (state.nodeMap.has(fnId)) return;
-        const fnNode = { id: fnId, label: fn.name, type: 'function', file: file.path, line: fn.line, code: fn.code };
+        const fnNode = { id: fnId, label: fn.name, type: 'function', file: file.path, line: fn.line, code: fn.code, summary: generateFunctionSummary(fn.name, fn.code) };
         state.nodes.push(fnNode);
         state.nodeMap.set(fnId, fnNode);
         state.edges.push({ source: fileId, target: fnId, type: 'defines' });
@@ -329,7 +364,7 @@
       file.parsed.classes.forEach(cls => {
         const clsId = fileId + ':cls:' + cls.name;
         if (state.nodeMap.has(clsId)) return;
-        const clsNode = { id: clsId, label: cls.name, type: 'class', file: file.path, line: cls.line, code: cls.code };
+        const clsNode = { id: clsId, label: cls.name, type: 'class', file: file.path, line: cls.line, code: cls.code, summary: `Class ${cls.name} — defines a data structure or component` };
         state.nodes.push(clsNode);
         state.nodeMap.set(clsId, clsNode);
         state.edges.push({ source: fileId, target: clsId, type: 'defines' });
@@ -344,10 +379,11 @@
       });
     });
 
-    // Cross-file function call detection
+    // Cross-file function call detection (skip short/common names to avoid false positives)
+    const SKIP_NAMES = new Set(['get','set','run','use','log','map','key','add','put','pop','push','then','next','send','end','call','all','has','new','del','apply','bind','test','exec','ok','go','do','fn','cb','err','res','req','app','db','id','on','off','emit','once','pipe','read','open','close','write','find','sort','join','trim','split','match','type','name','data','list','item','node','self','this','init','main','load','save','show','hide','move','size','stop','play','reset','click','focus','blur','submit','render','update','delete','create','remove','destroy','handle','process','validate','check','parse','format','build','start','configure','connect','disconnect','subscribe','unsubscribe','toString','valueOf','constructor']);
     const allFunctions = new Map();
     state.nodes.filter(n => n.type === 'function').forEach(fn => {
-      allFunctions.set(fn.label, fn.id);
+      if (fn.label.length >= 4 && !SKIP_NAMES.has(fn.label)) allFunctions.set(fn.label, fn.id);
     });
 
     state.files.forEach(file => {
@@ -362,6 +398,17 @@
           state.edges.push({ source: fileId, target: fnId, type: 'calls' });
         }
       });
+    });
+
+    // Deduplicate edges
+    const edgeKeys = new Set();
+    state.edges = state.edges.filter(e => {
+      const s = typeof e.source === 'string' ? e.source : e.source.id;
+      const t = typeof e.target === 'string' ? e.target : e.target.id;
+      const key = `${s}→${t}:${e.type}`;
+      if (edgeKeys.has(key)) return false;
+      edgeKeys.add(key);
+      return true;
     });
   }
 

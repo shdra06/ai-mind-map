@@ -41,6 +41,33 @@
   const MAX_FILES = 100;
   const MAX_SIZE = 80000;
 
+  /* ───────────────────────── SMART SUMMARIES ───────────────────────── */
+
+  function generateFunctionSummary(name) {
+    const patterns = [
+      { regex: /^(get|fetch|load|read|find|query|search|list|retrieve)/i, desc: 'Retrieves/reads data' },
+      { regex: /^(set|update|modify|change|edit|patch)/i, desc: 'Updates/modifies data' },
+      { regex: /^(create|add|insert|new|register|save|store|write)/i, desc: 'Creates/adds new data' },
+      { regex: /^(delete|remove|destroy|drop|clear|purge)/i, desc: 'Deletes/removes data' },
+      { regex: /^(validate|check|verify|assert|ensure|test|is|has|can)/i, desc: 'Validates or checks a condition' },
+      { regex: /^(parse|transform|convert|format|serialize|map|reduce)/i, desc: 'Transforms/converts data' },
+      { regex: /^(send|emit|dispatch|publish|broadcast|notify|trigger)/i, desc: 'Sends data or triggers an event' },
+      { regex: /^(handle|on|process|receive|listen)/i, desc: 'Handles an incoming event or request' },
+      { regex: /^(init|setup|configure|bootstrap|mount|connect)/i, desc: 'Initializes or sets up a component' },
+      { regex: /^(render|display|show|draw|paint|print)/i, desc: 'Renders or displays output' },
+      { regex: /^(auth|login|logout|signup|signin)/i, desc: 'Handles authentication' },
+      { regex: /^(log|debug|trace|warn|error)/i, desc: 'Logs information for debugging' },
+      { regex: /^(run|execute|start|begin|launch)/i, desc: 'Starts or executes a process' },
+      { regex: /^(stop|end|close|shutdown|terminate)/i, desc: 'Stops or terminates a process' },
+      { regex: /^(build|compile|generate|make)/i, desc: 'Builds or generates output' },
+    ];
+    const readable = name.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim().toLowerCase();
+    for (const p of patterns) {
+      if (p.regex.test(name)) return `${p.desc} — ${readable}`;
+    }
+    return `Executes the ${readable} operation`;
+  }
+
   /* ───────────────────────── GITHUB API ───────────────────────── */
 
   function parseUrl(url) {
@@ -139,7 +166,7 @@
       file.parsed.functions.forEach(f => {
         const id = fid + ':fn:' + f.name;
         if (state.nodeMap.has(id)) return;
-        const n = { id, label: f.name, type: 'function', file: file.path, line: f.line, code: f.code, risk: 0 };
+        const n = { id, label: f.name, type: 'function', file: file.path, line: f.line, code: f.code, risk: 0, summary: generateFunctionSummary(f.name) };
         state.nodes.push(n); state.nodeMap.set(id, n);
         state.edges.push({ source: fid, target: id, type: 'defines' });
       });
@@ -147,7 +174,7 @@
       file.parsed.classes.forEach(c => {
         const id = fid + ':cls:' + c.name;
         if (state.nodeMap.has(id)) return;
-        const n = { id, label: c.name, type: 'class', file: file.path, line: c.line, code: c.code, risk: 0 };
+        const n = { id, label: c.name, type: 'class', file: file.path, line: c.line, code: c.code, risk: 0, summary: `Class ${c.name} — defines a data structure or component` };
         state.nodes.push(n); state.nodeMap.set(id, n);
         state.edges.push({ source: fid, target: id, type: 'defines' });
       });
@@ -158,9 +185,12 @@
       });
     });
 
-    // Cross-file calls
+    // Cross-file calls (skip short/common names to avoid false positives)
+    const SKIP_NAMES = new Set(['get','set','run','use','log','map','key','add','put','pop','push','then','next','send','end','call','all','has','new','del','apply','bind','test','exec','ok','go','do','fn','cb','err','res','req','app','db','id','on','off','emit','once','pipe','read','open','close','write','find','sort','join','trim','split','match','type','name','data','list','item','node','self','this','init','main','load','save','show','hide','move','size','stop','play','reset','click','focus','blur','submit','render','update','delete','create','remove','destroy','handle','process','validate','check','parse','format','build','start','configure','connect','disconnect','subscribe','unsubscribe','toString','valueOf','constructor']);
     const fnMap = new Map();
-    state.nodes.filter(n => n.type === 'function').forEach(n => fnMap.set(n.label, n.id));
+    state.nodes.filter(n => n.type === 'function').forEach(n => {
+      if (n.label.length >= 4 && !SKIP_NAMES.has(n.label)) fnMap.set(n.label, n.id);
+    });
     state.files.forEach(file => {
       const fid = 'f:' + file.path;
       fnMap.forEach((fnId, fnName) => {
@@ -168,6 +198,17 @@
         if (new RegExp('\\b' + fnName + '\\s*\\(').test(file.content || ''))
           state.edges.push({ source: fid, target: fnId, type: 'calls' });
       });
+    });
+
+    // Deduplicate edges
+    const edgeKeys = new Set();
+    state.edges = state.edges.filter(e => {
+      const s = typeof e.source === 'string' ? e.source : e.source.id;
+      const t = typeof e.target === 'string' ? e.target : e.target.id;
+      const key = `${s}→${t}:${e.type}`;
+      if (edgeKeys.has(key)) return false;
+      edgeKeys.add(key);
+      return true;
     });
   }
 
@@ -554,14 +595,7 @@
       .attr('viewBox', `0 0 ${width} ${height}`);
 
     const g = svg.append('g');
-    const zoomBehavior = d3.zoom()
-       .scaleExtent([0.2, 4])
-       .filter(e => {
-         if (e.type === 'wheel') return e.ctrlKey;
-         return !e.ctrlKey && !e.button;
-       })
-       .on('zoom', e => g.attr('transform', e.transform));
-     svg.call(zoomBehavior);
+    svg.call(d3.zoom().scaleExtent([0.2, 4]).on('zoom', e => g.attr('transform', e.transform)));
 
     // Links
     const link = g.append('g').selectAll('line').data(visEdges).enter().append('line')

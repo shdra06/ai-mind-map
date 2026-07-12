@@ -108,10 +108,10 @@
         position: absolute; pointer-events: none; z-index: 9999;
         background: var(--bg-secondary, #EDE9E3); color: var(--text-primary, #2C2520);
         border: 1px solid var(--accent-primary, #E8611A);
-        border-radius: 6px; padding: 8px 12px; font-size: 12px; line-height: 1.45;
-        box-shadow: 0 4px 14px rgba(0,0,0,.15);
+        border-radius: 8px; padding: 10px 14px; font-size: 12px; line-height: 1.5;
+        box-shadow: 0 6px 20px rgba(0,0,0,.18);
         opacity: 0; transition: opacity .15s;
-        max-width: 260px; white-space: pre-line;
+        max-width: 360px; white-space: pre-line;
       }
       .ig-tooltip.visible { opacity: 1; }
 
@@ -196,13 +196,54 @@
   function showTooltip(ev, d) {
     ensureTooltip();
     const conns = (_adjOut[d.id] || []).length + (_adjIn[d.id] || []).length;
+    
+    // Type icons for instant recognition
+    const typeIcons = {
+      'route': '🔹', 'function': 'ƒ', 'class': '◆', 'middleware': '⬡',
+      'file': '📄', 'api-call': '🌐', 'db-query': '🗄'
+    };
+    const icon = typeIcons[d.type] || '●';
+    
+    // Build flow chain for routes (trace what they call)
+    let flowChain = '';
+    if (d.type === 'route' || d.type === 'function') {
+      const visited = new Set();
+      const chain = [];
+      const queue = [...(_adjOut[d.id] || [])];
+      visited.add(d.id);
+      let depth = 0;
+      while (queue.length > 0 && chain.length < 6 && depth < 20) {
+        const edge = queue.shift();
+        depth++;
+        const tid = typeof edge.target === 'object' ? edge.target.id : edge.target;
+        if (visited.has(tid)) continue;
+        visited.add(tid);
+        const targetNode = _nodeMap[tid];
+        if (!targetNode) continue;
+        if (targetNode.type === 'file') continue; // skip file nodes in chain
+        const chainIcon = typeIcons[targetNode.type] || '→';
+        chain.push(`${chainIcon} ${targetNode.label}`);
+        // Continue tracing outward
+        (_adjOut[tid] || []).forEach(e => {
+          if (!visited.has(typeof e.target === 'object' ? e.target.id : e.target)) {
+            queue.push(e);
+          }
+        });
+      }
+      if (chain.length > 0) {
+        flowChain = `\n<span style="color:#00b894;display:block;margin:4px 0 2px;border-top:1px solid rgba(0,0,0,.1);padding-top:4px">📍 Flow:</span><span style="opacity:.85;font-size:11px">${chain.join(' → ')}</span>`;
+      }
+    }
+    
+    // Compact file display
+    const fileName = d.file ? d.file.split('/').pop() : '—';
+    
     _tooltip.innerHTML =
-      `<strong>${d.label}</strong>\n` +
-      `Type: ${d.type}\n` +
-      `File: ${d.file || '—'}\n` +
-      `Line: ${d.line != null ? d.line : '—'}\n` +
-      `Connections: ${conns}\n` +
-      (d.risk === 2 ? '<span style="color:#d63031">⚠ High risk</span>' : '');
+      `<strong>${icon} ${d.label}</strong>` +
+      (d.summary ? `\n<span style="color:#E8611A;font-style:italic;display:block;margin:2px 0 3px;line-height:1.35">${d.summary}</span>` : '\n') +
+      `<span style="opacity:.6;font-size:10px">${d.type}${d.count > 1 ? ' · ' + d.count + '× calls' : ''} · ${fileName}${d.line != null ? ':' + d.line : ''} · ${conns} connections</span>` +
+      (d.risk === 2 ? '\n<span style="color:#d63031">⚠ High risk</span>' : '') +
+      flowChain;
     _tooltip.classList.add('visible');
     positionTooltip(ev);
   }
@@ -385,10 +426,6 @@
     // zoom
     _zoom = d3.zoom()
       .scaleExtent([0.1, 6])
-      .filter(ev => {
-        if (ev.type === 'wheel') return ev.ctrlKey;
-        return !ev.ctrlKey && !ev.button;
-      })
       .on('zoom', (ev) => _g.attr('transform', ev.transform));
     _svg.call(_zoom);
 

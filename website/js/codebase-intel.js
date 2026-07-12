@@ -56,6 +56,104 @@
   ];
 
   /* ═══════════════════════════════════════════════════════════════
+     ███  SMART SUMMARIES — Human-readable descriptions  ███
+     ═══════════════════════════════════════════════════════════════ */
+
+  const CALL_SUMMARIES = {
+    // ─── MongoDB / Mongoose ───
+    'find':              'Queries the database to find all documents matching a filter',
+    'findOne':           'Finds a single document matching the query criteria',
+    'findById':          'Looks up one document by its unique ID',
+    'findOneAndUpdate':  'Finds a document and updates it in one atomic operation',
+    'aggregate':         'Runs an aggregation pipeline (group, filter, transform data)',
+    'insertMany':        'Inserts multiple documents into the collection at once',
+    'create':            'Creates and saves a new document to the database',
+    'save':              'Persists the current document (insert or update) to the database',
+    'deleteOne':         'Removes the first document matching the filter',
+    'deleteMany':        'Removes all documents matching the filter',
+    'updateOne':         'Updates the first document matching the filter',
+    'updateMany':        'Updates all documents matching the filter',
+    'countDocuments':    'Counts how many documents match the query',
+    // ─── Prisma ───
+    'findUnique':        'Finds exactly one record by a unique field (ID, email, etc.)',
+    'findMany':          'Fetches multiple records matching the filter criteria',
+    'upsert':            'Creates the record if it doesn\'t exist, updates it if it does',
+    'count':             'Returns the count of records matching the filter',
+    // ─── Sequelize ───
+    'findAll':           'Retrieves all records matching the query conditions',
+    'findByPk':          'Finds a single record by its primary key',
+    'bulkCreate':        'Inserts multiple records in a single batch operation',
+    'destroy':           'Deletes records matching the condition from the database',
+    // ─── SQL ───
+    'SELECT':            'Reads data from the database tables',
+    'INSERT':            'Adds new rows of data into a table',
+    'UPDATE':            'Modifies existing data in a table',
+    'DELETE':            'Removes rows from a table',
+    'CREATE':            'Creates a new database table or object',
+    'DROP':              'Permanently deletes a table or database object',
+    // ─── HTTP / API ───
+    'GET':               'Fetches data from an external API endpoint',
+    'POST':              'Sends data to create a new resource at the API',
+    'PUT':               'Sends data to fully replace a resource at the API',
+    'PATCH':             'Sends data to partially update a resource at the API',
+    // ─── Express Middleware ───
+    'cors':              'Enables Cross-Origin Resource Sharing for the server',
+    'helmet':            'Adds security HTTP headers to protect against attacks',
+    'morgan':            'Logs HTTP requests for debugging and monitoring',
+    'bodyParser':        'Parses incoming request bodies (JSON, form data)',
+    'cookieParser':      'Parses cookies from incoming HTTP requests',
+    'session':           'Manages user sessions with server-side storage',
+    'passport':          'Handles user authentication (login, OAuth, JWT)',
+    'multer':            'Handles file uploads from multipart form data',
+    'compression':       'Compresses HTTP responses to reduce bandwidth',
+    'rateLimit':         'Limits how many requests a client can make per time window',
+    'express':           'Core web framework — handles HTTP request/response cycle',
+    'json':              'Parses JSON request bodies from incoming HTTP requests',
+    'urlencoded':        'Parses URL-encoded form data from HTTP requests',
+    'static':            'Serves static files (CSS, JS, images) from a directory',
+    'errorHandler':      'Catches and processes errors in the request pipeline',
+    'auth':              'Authenticates users and protects routes from unauthorized access',
+    'logger':            'Records server activity for debugging and auditing',
+    'validator':         'Validates request data (params, body, query) against rules',
+  };
+
+  /**
+   * Generates a human-readable summary from a function name using pattern matching.
+   * e.g. "getUserProfile" → "Retrieves/reads data — get user profile"
+   */
+  function generateFunctionSummary(name) {
+    const patterns = [
+      { regex: /^(get|fetch|load|read|find|query|search|list|retrieve)/i, desc: 'Retrieves/reads data' },
+      { regex: /^(set|update|modify|change|edit|patch)/i, desc: 'Updates/modifies data' },
+      { regex: /^(create|add|insert|new|register|save|store|write)/i, desc: 'Creates/adds new data' },
+      { regex: /^(delete|remove|destroy|drop|clear|purge)/i, desc: 'Deletes/removes data' },
+      { regex: /^(validate|check|verify|assert|ensure|test|is|has|can)/i, desc: 'Validates or checks a condition' },
+      { regex: /^(parse|transform|convert|format|serialize|map|reduce)/i, desc: 'Transforms/converts data' },
+      { regex: /^(send|emit|dispatch|publish|broadcast|notify|trigger)/i, desc: 'Sends data or triggers an event' },
+      { regex: /^(handle|on|process|receive|listen)/i, desc: 'Handles an incoming event or request' },
+      { regex: /^(init|setup|configure|bootstrap|mount|connect)/i, desc: 'Initializes or sets up a component' },
+      { regex: /^(render|display|show|draw|paint|print)/i, desc: 'Renders or displays output' },
+      { regex: /^(auth|login|logout|signup|signin)/i, desc: 'Handles authentication' },
+      { regex: /^(log|debug|trace|warn|error|info)/i, desc: 'Logs information for debugging' },
+      { regex: /^(cache|memo|buffer|queue)/i, desc: 'Manages caching or buffering' },
+      { regex: /^(encrypt|decrypt|hash|sign|token)/i, desc: 'Handles encryption or tokens' },
+      { regex: /^(upload|download|stream|pipe)/i, desc: 'Handles file transfer' },
+      { regex: /^(sort|filter|group|aggregate|count|sum)/i, desc: 'Performs data aggregation/filtering' },
+      { regex: /^(schedule|cron|timer|interval|delay)/i, desc: 'Schedules or delays an operation' },
+      { regex: /^(middleware|use|pipe|chain)/i, desc: 'Processes data in a pipeline' },
+      { regex: /^(run|execute|start|begin|launch|spawn)/i, desc: 'Starts or executes a process' },
+      { regex: /^(stop|end|close|shutdown|terminate|kill)/i, desc: 'Stops or terminates a process' },
+      { regex: /^(build|compile|generate|make|produce)/i, desc: 'Builds or generates output' },
+      { regex: /^(reset|restore|revert|undo|rollback)/i, desc: 'Resets or restores to previous state' },
+    ];
+    const readable = name.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim().toLowerCase();
+    for (const p of patterns) {
+      if (p.regex.test(name)) return p.desc + ' — ' + readable;
+    }
+    return 'Executes the ' + readable + ' operation';
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
      ███  ENHANCED PARSER  ███
      ═══════════════════════════════════════════════════════════════ */
 
@@ -127,6 +225,7 @@
 
   function detectAPICalls(files) {
     const apiCalls = [];
+    const seen = new Map(); // key → count for dedup
     
     files.forEach(file => {
       const content = file.content || '';
@@ -135,14 +234,24 @@
         let m;
         while ((m = re.exec(content)) !== null) {
           const url = pattern.type === 'axios' ? m[2] : m[1];
-          apiCalls.push({
-            url: url,
-            method: pattern.type === 'axios' ? m[1].toUpperCase() : 'GET',
-            file: file.path,
-            line: content.substring(0, m.index).split('\n').length,
-            type: pattern.type,
-            id: `api:${file.path}:${m.index}`
-          });
+          const method = pattern.type === 'axios' ? m[1].toUpperCase() : 'GET';
+          const key = `api:${file.path}:${method}:${url}`;
+          const line = content.substring(0, m.index).split('\n').length;
+          if (seen.has(key)) {
+            seen.get(key).count++;
+          } else {
+            const entry = {
+              url,
+              method,
+              file: file.path,
+              line,
+              type: pattern.type,
+              id: key,
+              count: 1
+            };
+            seen.set(key, entry);
+            apiCalls.push(entry);
+          }
         }
       });
     });
@@ -152,6 +261,7 @@
 
   function detectDBQueries(files) {
     const queries = [];
+    const seen = new Map(); // key → count for dedup
     
     files.forEach(file => {
       const content = file.content || '';
@@ -159,13 +269,23 @@
         const re = new RegExp(pattern.regex.source, pattern.regex.flags);
         let m;
         while ((m = re.exec(content)) !== null) {
-          queries.push({
-            operation: m[1] || m[2],
-            file: file.path,
-            line: content.substring(0, m.index).split('\n').length,
-            type: pattern.type,
-            id: `db:${file.path}:${m.index}`
-          });
+          const operation = m[1] || m[2];
+          const key = `db:${file.path}:${operation}`;
+          const line = content.substring(0, m.index).split('\n').length;
+          if (seen.has(key)) {
+            seen.get(key).count++;
+          } else {
+            const entry = {
+              operation,
+              file: file.path,
+              line,
+              type: pattern.type,
+              id: key,
+              count: 1
+            };
+            seen.set(key, entry);
+            queries.push(entry);
+          }
         }
       });
     });
@@ -191,6 +311,13 @@
       delete copy.vy;
       if (copy.x !== undefined && !isFinite(copy.x)) delete copy.x;
       if (copy.y !== undefined && !isFinite(copy.y)) delete copy.y;
+      // Enrich with summary if missing
+      if (!copy.summary && copy.type === 'function') {
+        copy.summary = generateFunctionSummary(copy.label || copy.id);
+      }
+      if (!copy.summary && copy.type === 'class') {
+        copy.summary = `Class ${copy.label} — defines a data structure or component`;
+      }
       return copy;
     });
     const edges = existingEdges.map(e => ({
@@ -213,7 +340,8 @@
           connections: 0,
           method: route.method,
           path: route.path,
-          framework: route.framework
+          framework: route.framework,
+          summary: `Handles ${route.method} requests to ${route.path} (${route.framework})`
         });
         nodeIds.add(route.id);
       }
@@ -237,7 +365,8 @@
           file: mw.file,
           line: mw.line,
           risk: 0,
-          connections: 0
+          connections: 0,
+          summary: CALL_SUMMARIES[mw.name] || `Middleware that processes requests before they reach the handler`
         });
         nodeIds.add(mw.id);
       }
@@ -248,13 +377,15 @@
       if (!nodeIds.has(api.id)) {
         nodes.push({
           id: api.id,
-          label: `${api.method} ${api.url.substring(0, 40)}`,
+          label: api.count > 1 ? `${api.method} ${api.url.substring(0, 30)} ×${api.count}` : `${api.method} ${api.url.substring(0, 40)}`,
           type: 'api-call',
           file: api.file,
           line: api.line,
           risk: 0,
           connections: 0,
-          url: api.url
+          url: api.url,
+          count: api.count,
+          summary: (CALL_SUMMARIES[api.method] || `Makes an HTTP ${api.method} request`) + ` to ${api.url.substring(0, 50)}` + (api.count > 1 ? ` (called ${api.count}×)` : '')
         });
         nodeIds.add(api.id);
         
@@ -271,13 +402,15 @@
       if (!nodeIds.has(db.id)) {
         nodes.push({
           id: db.id,
-          label: `DB.${db.operation}()`,
+          label: db.count > 1 ? `DB.${db.operation}() ×${db.count}` : `DB.${db.operation}()`,
           type: 'db-query',
           file: db.file,
           line: db.line,
           risk: 0,
           connections: 0,
-          operation: db.operation
+          operation: db.operation,
+          count: db.count,
+          summary: (CALL_SUMMARIES[db.operation] || `Performs a ${db.operation} operation on the database`) + (db.count > 1 ? ` (called ${db.count}×)` : '')
         });
         nodeIds.add(db.id);
         
@@ -289,9 +422,20 @@
       }
     });
     
+    // Deduplicate edges
+    const edgeKeys = new Set();
+    const uniqueEdges = edges.filter(e => {
+      const s = typeof e.source === 'string' ? e.source : e.source.id;
+      const t = typeof e.target === 'string' ? e.target : e.target.id;
+      const key = `${s}→${t}:${e.type}`;
+      if (edgeKeys.has(key)) return false;
+      edgeKeys.add(key);
+      return true;
+    });
+    
     // Update connection counts
     const connCount = {};
-    edges.forEach(e => {
+    uniqueEdges.forEach(e => {
       const s = typeof e.source === 'string' ? e.source : e.source.id;
       const t = typeof e.target === 'string' ? e.target : e.target.id;
       connCount[s] = (connCount[s] || 0) + 1;
@@ -301,7 +445,7 @@
     
     return {
       nodes,
-      edges,
+      edges: uniqueEdges,
       routes,
       middlewares,
       apiCalls: apiCalls.slice(0, 20),
@@ -313,7 +457,7 @@
         apiCalls: apiCalls.length,
         dbQueries: dbQueries.length,
         totalNodes: nodes.length,
-        totalEdges: edges.length
+        totalEdges: uniqueEdges.length
       }
     };
   }
@@ -396,7 +540,9 @@
     detectAPICalls,
     detectDBQueries,
     traceFlow,
-    traceReverse
+    traceReverse,
+    generateFunctionSummary,
+    CALL_SUMMARIES
   };
 
 })();
