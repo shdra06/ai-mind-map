@@ -43,7 +43,7 @@
 
   /* ───────────────────────── SMART SUMMARIES ───────────────────────── */
 
-  function generateFunctionSummary(name) {
+  function generateFunctionSummary(name, ctx) {
     const patterns = [
       { regex: /^(get|fetch|load|read|find|query|search|list|retrieve)/i, desc: 'Retrieves/reads data' },
       { regex: /^(set|update|modify|change|edit|patch)/i, desc: 'Updates/modifies data' },
@@ -58,14 +58,42 @@
       { regex: /^(auth|login|logout|signup|signin)/i, desc: 'Handles authentication' },
       { regex: /^(log|debug|trace|warn|error)/i, desc: 'Logs information for debugging' },
       { regex: /^(run|execute|start|begin|launch)/i, desc: 'Starts or executes a process' },
-      { regex: /^(stop|end|close|shutdown|terminate)/i, desc: 'Stops or terminates a process' },
+      { regex: /^(stop|end|close|shutdown|terminate|disconnect)/i, desc: 'Stops or terminates a process' },
       { regex: /^(build|compile|generate|make)/i, desc: 'Builds or generates output' },
+      // ── New patterns ──
+      { regex: /^(sort|order|rank|arrange)/i, desc: 'Sorts or orders data' },
+      { regex: /^(filter|exclude|reject|omit)/i, desc: 'Filters data by criteria' },
+      { regex: /^(merge|combine|concat|join|zip)/i, desc: 'Merges or combines data' },
+      { regex: /^(sync|replicate|mirror)/i, desc: 'Synchronizes data between sources' },
+      { regex: /^(cache|memoize|remember)/i, desc: 'Caches data for faster access' },
+      { regex: /^(encrypt|decrypt|hash|sign|verify)/i, desc: 'Handles encryption or hashing' },
+      { regex: /^(compress|decompress|zip|unzip|gzip)/i, desc: 'Compresses or decompresses data' },
+      { regex: /^(upload|download|transfer)/i, desc: 'Transfers files or data' },
+      { regex: /^(stream|pipe|buffer)/i, desc: 'Streams data through a pipeline' },
+      { regex: /^(poll|watch|observe|monitor)/i, desc: 'Monitors or polls for changes' },
+      { regex: /^(retry|backoff|recover|fallback)/i, desc: 'Retries or recovers from failure' },
+      { regex: /^(debounce|throttle|delay|defer)/i, desc: 'Rate-limits or defers execution' },
+      { regex: /^(schedule|cron|queue|enqueue)/i, desc: 'Schedules or queues work' },
+      { regex: /^(middleware|intercept|guard|protect)/i, desc: 'Intercepts or guards request flow' },
+      { regex: /^(migrate|seed|rollback)/i, desc: 'Manages database migrations' },
+      { regex: /^(subscribe|unsubscribe|bind|unbind)/i, desc: 'Manages event subscriptions' },
+      { regex: /^(navigate|redirect|route|forward)/i, desc: 'Handles navigation or routing' },
+      { regex: /^(normalize|sanitize|escape|clean)/i, desc: 'Sanitizes or normalizes input' },
+      { regex: /^(aggregate|summarize|collect|accumulate)/i, desc: 'Aggregates or summarizes data' },
+      { regex: /^(clone|copy|duplicate|replicate)/i, desc: 'Creates a copy of data' },
+      { regex: /^(compare|diff|match|equals)/i, desc: 'Compares data for differences' },
+      { regex: /^(count|total|sum|avg|min|max|mean)/i, desc: 'Calculates a numeric aggregate' },
+      { regex: /^(wrap|unwrap|box|unbox)/i, desc: 'Wraps or unwraps a value' },
+      { regex: /^(resolve|reject|await|then)/i, desc: 'Handles async promise resolution' },
+      { regex: /^(use[A-Z])/i, desc: 'React hook' },
     ];
     const readable = name.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim().toLowerCase();
+    // Context-aware prefix
+    const prefix = ctx && ctx.isRoute ? 'Route handler — ' : ctx && ctx.isMiddleware ? 'Middleware — ' : '';
     for (const p of patterns) {
-      if (p.regex.test(name)) return `${p.desc} — ${readable}`;
+      if (p.regex.test(name)) return `${prefix}${p.desc} — ${readable}`;
     }
-    return `Executes the ${readable} operation`;
+    return `${prefix}Executes the ${readable} operation`;
   }
 
   /* ───────────────────────── GITHUB API ───────────────────────── */
@@ -1467,56 +1495,333 @@
     }
   }
 
-  function downloadReport() {
-    const lines = [
-      `# 🔬 Codebase X-Ray Report`,
-      `**Repository:** ${state.owner}/${state.repo}`,
-      `**Date:** ${new Date().toISOString().split('T')[0]}`,
-      `**Grade:** ${state.grade}`,
-      ``,
-      `## Scores`,
-      `| Metric | Score |`,
-      `|--------|-------|`,
-      `| Architecture | ${state.scores.architecture}/100 |`,
-      `| Complexity | ${state.scores.complexity}/100 |`,
-      `| Coupling | ${state.scores.coupling}/100 |`,
-      `| Modularity | ${state.scores.modularity}/100 |`,
-      `| **Overall** | **${state.scores.overall}/100** |`,
-      ``,
-      `## Stats`,
-      `- Files analyzed: ${state.files.length}`,
-      `- Functions: ${state.nodes.filter(n => n.type === 'function').length}`,
-      `- Classes: ${state.nodes.filter(n => n.type === 'class').length}`,
-      `- Issues found: ${state.issues.length}`,
-      ``,
-      `## Issues`,
-      ...state.issues.map(i => `- **[${i.severity.toUpperCase()}]** ${i.type}: ${i.message}`),
-      ``,
-      `## Language Distribution`,
-    ];
+  /* ───────────────────────── WIKI EXPORT ───────────────────────── */
 
+  function generateWiki() {
+    const date = new Date().toISOString().split('T')[0];
+    const fns = state.nodes.filter(n => n.type === 'function');
+    const classes = state.nodes.filter(n => n.type === 'class');
+    const routes = state.nodes.filter(n => n.type === 'route');
+    const dbOps = state.nodes.filter(n => n.type === 'db-query');
+    const apiCalls = state.nodes.filter(n => n.type === 'api-call');
+    const middleware = state.nodes.filter(n => n.type === 'middleware');
+    const files = state.nodes.filter(n => n.type === 'file');
+
+    // Lang distribution
     const langCounts = {};
     state.files.forEach(f => { langCounts[f.language] = (langCounts[f.language] || 0) + 1; });
-    Object.entries(langCounts).sort((a, b) => b[1] - a[1]).forEach(([lang, count]) => {
-      lines.push(`- ${lang}: ${count} files (${Math.round((count / state.files.length) * 100)}%)`);
+    const langLines = Object.entries(langCounts).sort((a, b) => b[1] - a[1])
+      .map(([lang, count]) => `| ${lang} | ${count} | ${Math.round((count / state.files.length) * 100)}% |`);
+
+    // Entry points
+    const entryPatterns = /^(index|main|app|server|__init__|mod)\.(ts|js|tsx|jsx|py|go|rs)$/i;
+    const entryFiles = state.files.filter(f => entryPatterns.test(f.path.split('/').pop()));
+
+    // Build route table
+    const routeRows = routes.map(r => {
+      const callees = state.edges.filter(e => {
+        const s = typeof e.source === 'string' ? e.source : e.source.id;
+        return s === r.id;
+      }).map(e => {
+        const tid = typeof e.target === 'string' ? e.target : e.target.id;
+        return state.nodeMap.get(tid);
+      }).filter(Boolean);
+      const handlers = callees.filter(c => c.type === 'function').map(c => c.label).join(', ');
+      const dbCalls = callees.filter(c => c.type === 'db-query').map(c => c.label).join(', ');
+      const mw = callees.filter(c => c.type === 'middleware').map(c => c.label).join(', ');
+      return `| \`${r.label}\` | ${r.file ? r.file.split('/').pop() : ''} | ${handlers || '—'} | ${mw || '—'} | ${dbCalls || '—'} |`;
     });
 
-    lines.push('', '---', '*Generated by [AI Mind Map Codebase X-Ray](https://ai-mind-map-website.vercel.app)*');
+    // Build function table (top 30 by connections)
+    const fnConns = fns.map(fn => {
+      const inEdges = state.edges.filter(e => (typeof e.target === 'string' ? e.target : e.target.id) === fn.id).length;
+      const outEdges = state.edges.filter(e => (typeof e.source === 'string' ? e.source : e.source.id) === fn.id).length;
+      return { ...fn, inEdges, outEdges, total: inEdges + outEdges };
+    }).sort((a, b) => b.total - a.total);
 
-    const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+    const fnRows = fnConns.slice(0, 40).map(fn =>
+      `| \`${fn.label}\` | ${fn.file ? fn.file.split('/').pop() : ''} | ${fn.summary || generateFunctionSummary(fn.label)} | ${fn.inEdges}↙ ${fn.outEdges}↗ |`
+    );
+
+    // DB operations grouped
+    const dbGroups = {};
+    dbOps.forEach(op => {
+      const key = op.file ? op.file.split('/').pop() : 'unknown';
+      (dbGroups[key] = dbGroups[key] || []).push(op.label);
+    });
+    const dbRows = Object.entries(dbGroups).map(([file, ops]) =>
+      `| ${file} | ${ops.join(', ')} |`
+    );
+
+    // Scores table
+    const scoreKeys = Object.keys(state.scores).filter(k => k !== 'grade' && k !== 'overall');
+    const scoreRows = scoreKeys.map(k => `| ${k} | ${state.scores[k]}/100 |`);
+
+    const lines = [
+      `# 📖 ${state.owner}/${state.repo} — Codebase Wiki`,
+      ``,
+      `> Auto-generated on ${date} by [AI Mind Map X-Ray](https://ai-mind-map-website.vercel.app)`,
+      ``,
+      `## 📊 Overview`,
+      ``,
+      `| Metric | Value |`,
+      `|--------|-------|`,
+      `| Grade | **${state.grade}** |`,
+      `| Files | ${state.files.length} |`,
+      `| Functions | ${fns.length} |`,
+      `| Classes | ${classes.length} |`,
+      `| Routes | ${routes.length} |`,
+      `| DB Operations | ${dbOps.length} |`,
+      `| API Calls | ${apiCalls.length} |`,
+      `| Middleware | ${middleware.length} |`,
+      `| Issues | ${state.issues.length} |`,
+      ``,
+      `## 🔢 Scores`,
+      ``,
+      `| Metric | Score |`,
+      `|--------|-------|`,
+      ...scoreRows,
+      `| **Overall** | **${state.scores.overall}/100** |`,
+      ``,
+      `## 🌐 Languages`,
+      ``,
+      `| Language | Files | % |`,
+      `|----------|-------|---|`,
+      ...langLines,
+    ];
+
+    // Entry points
+    if (entryFiles.length > 0) {
+      lines.push(``, `## ⚡ Entry Points`, ``);
+      entryFiles.forEach(f => lines.push(`- \`${f.path}\``));
+    }
+
+    // Routes
+    if (routeRows.length > 0) {
+      lines.push(
+        ``, `## 🔹 Route Map`, ``,
+        `| Route | File | Handlers | Middleware | DB Calls |`,
+        `|-------|------|----------|------------|----------|`,
+        ...routeRows,
+      );
+    }
+
+    // Functions
+    if (fnRows.length > 0) {
+      lines.push(
+        ``, `## ƒ Function Dictionary (top ${Math.min(fnConns.length, 40)})`, ``,
+        `| Function | File | Summary | Connections |`,
+        `|----------|------|---------|-------------|`,
+        ...fnRows,
+      );
+    }
+
+    // DB Operations
+    if (dbRows.length > 0) {
+      lines.push(
+        ``, `## 🗄 Database Operations`, ``,
+        `| File | Operations |`,
+        `|------|------------|`,
+        ...dbRows,
+      );
+    }
+
+    // API Calls
+    if (apiCalls.length > 0) {
+      lines.push(``, `## 🌐 External API Calls`, ``);
+      apiCalls.forEach(a => lines.push(`- \`${a.label}\` — ${a.file ? a.file.split('/').pop() : ''}`));
+    }
+
+    // Issues
+    if (state.issues.length > 0) {
+      lines.push(
+        ``, `## ⚠️ Issues`, ``,
+        `| Severity | Type | Details |`,
+        `|----------|------|---------|`,
+        ...state.issues.map(i => `| ${i.severity} | ${i.type} | ${i.message} |`),
+      );
+    }
+
+    // File dependency map (top 15 most-imported files)
+    const importCounts = {};
+    state.edges.filter(e => e.type === 'imports').forEach(e => {
+      const tid = typeof e.target === 'string' ? e.target : e.target.id;
+      importCounts[tid] = (importCounts[tid] || 0) + 1;
+    });
+    const topImported = Object.entries(importCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15)
+      .map(([id, count]) => {
+        const node = state.nodeMap.get(id);
+        return node ? `| \`${node.label}\` | ${count} | ${node.file || ''} |` : null;
+      })
+      .filter(Boolean);
+    if (topImported.length > 0) {
+      lines.push(
+        ``, `## 📦 Most-Imported Modules`, ``,
+        `| Module | Imported By | File |`,
+        `|--------|-------------|------|`,
+        ...topImported,
+      );
+    }
+
+    lines.push('', '---', `*Generated by [AI Mind Map Codebase X-Ray](https://ai-mind-map-website.vercel.app/repo/${state.owner}/${state.repo})*`);
+    return lines.join('\n');
+  }
+
+  function downloadReport() {
+    const md = generateWiki();
+    const blob = new Blob([md], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `xray-${state.owner}-${state.repo}-${new Date().toISOString().split('T')[0]}.md`;
+    a.download = `wiki-${state.owner}-${state.repo}-${new Date().toISOString().split('T')[0]}.md`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
+  function copyWiki() {
+    const md = generateWiki();
+    navigator.clipboard.writeText(md).then(() => {
+      const btn = $('xray-copy-wiki');
+      if (btn) { btn.textContent = '✅ Copied!'; setTimeout(() => { btn.textContent = '📋 Copy Wiki'; }, 2000); }
+    });
+  }
+
+  /* ───────────────────────── PR IMPACT VIEW ───────────────────────── */
+
+  function parsePrUrl(url) {
+    const m = url.trim().match(/github\.com\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/);
+    return m ? { owner: m[1], repo: m[2], pr: parseInt(m[3]) } : null;
+  }
+
+  async function fetchPrFiles(owner, repo, pr) {
+    const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pr}/files`);
+    if (!r.ok) throw new Error(`Cannot fetch PR #${pr}. Is it public?`);
+    return r.json();
+  }
+
+  async function startPrImpact() {
+    const url = urlInput.value;
+    const prInfo = parsePrUrl(url);
+    if (!prInfo) {
+      // Check if URL has ?pr= param
+      const params = new URLSearchParams(window.location.search);
+      const prNum = params.get('pr');
+      if (!prNum) { alert('Enter a GitHub PR URL (e.g. https://github.com/owner/repo/pull/123)'); return; }
+    }
+
+    const info = prInfo || { owner: state.owner, repo: state.repo, pr: parseInt(new URLSearchParams(window.location.search).get('pr')) };
+
+    // If we haven't scanned yet, do the full scan first
+    if (!state.files.length) {
+      urlInput.value = `https://github.com/${info.owner}/${info.repo}`;
+      await startXray();
+    }
+
+    progress(95, `🔀 Fetching PR #${info.pr} diff...`);
+    try {
+      const prFiles = await fetchPrFiles(info.owner, info.repo, info.pr);
+      const changedPaths = new Set(prFiles.map(f => f.filename));
+
+      // Find affected nodes
+      const affectedNodeIds = new Set();
+      state.nodes.forEach(n => {
+        if (n.file && changedPaths.has(n.file)) affectedNodeIds.add(n.id);
+      });
+
+      // Also find downstream affected (nodes called by affected nodes)
+      const downstream = new Set();
+      state.edges.forEach(e => {
+        const s = typeof e.source === 'string' ? e.source : e.source.id;
+        const t = typeof e.target === 'string' ? e.target : e.target.id;
+        if (affectedNodeIds.has(s)) downstream.add(t);
+        if (affectedNodeIds.has(t)) downstream.add(s);
+      });
+
+      // Count affected by type
+      const affectedNodes = state.nodes.filter(n => affectedNodeIds.has(n.id));
+      const affectedRoutes = affectedNodes.filter(n => n.type === 'route');
+      const affectedFns = affectedNodes.filter(n => n.type === 'function');
+      const affectedDb = affectedNodes.filter(n => n.type === 'db-query');
+
+      const summary = [
+        `🔀 **PR #${info.pr} Impact Analysis**`,
+        `Files changed: ${prFiles.length}`,
+        `Nodes directly affected: ${affectedNodeIds.size}`,
+        `Downstream ripple: ${downstream.size} more nodes`,
+        affectedRoutes.length ? `Routes affected: ${affectedRoutes.map(r => r.label).join(', ')}` : '',
+        affectedFns.length ? `Functions modified: ${affectedFns.length}` : '',
+        affectedDb.length ? `DB operations touched: ${affectedDb.map(d => d.label).join(', ')}` : '',
+      ].filter(Boolean).join('\n');
+
+      // Show summary in progress
+      progress(100, `✅ PR #${info.pr}: ${prFiles.length} files → ${affectedNodeIds.size} nodes affected, ${downstream.size} downstream`);
+
+      // Mark affected nodes with special risk for heatmap
+      state.nodes.forEach(n => {
+        if (affectedNodeIds.has(n.id)) n.risk = Math.max(n.risk || 0, 3);
+        else if (downstream.has(n.id)) n.risk = Math.max(n.risk || 0, 2);
+      });
+
+      // Re-render heatmap to show impact
+      renderHeatmap();
+
+      // Add PR summary to Intel chat if available
+      if (window.IntelChat) {
+        window.IntelChat.handleQuery(`summarize`);
+      }
+
+    } catch (err) {
+      progress(100, `❌ PR fetch failed: ${err.message}`);
+    }
+  }
+
   /* ───────────────────────── EVENTS ───────────────────────── */
-  xrayBtn.addEventListener('click', startXray);
-  urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') startXray(); });
+  xrayBtn.addEventListener('click', () => {
+    // Auto-detect if it's a PR URL
+    if (parsePrUrl(urlInput.value)) {
+      startPrImpact();
+    } else {
+      startXray();
+    }
+  });
+  urlInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      if (parsePrUrl(urlInput.value)) startPrImpact();
+      else startXray();
+    }
+  });
 
   const dlBtn = $('xray-download');
   if (dlBtn) dlBtn.addEventListener('click', downloadReport);
+
+  const copyBtn = $('xray-copy-wiki');
+  if (copyBtn) copyBtn.addEventListener('click', copyWiki);
+
+  const prBtn = $('xray-pr-btn');
+  if (prBtn) prBtn.addEventListener('click', startPrImpact);
+
+  /* ───────────────────────── URL AUTO-LOAD ───────────────────────── */
+  (function autoLoad() {
+    const params = new URLSearchParams(window.location.search);
+    const repoParam = params.get('repo');
+    if (repoParam) {
+      // /repo/owner/name → ?repo=owner/name
+      urlInput.value = `https://github.com/${repoParam}`;
+      // Scroll to xray section
+      const xraySection = document.getElementById('xray');
+      if (xraySection) xraySection.scrollIntoView({ behavior: 'smooth' });
+      // Auto-start with a short delay for page to settle
+      setTimeout(() => {
+        const prParam = params.get('pr');
+        if (prParam) {
+          startPrImpact();
+        } else {
+          startXray();
+        }
+      }, 500);
+    }
+  })();
 
 })();

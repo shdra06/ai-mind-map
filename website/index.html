@@ -154,7 +154,7 @@
           <p class="xray-desc">Paste a GitHub URL. Get ISO 25010 health grades, cyclomatic complexity heatmaps, Halstead difficulty metrics, CISQ compliance scores, technical debt estimates, and a security audit — all client-side.</p>
 
           <div class="xray-input-row">
-            <input type="url" id="xray-url" placeholder="https://github.com/owner/repo" aria-label="GitHub repository URL" value="https://github.com/shdra06/ai-mind-map" />
+            <input type="url" id="xray-url" placeholder="https://github.com/owner/repo  or  .../pull/123" aria-label="GitHub repository or PR URL" value="https://github.com/shdra06/ai-mind-map" />
             <button id="xray-btn" aria-label="Start analysis">Analyze →</button>
           </div>
 
@@ -233,7 +233,8 @@
         <div id="xray-deep" class="xray-deep" style="display:none">
           <div class="deep-header">
             <h3>📊 Deep Analysis</h3>
-            <button id="xray-download" class="download-btn">📥 Download Report</button>
+            <button id="xray-download" class="download-btn">📥 Download Wiki</button>
+            <button id="xray-copy-wiki" class="download-btn" style="background:rgba(232,97,26,0.08)">📋 Copy Wiki</button>
           </div>
           <div class="deep-grid">
             <div class="deep-card">

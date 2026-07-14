@@ -27,6 +27,18 @@
     { regex: /@(?:app|router)\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi, type: 'fastapi' },
     // Next.js API routes (filename-based)
     { regex: /export\s+(?:default\s+)?(?:async\s+)?function\s+(GET|POST|PUT|DELETE|PATCH)\s*\(/gi, type: 'nextjs' },
+    // Hono (edge framework): app.get('/path', handler)
+    { regex: /(?:app|hono)\.(get|post|put|delete|patch|all)\s*\(\s*['"`]([^'"`]+)['"`]/gi, type: 'hono' },
+    // NestJS decorators: @Get('/path'), @Post('/path')
+    { regex: /@(Get|Post|Put|Delete|Patch)\s*\(\s*['"`]([^'"`]+)['"`]/gi, type: 'nestjs' },
+    // Django REST: @api_view(['GET', 'POST'])
+    { regex: /@api_view\s*\(\s*\[([^\]]+)\]/gi, type: 'django-rest' },
+    // Spring Boot: @GetMapping("/path"), @PostMapping, @RequestMapping
+    { regex: /@(GetMapping|PostMapping|PutMapping|DeleteMapping|PatchMapping|RequestMapping)\s*\(\s*(?:value\s*=\s*)?['"`]([^'"`]+)['"`]/gi, type: 'spring' },
+    // Gin (Go): r.GET("/path", handler)
+    { regex: /(?:r|router|g|engine)\.(GET|POST|PUT|DELETE|PATCH|HEAD)\s*\(\s*['"`]([^'"`]+)['"`]/gi, type: 'gin' },
+    // Ruby on Rails: get '/path', to: 'controller#action'
+    { regex: /(?:^|\s)(get|post|put|patch|delete)\s+['"`]([^'"`]+)['"`]\s*,\s*to:/gim, type: 'rails' },
   ];
 
   const MIDDLEWARE_PATTERNS = [
@@ -53,6 +65,14 @@
     { regex: /prisma\.(\w+)\.(findUnique|findMany|create|update|delete|upsert|count)\s*\(/gi, type: 'prisma' },
     // Sequelize
     { regex: /(\w+)\.(findAll|findOne|findByPk|create|update|destroy|bulkCreate)\s*\(/gi, type: 'sequelize' },
+    // Redis
+    { regex: /(?:redis|client)\.(get|set|hset|hget|hgetall|del|lpush|rpush|lrange|sadd|smembers|zadd|zrange|expire|incr|decr|publish|subscribe)\s*\(/gi, type: 'redis' },
+    // Firebase Firestore
+    { regex: /(?:db|firestore)\s*\.\s*collection\s*\(\s*['"`]([^'"`]+)['"`]\)/gi, type: 'firebase' },
+    // TypeORM
+    { regex: /(?:repository|manager)\.(find|findOne|findOneBy|save|remove|delete|update|createQueryBuilder|count)\s*\(/gi, type: 'typeorm' },
+    // Drizzle ORM
+    { regex: /(?:db)\.(select|insert|update|delete)\s*\(\s*\)/gi, type: 'drizzle' },
   ];
 
   /* ═══════════════════════════════════════════════════════════════
@@ -115,6 +135,33 @@
     'auth':              'Authenticates users and protects routes from unauthorized access',
     'logger':            'Records server activity for debugging and auditing',
     'validator':         'Validates request data (params, body, query) against rules',
+    // ─── Redis ───
+    'set':               'Stores a value in Redis cache with a key',
+    'hset':              'Sets a field in a Redis hash',
+    'hget':              'Gets a field value from a Redis hash',
+    'hgetall':           'Gets all fields and values from a Redis hash',
+    'del':               'Deletes a key from Redis',
+    'lpush':             'Pushes a value to the left of a Redis list',
+    'rpush':             'Pushes a value to the right of a Redis list',
+    'lrange':            'Gets a range of elements from a Redis list',
+    'sadd':              'Adds a member to a Redis set',
+    'smembers':          'Gets all members of a Redis set',
+    'zadd':              'Adds a member to a Redis sorted set with a score',
+    'zrange':            'Gets members in a range from a Redis sorted set',
+    'expire':            'Sets a time-to-live (TTL) on a Redis key',
+    'incr':              'Atomically increments a Redis integer value by 1',
+    'subscribe':         'Subscribes to a Redis pub/sub channel for messages',
+    'publish':           'Publishes a message to a Redis pub/sub channel',
+    // ─── Firebase ───
+    'doc':               'References a specific document in a Firestore collection',
+    'where':             'Adds a filter condition to a Firestore query',
+    'orderBy':           'Sorts Firestore query results by a field',
+    'limit':             'Limits the number of results from a Firestore query',
+    'onSnapshot':        'Listens for real-time updates to a Firestore query',
+    // ─── TypeORM ───
+    'findOneBy':         'Finds a single entity matching the given criteria',
+    'createQueryBuilder': 'Creates a SQL query builder for complex queries',
+    'remove':            'Removes an entity from the database',
   };
 
   /**

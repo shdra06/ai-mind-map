@@ -1,6 +1,10 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "rewrites": [
+    { "source": "/repo/:owner/:name", "destination": "/index.html?repo=:owner/:name" },
+    { "source": "/repo/:owner/:name/pr/:pr", "destination": "/index.html?repo=:owner/:name&pr=:pr" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
