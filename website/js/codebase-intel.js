@@ -344,6 +344,8 @@
      ███  ENRICHED GRAPH BUILDER  ███
      ═══════════════════════════════════════════════════════════════ */
 
+  let _lastResult = null;
+
   function buildIntelGraph(files, existingNodes, existingEdges) {
     const routes = detectRoutes(files);
     const middlewares = detectMiddleware(files);
@@ -490,7 +492,7 @@
     });
     nodes.forEach(n => { n.connections = connCount[n.id] || 0; });
     
-    return {
+    _lastResult = {
       nodes,
       edges: uniqueEdges,
       routes,
@@ -507,6 +509,7 @@
         totalEdges: uniqueEdges.length
       }
     };
+    return _lastResult;
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -582,6 +585,7 @@
   // Export
   window.CodebaseIntel = {
     buildIntelGraph,
+    getLastResult: () => _lastResult,
     detectRoutes,
     detectMiddleware,
     detectAPICalls,

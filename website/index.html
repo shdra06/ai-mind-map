@@ -236,6 +236,14 @@
             <button id="xray-download" class="download-btn">📥 Download Wiki</button>
             <button id="xray-copy-wiki" class="download-btn" style="background:rgba(232,97,26,0.08)">📋 Copy Wiki</button>
           </div>
+          <!-- Diff View -->
+          <div class="diff-view-row" style="display:flex;gap:0.5rem;align-items:center;margin:0.75rem 0 0;flex-wrap:wrap">
+            <span style="font-size:0.75rem;opacity:0.6">🔀 Diff:</span>
+            <input id="xray-diff-base" type="text" placeholder="base (e.g. main~5)" style="padding:6px 10px;border-radius:8px;border:1px solid #ddd;font-size:0.75rem;width:120px;font-family:inherit" />
+            <span style="font-size:0.7rem;opacity:0.4">vs</span>
+            <input id="xray-diff-head" type="text" placeholder="head (e.g. main)" style="padding:6px 10px;border-radius:8px;border:1px solid #ddd;font-size:0.75rem;width:120px;font-family:inherit" />
+            <button id="xray-diff-btn" class="download-btn" style="font-size:0.72rem;padding:6px 12px">🔍 Compare</button>
+          </div>
           <div class="deep-grid">
             <div class="deep-card">
               <div class="deep-card-title">🏔️ Top Connected Functions</div>
@@ -293,11 +301,15 @@
                 <button class="filter-btn active" data-type="api-call"><span class="filter-dot" style="background:#e17055"></span> API</button>
                 <button class="filter-btn active" data-type="db-query"><span class="filter-dot" style="background:#d63031"></span> DB</button>
               </div>
+              <button id="toggle-3d-btn" class="filter-btn" style="margin-left:auto;background:#1a1714;color:#fff;border:1px solid #333;font-weight:600;padding:4px 14px;border-radius:8px;cursor:pointer" title="Toggle 3D view">3D</button>
             </div>
           </div>
           <div class="intel-body">
             <div id="intel-graph" class="intel-graph-panel">
-              <div id="intel-tooltip" class="node-tooltip hidden"></div>
+              <div id="intel-graph-container" style="width:100%;height:100%">
+                <div id="intel-tooltip" class="node-tooltip hidden"></div>
+              </div>
+              <div id="intel-graph-3d" style="display:none;width:100%;height:100%;min-height:500px"></div>
             </div>
             <div id="intel-chat" class="intel-chat-panel"></div>
           </div>

@@ -922,7 +922,11 @@
 
     try {
       progress(5, `Connecting to ${parsed.owner}/${parsed.repo}...`);
+
+      // Initialize AST worker in parallel with tree fetch
+      const astInitPromise = initAstWorker();
       const tree = await fetchTree(parsed.owner, parsed.repo);
+      await astInitPromise;  // Wait for worker to be ready (or timeout)
 
       const codeFiles = tree.filter(item => {
         if (item.type !== 'blob') return false;
@@ -960,9 +964,42 @@
       progress(85, 'Running advanced metrics (ISO 25010, McCabe, Halstead)...');
       if (window.AdvancedXRay) {
         state.advanced = window.AdvancedXRay.runAdvancedAnalysis(state.files, state.nodes, state.edges);
-        // Override scores with advanced scores
         state.scores = state.advanced.scores;
         state.grade = state.advanced.scores.grade;
+      }
+
+      // Build definition map for Go-to-Definition
+      buildDefinitionMap();
+
+      // Git blame hotspots (non-blocking — runs in parallel)
+      calculateHotspots().catch(() => {});
+
+      // AST parsing in background (if worker available)
+      if (astReady) {
+        progress(86, '🌳 Running AST analysis (tree-sitter)...');
+        const astResults = await parseWithAst(state.files);
+        if (astResults && astResults.length) {
+          progress(88, `🌳 AST parsed ${astResults.filter(r => r && r.symbols).length} files — building symbol table...`);
+          const symbolData = await buildSymbolTable(astResults);
+          if (symbolData && symbolData.edges) {
+            // Merge AST-precise edges with existing (prefer AST)
+            const existingKeys = new Set(state.edges.map(e => {
+              const s = typeof e.source === 'string' ? e.source : e.source.id;
+              const t = typeof e.target === 'string' ? e.target : e.target.id;
+              return `${s}→${t}`;
+            }));
+            let newEdges = 0;
+            symbolData.edges.forEach(e => {
+              const key = `${e.source}→${e.target}`;
+              if (!existingKeys.has(key)) {
+                state.edges.push(e);
+                existingKeys.add(key);
+                newEdges++;
+              }
+            });
+            if (newEdges) progress(89, `🌳 AST found ${newEdges} additional precise connections`);
+          }
+        }
       }
 
       progress(92, 'Rendering health report...');
@@ -1495,6 +1532,235 @@
     }
   }
 
+  /* ───────────────────────── GIT BLAME HOTSPOTS ───────────────────────── */
+
+  async function fetchCommitHistory(owner, repo, maxCommits) {
+    maxCommits = maxCommits || 30;
+    try {
+      const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=${maxCommits}`);
+      if (!r.ok) return [];
+      return r.json();
+    } catch { return []; }
+  }
+
+  async function calculateHotspots() {
+    progress(87, '🔥 Calculating git blame hotspots...');
+    const commits = await fetchCommitHistory(state.owner, state.repo, 30);
+    if (!commits.length) return;
+
+    // Count change frequency per file
+    const changeFreq = {};
+    const commitFetches = commits.slice(0, 15).map(async c => {
+      try {
+        const r = await fetch(`https://api.github.com/repos/${state.owner}/${state.repo}/commits/${c.sha}`);
+        if (!r.ok) return;
+        const detail = await r.json();
+        (detail.files || []).forEach(f => {
+          changeFreq[f.filename] = (changeFreq[f.filename] || 0) + 1;
+        });
+      } catch { /* skip */ }
+    });
+    await Promise.all(commitFetches);
+
+    // Store hotspot data
+    state.hotspots = {};
+    const maxFreq = Math.max(1, ...Object.values(changeFreq));
+
+    state.nodes.forEach(n => {
+      const freq = changeFreq[n.file] || 0;
+      if (freq === 0) return;
+      const normalizedFreq = freq / maxFreq;
+      // Complexity from existing risk or connection count
+      const complexity = (n.risk || 0) * 0.3 + Math.min((n._conns || 0) / 8, 1) * 0.7;
+      const hotspotScore = normalizedFreq * 0.6 + complexity * 0.4;
+      if (hotspotScore > 0.3) {
+        state.hotspots[n.id] = { score: Math.round(hotspotScore * 100), changes: freq, file: n.file };
+        // Boost risk for hotspots
+        if (hotspotScore > 0.7) n.risk = Math.max(n.risk || 0, 3);
+        else if (hotspotScore > 0.5) n.risk = Math.max(n.risk || 0, 2);
+      }
+    });
+
+    const hotspotCount = Object.keys(state.hotspots).length;
+    if (hotspotCount > 0) {
+      progress(89, `🔥 Found ${hotspotCount} hotspots (changed frequently + complex)`);
+    }
+  }
+
+  /* ───────────────────────── DIFF VIEW ───────────────────────── */
+
+  async function startDiffView() {
+    const baseInput = $('xray-diff-base');
+    const headInput = $('xray-diff-head');
+    if (!baseInput || !headInput) return;
+
+    const base = baseInput.value.trim() || 'main~5';
+    const head = headInput.value.trim() || 'main';
+
+    if (!state.files.length) {
+      alert('Run a repo analysis first, then use Diff View');
+      return;
+    }
+
+    progress(90, `🔀 Comparing ${base}...${head}...`);
+    try {
+      const r = await fetch(`https://api.github.com/repos/${state.owner}/${state.repo}/compare/${base}...${head}`);
+      if (!r.ok) throw new Error(`Cannot compare. Are both refs valid?`);
+      const data = await r.json();
+
+      const changes = {};
+      (data.files || []).forEach(f => {
+        changes[f.filename] = { status: f.status, additions: f.additions, deletions: f.deletions, changes: f.changes };
+      });
+
+      // Color nodes by diff status
+      state.nodes.forEach(n => {
+        const change = changes[n.file];
+        if (!change) {
+          n._diffStatus = null;
+          return;
+        }
+        n._diffStatus = change.status;  // 'added', 'modified', 'removed', 'renamed'
+        if (change.status === 'added') n.risk = 1;
+        else if (change.status === 'modified') n.risk = Math.max(n.risk || 0, 2);
+        else if (change.status === 'removed') n.risk = 3;
+      });
+
+      const added = data.files.filter(f => f.status === 'added').length;
+      const modified = data.files.filter(f => f.status === 'modified').length;
+      const removed = data.files.filter(f => f.status === 'removed').length;
+
+      progress(100, `✅ Diff: ${added} added, ${modified} modified, ${removed} removed across ${data.files.length} files`);
+      renderHeatmap();  // Re-render with diff colors
+    } catch (err) {
+      progress(100, `❌ Diff failed: ${err.message}`);
+    }
+  }
+
+  /* ───────────────────────── DEFINITION MAP ───────────────────────── */
+
+  function buildDefinitionMap() {
+    state.definitionMap = new Map();
+    state.nodes.forEach(n => {
+      if (n.type === 'function' || n.type === 'class') {
+        // Store by label → node id (first wins for duplicates)
+        if (!state.definitionMap.has(n.label)) {
+          state.definitionMap.set(n.label, n.id);
+        }
+      }
+    });
+  }
+
+  /* ───────────────────────── AST WORKER INTEGRATION ───────────────────────── */
+
+  let astWorker = null;
+  let astReady = false;
+
+  function initAstWorker() {
+    return new Promise((resolve) => {
+      try {
+        astWorker = new Worker('js/ast-worker.js');
+        astWorker.onmessage = function (e) {
+          if (e.data.type === 'ready') {
+            astReady = true;
+            resolve(true);
+          } else if (e.data.type === 'error') {
+            console.warn('AST Worker error:', e.data.message);
+            resolve(false);
+          }
+        };
+        astWorker.onerror = function () {
+          console.warn('AST Worker failed to load — falling back to regex');
+          astReady = false;
+          resolve(false);
+        };
+        astWorker.postMessage({ type: 'init' });
+        // Timeout fallback
+        setTimeout(() => { if (!astReady) resolve(false); }, 5000);
+      } catch {
+        resolve(false);
+      }
+    });
+  }
+
+  function parseWithAst(files) {
+    return new Promise((resolve) => {
+      if (!astWorker || !astReady) { resolve(null); return; }
+
+      const timeout = setTimeout(() => resolve(null), 15000);
+      astWorker.onmessage = function (e) {
+        if (e.data.type === 'batch-done') {
+          clearTimeout(timeout);
+          resolve(e.data.results);
+        }
+      };
+      astWorker.postMessage({
+        type: 'batch',
+        files: files.map(f => ({ path: f.path, content: f.content, language: f.language }))
+      });
+    });
+  }
+
+  function buildSymbolTable(astResults) {
+    return new Promise((resolve) => {
+      if (!astWorker || !astReady || !astResults) { resolve(null); return; }
+
+      const timeout = setTimeout(() => resolve(null), 10000);
+      astWorker.onmessage = function (e) {
+        if (e.data.type === 'symbol-table') {
+          clearTimeout(timeout);
+          resolve(e.data);
+        }
+      };
+      astWorker.postMessage({ type: 'build-symbol-table', allSymbols: astResults });
+    });
+  }
+
+  /* ───────────────────────── 3D GRAPH INTEGRATION ───────────────────────── */
+
+  let _3dMode = false;
+
+  function toggle3D() {
+    _3dMode = !_3dMode;
+    const container2d = $('intel-graph-container');
+    const container3d = $('intel-graph-3d');
+    const btn = $('toggle-3d-btn');
+
+    if (_3dMode) {
+      if (!window.Graph3D) {
+        // Lazy load 3d-force-graph
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/3d-force-graph@1/dist/3d-force-graph.min.js';
+        script.onload = () => {
+          const script2 = document.createElement('script');
+          script2.src = 'js/graph-3d.js';
+          script2.onload = () => activateGraph3D();
+          document.head.appendChild(script2);
+        };
+        document.head.appendChild(script);
+      } else {
+        activateGraph3D();
+      }
+      if (container2d) container2d.style.display = 'none';
+      if (container3d) container3d.style.display = 'block';
+      if (btn) btn.textContent = '2D';
+    } else {
+      if (window.Graph3D) window.Graph3D.destroy();
+      if (container2d) container2d.style.display = 'block';
+      if (container3d) container3d.style.display = 'none';
+      if (btn) btn.textContent = '3D';
+    }
+  }
+
+  function activateGraph3D() {
+    const container3d = $('intel-graph-3d');
+    if (!container3d || !window.Graph3D) return;
+    const data = window.CodebaseIntel
+      ? window.CodebaseIntel.getLastResult()
+      : { nodes: state.nodes, edges: state.edges };
+    window.Graph3D.init(container3d, data || { nodes: state.nodes, edges: state.edges });
+  }
+
   /* ───────────────────────── WIKI EXPORT ───────────────────────── */
 
   function generateWiki() {
@@ -1801,6 +2067,12 @@
 
   const prBtn = $('xray-pr-btn');
   if (prBtn) prBtn.addEventListener('click', startPrImpact);
+
+  const diffBtn = $('xray-diff-btn');
+  if (diffBtn) diffBtn.addEventListener('click', startDiffView);
+
+  const toggle3dBtn = $('toggle-3d-btn');
+  if (toggle3dBtn) toggle3dBtn.addEventListener('click', toggle3D);
 
   /* ───────────────────────── URL AUTO-LOAD ───────────────────────── */
   (function autoLoad() {

@@ -869,6 +869,30 @@
     _nodeMap = {}; _adjOut = {}; _adjIn = {};
   }
 
+  /* ──────────────────── go to definition ──────────────────── */
+
+  function goToDefinition(name) {
+    if (!_svg || _destroyed) return false;
+    // Find node by label match (functions and classes)
+    const node = _nodes.find(n =>
+      (n.type === 'function' || n.type === 'class') && n.label === name
+    );
+    if (node) {
+      focusNode(node.id);
+      return true;
+    }
+    // Try partial match
+    const partial = _nodes.find(n =>
+      (n.type === 'function' || n.type === 'class') &&
+      n.label.toLowerCase().includes(name.toLowerCase())
+    );
+    if (partial) {
+      focusNode(partial.id);
+      return true;
+    }
+    return false;
+  }
+
   /* ──────────────────── public API ──────────────────── */
 
   window.IntelGraph = {
@@ -880,6 +904,7 @@
     getConnections,
     clearHighlight,
     getAllNodes,
+    goToDefinition,
     destroy,
   };
 
